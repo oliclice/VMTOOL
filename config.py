@@ -36,7 +36,7 @@ class Config:
         self.single_word_file = os.path.join(self.base_dir, 'singleWord/小鹤字库.txt')
         self.to_filter_dir = os.path.join(self.base_dir, 'toFilter')
         self.add_words_dir = os.path.join(self.base_dir, 'addWords')
-        self.target_rime_path = '/home/wtuj/.config/ibus/rime/'
+        self.target_rime_path = '~/.config/ibus/rime/'
         
         self._ensure_directories()
     
