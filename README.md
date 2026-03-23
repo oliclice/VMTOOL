@@ -139,12 +139,22 @@ python main.py -c "1 2 3"  # 执行功能1、2、3
 
 ### 模块设计
 
-- **Config**: 配置管理，统一管理路径和功能配置
-- **DictManager**: 字典管理，处理码表的增删改查
+- **Config**: 配置管理，统一管理路径和功能配置，支持过滤文件名等自定义设置
+- **DictManager**: 字典管理，处理码表的增删改查，使用惰性计算优化备份文件统计
 - **WeightCalculator**: 权重计算，处理词频权重计算和调整
 - **FileReader/FileWriter**: 文件读写，支持多种编码格式
-- **Menu/RichMenu**: 交互式菜单，提供普通和Rich美化两种界面
+- **BaseMenu**: 菜单基类，提取共享功能逻辑和代码执行逻辑
+- **Menu**: 继承自BaseMenu，提供标准命令行交互界面
+- **RichMenu**: 继承自BaseMenu，提供Rich美化的TUI界面，自动降级到普通菜单
 - **Timer**: 计时器，用于性能监控
+
+### 类关系
+
+```
+BaseMenu (基类)
+    ├── Menu (标准命令行菜单)
+    └── RichMenu (Rich美化菜单，可选依赖)
+```
 
 ### 数据结构
 

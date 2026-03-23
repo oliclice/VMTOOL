@@ -58,7 +58,9 @@ class BaseMenu:
         """写入文件并复制"""
         startwith_path = self.dict_mgr.config.base_dir + "/startwith.txt"
         self.writer.write_dict(
-            self.dict_mgr.data, self.dict_mgr.config.output_file, startwith_path
+            self.dict_mgr.data,
+            self.dict_mgr.config.output_file,
+            startwith_path
         )
         self.writer.copy_file(
             self.dict_mgr.config.output_file,
@@ -89,7 +91,7 @@ class Menu(BaseMenu):
         while True:
             try:
                 self.show_menu()
-                choices = input("请输入选择 (多个用空格分隔, q退出): ").strip()
+                choices = input("请输入选择 (多个用空格分隔, 退出): ").strip()
 
                 if choices.lower() in ["q", "exit"]:
                     break

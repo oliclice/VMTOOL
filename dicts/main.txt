@@ -19019,7 +19019,7 @@
 交流电	jnlqdm	1
 搅乱	jnlr	1
 蛟龙	jnls	1
-焦虑	jnlv	1
+焦虑	jnlv	2
 叫驴	jnlv	1
 胶轮	jnly	1
 叫骂	jnma	1
@@ -19206,9 +19206,10 @@
 交杂	jnza	1
 焦躁	jnzc	1
 窖藏	jnzh	1
-饺子	jnzi	1
-轿子	jnzi	1
-骄子	jnzi	1
+饺子	jnzi	3
+轿子	jnzi	2
+骄子	jnzi	3
+教资	jnzi	4
 叫做	jnzo	1
 叫座儿	jnzoer	1
 娇纵	jnzs	1
@@ -36422,7 +36423,7 @@
 市花	uihx	1
 史话	uihx	1
 石花菜	uihxcd	1
-实话实说	uihxuiyt	1
+实话实说	uihxuiuo	1
 失魂落魄	uihylopo	1
 时候	uihz	2
 事后	uihz	1
