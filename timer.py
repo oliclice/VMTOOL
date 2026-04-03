@@ -14,5 +14,5 @@ class Timer:
                 # 可记录异常，但这里简单重新抛出
                 raise RuntimeError(f"函数 {func.__name__} 执行失败") from e
         elapsed = time.perf_counter() - start
-        print(f"{name}耗时: {elapsed:.3f}秒")
+        print(f"{name}耗时: {elapsed:.5f}秒")
         return results, elapsed

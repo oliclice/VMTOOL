@@ -38,7 +38,7 @@ class Config:
         self.single_word_file = os.path.join(self.base_dir, "singleWord/小鹤字库.txt")
         self.to_filter_dir = os.path.join(self.base_dir, "toFilter")
         self.add_words_dir = os.path.join(self.base_dir, "addWords")
-        self.target_rime_path = os.path.expanduser("~/.config/ibus/rime/")
+        self.target_rime_path = os.path.join(os.path.expanduser("~"), ".config", "ibus", "rime")
         self.filter_file_name = "cs.txt"
 
         self._ensure_directories()

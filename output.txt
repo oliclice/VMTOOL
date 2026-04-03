@@ -40877,8 +40877,8 @@
 众口一词	vskzyici	1
 终老	vslc	1
 中老年	vslcnm	1
-中立	vsli	1
-重力	vsli	1
+中立	vsli	2
+重力	vsli	3
 重利	vsli	1
 中立国	vsligo	1
 钟灵毓秀	vslkyuxq	1
