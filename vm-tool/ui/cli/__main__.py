@@ -284,5 +284,24 @@ def old_interface(args: List[str]):
     compatibility.handle_old_command_line(args)
 
 
+@app.command("gui")
+def start_gui():
+    """启动图形界面"""
+    try:
+        console.print("[green]正在启动图形界面...[/green]")
+        # 导入并启动PyQt应用
+        import sys
+        sys.path.insert(0, ".")
+        from ui.gui.pyqt_app import VMTOOLPyQtApp
+        from PyQt6.QtWidgets import QApplication
+        
+        app = QApplication(sys.argv)
+        window = VMTOOLPyQtApp()
+        window.show()
+        sys.exit(app.exec())
+    except Exception as e:
+        console.print(f"[red]启动图形界面失败:[/red] {e}")
+
+
 if __name__ == "__main__":
     app()

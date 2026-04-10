@@ -148,6 +148,9 @@ vmtool interactive
 
 # 旧版本接口兼容
 vmtool old
+
+# 启动图形界面
+vmtool gui
 ```
 
 ### 添加字典和词典

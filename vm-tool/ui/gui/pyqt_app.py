@@ -12,8 +12,8 @@ from PyQt6.QtWidgets import (
     QLabel, QDialog, QFormLayout, QComboBox, QMessageBox, QFileDialog,
     QTreeWidget, QTreeWidgetItem, QSplitter, QStatusBar, QMenuBar, QMenu
 )
-from PyQt6.QtCore import Qt, QSortFilterProxyModel, QStandardItemModel, QStandardItem
-from PyQt6.QtGui import QAction, QIcon, QFont, QColor
+from PyQt6.QtCore import Qt, QSortFilterProxyModel
+from PyQt6.QtGui import QAction, QIcon, QFont, QColor, QStandardItemModel, QStandardItem
 
 from app.services.dict import DictService
 from app.services.weight import WeightCalculator
@@ -46,13 +46,13 @@ class VMTOOLPyQtApp(QMainWindow):
         # 创建菜单栏
         self.create_menu_bar()
         
-        # 创建标签页
-        self.create_tab_widget()
-        
         # 创建状态栏
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
         self.status_bar.showMessage("就绪")
+        
+        # 创建标签页
+        self.create_tab_widget()
     
     def create_menu_bar(self):
         """创建菜单栏"""
