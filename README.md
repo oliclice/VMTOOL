@@ -150,6 +150,77 @@ vmtool interactive
 vmtool old
 ```
 
+### 添加字典和词典
+
+#### 字典（Dict）
+
+字典是指单个文字的集合，每个文字可以对应多个编码（支持多音字），通过以下方式添加：
+
+1. **命令行添加单个文字**：
+   ```bash
+   # 添加单个文字和编码
+   vmtool add --word 行 --code xing --weight 100
+   # 为同一文字添加另一个编码（多音字）
+   vmtool add --word 行 --code hang --weight 100
+   ```
+
+2. **命令行批量添加文字**：
+   ```bash
+   vmtool add-batch --file path/to/file.txt
+   ```
+
+3. **Web界面添加**：
+   - 打开Web界面，进入"词表管理"页面
+   - 点击"添加词条"按钮
+   - 输入单个文字、编码和权重，点击"保存"
+   - 可以为同一文字多次添加不同编码
+
+4. **GUI界面添加**：
+   - 打开GUI界面（Tkinter或PyQt6版本）
+   - 点击"添加"按钮
+   - 输入单个文字、编码和权重，点击"保存"
+   - 可以为同一文字多次添加不同编码
+
+#### 词典（Dictionary）
+
+词典是指整个词库，包括编码的自动生成和导出功能：
+
+1. **词典编码的自动生成**：
+   - 当添加词条时，如果不指定编码，系统会自动生成编码
+   - 例如：
+     ```bash
+     vmtool add --word 测试 --weight 100
+     ```
+     系统会自动为"测试"生成编码
+
+2. **词典编码的自动导出**：
+   - 导出为TXT格式：
+     ```bash
+     vmtool export --format txt --path path/to/output.txt
+     ```
+   - 导出为CSV格式：
+     ```bash
+     vmtool export --format csv --path path/to/output.csv
+     ```
+   - 导出为JSON格式：
+     ```bash
+     vmtool export --format json --path path/to/output.json
+     ```
+
+3. **词典的导入**：
+   - 从TXT文件导入：
+     ```bash
+     vmtool import --format txt --path path/to/file.txt
+     ```
+   - 从CSV文件导入：
+     ```bash
+     vmtool import --format csv --path path/to/file.csv
+     ```
+   - 从JSON文件导入：
+     ```bash
+     vmtool import --format json --path path/to/file.json
+     ```
+
 ### Web界面
 
 Web界面提供了直观的图形化操作：
