@@ -145,7 +145,7 @@ class StatsService:
     def get_high_frequency_words(self, limit: int = 100) -> List[Dict[str, Any]]:
         """获取高频词（按权重排序）"""
         try:
-            all_words = self.repo.get_all(limit=10000)
+            all_words = self.repo.get_all()
             # 按权重排序
             sorted_words = sorted(all_words, key=lambda x: x.weight, reverse=True)
             
@@ -161,7 +161,7 @@ class StatsService:
     def analyze_usage_patterns(self) -> Dict[str, Any]:
         """分析使用模式"""
         try:
-            all_words = self.repo.get_all(limit=10000)
+            all_words = self.repo.get_all()
             
             # 词长分析
             length_stats = self.get_word_length_stats()

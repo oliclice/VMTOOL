@@ -58,8 +58,8 @@ class WordRepository(BaseRepository):
         db_words = [Word(**word) for word in words]
         self.db.add_all(db_words)
         self.db.commit()
-        # 移除逐个刷新的操作，提高性能
-        # 批量创建后，我们只返回创建的对象，不刷新
+        for word in db_words:
+            self.db.refresh(word)
         return db_words
     
     def search(self, keyword: str) -> List[Word]:

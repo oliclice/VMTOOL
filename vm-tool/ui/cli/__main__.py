@@ -1,5 +1,8 @@
 """VM-TOOL 命令行界面"""
 import typer
+import click
+import io
+import sys
 from rich.console import Console
 from rich.table import Table
 from rich.prompt import Prompt, IntPrompt
@@ -15,8 +18,17 @@ console = Console()
 app = typer.Typer(
     name="vm-tool",
     help="码表处理工具",
-    add_completion=True
+    add_completion=True,
+    no_args_is_help=False
 )
+
+
+@app.callback(invoke_without_command=True)
+def main(ctx: typer.Context):
+    """码表处理工具"""
+    if ctx.invoked_subcommand is None:
+        # 没有指定命令，进入交互式模式
+        interactive_mode()
 
 # 初始化服务
 dict_service = DictService()
@@ -219,96 +231,49 @@ def migrate_data(old_file: Optional[str] = None):
         console.print(f"[red]迁移失败:[/red] {e}")
 
 
+def show_typer_help():
+    """显示与 --help 相同的帮助信息"""
+    from click.testing import CliRunner
+    from typer.main import get_command
+    cmd = get_command(app)
+    runner = CliRunner()
+    result = runner.invoke(cmd, ['--help'])
+    if result.output:
+        console.print(result.output)
+    if result.exception:
+        raise result.exception
+
+
 @app.command("interactive")
 def interactive_mode():
     """交互式模式"""
     console.print("[bold cyan]VM-TOOL 交互式模式[/bold cyan]")
-    console.print("输入 'help' 查看可用命令，输入 'exit' 退出")
+    console.print("输入 'help' 查看可用命令，输入 'exit/quit' 退出")
     
     while True:
         command = Prompt.ask("\n请输入命令")
         
-        if command == "exit":
+        if command == "exit" or command == "quit":
             console.print("[green]再见！[/green]")
             break
         elif command == "help":
-            console.print("可用命令:")
-            console.print("  add <词> [编码] [权重] - 添加词条")
-            console.print("  delete <词> - 删除词条")
-            console.print("  query <关键词> - 查询词条")
-            console.print("  update-weight <词> [增量] - 更新权重")
-            console.print("  set-weight <词> <权重> - 设置权重")
-            console.print("  replace-code <词> <新编码> - 替换编码")
-            console.print("  stats - 显示统计信息")
-            console.print("  import <文件路径> [格式] - 导入数据")
-            console.print("  export <文件路径> [格式] - 导出数据")
-            console.print("  migrate - 迁移旧数据")
-            console.print("  exit - 退出")
+            show_typer_help()
         else:
-            # 解析命令
+            # 使用 Typer 执行命令
             parts = command.split()
             if not parts:
                 continue
-            
-            cmd = parts[0]
-            args = parts[1:]
-            
+
             try:
-                if cmd == "add":
-                    if len(args) >= 1:
-                        word = args[0]
-                        code = args[1] if len(args) >= 2 else None
-                        weight = float(args[2]) if len(args) >= 3 else 1.0
-                        add_word(word, code, weight)
-                    else:
-                        console.print("[red]参数不足:[/red] add 命令需要至少一个词")
-                elif cmd == "delete":
-                    if len(args) >= 1:
-                        delete_word(args[0])
-                    else:
-                        console.print("[red]参数不足:[/red] delete 命令需要一个词")
-                elif cmd == "query":
-                    if len(args) >= 1:
-                        query_word(args[0])
-                    else:
-                        console.print("[red]参数不足:[/red] query 命令需要一个关键词")
-                elif cmd == "update-weight":
-                    if len(args) >= 1:
-                        word = args[0]
-                        increment = float(args[1]) if len(args) >= 2 else 0.1
-                        update_weight(word, increment)
-                    else:
-                        console.print("[red]参数不足:[/red] update-weight 命令需要至少一个词")
-                elif cmd == "set-weight":
-                    if len(args) >= 2:
-                        set_weight(args[0], float(args[1]))
-                    else:
-                        console.print("[red]参数不足:[/red] set-weight 命令需要词和权重")
-                elif cmd == "replace-code":
-                    if len(args) >= 2:
-                        replace_code(args[0], args[1])
-                    else:
-                        console.print("[red]参数不足:[/red] replace-code 命令需要词和新编码")
-                elif cmd == "stats":
-                    show_stats()
-                elif cmd == "import":
-                    if len(args) >= 1:
-                        file_path = args[0]
-                        format = args[1] if len(args) >= 2 else "txt"
-                        import_data(file_path, format)
-                    else:
-                        console.print("[red]参数不足:[/red] import 命令需要文件路径")
-                elif cmd == "export":
-                    if len(args) >= 1:
-                        output_file = args[0]
-                        format = args[1] if len(args) >= 2 else "txt"
-                        export_data(output_file, format)
-                    else:
-                        console.print("[red]参数不足:[/red] export 命令需要文件路径")
-                elif cmd == "migrate":
-                    migrate_data()
-                else:
-                    console.print(f"[red]未知命令:[/red] {cmd}")
+                from click.testing import CliRunner
+                from typer.main import get_command
+                cmd = get_command(app)
+                runner = CliRunner()
+                result = runner.invoke(cmd, parts)
+                if result.output:
+                    console.print(result.output)
+                if result.exception:
+                    raise result.exception
             except Exception as e:
                 console.print(f"[red]执行命令失败:[/red] {e}")
 

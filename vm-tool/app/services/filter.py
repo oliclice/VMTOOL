@@ -181,8 +181,8 @@ class FilterService:
         """导出到TXT文件"""
         try:
             if not words:
-                # 获取所有词（不限制数量）
-                all_words = self.repo.get_all(limit=10000)
+                # 获取所有词
+                all_words = self.repo.get_all()
                 words = [{
                     "word": word.word,
                     "code": word.code,
@@ -202,8 +202,8 @@ class FilterService:
         """导出到CSV文件"""
         try:
             if not words:
-                # 获取所有词（不限制数量）
-                all_words = self.repo.get_all(limit=10000)
+                # 获取所有词
+                all_words = self.repo.get_all()
                 words = [{
                     "word": word.word,
                     "code": word.code,
@@ -225,8 +225,8 @@ class FilterService:
         """导出到JSON文件"""
         try:
             if not words:
-                # 获取所有词（不限制数量）
-                all_words = self.repo.get_all(limit=10000)
+                # 获取所有词
+                all_words = self.repo.get_all()
                 words = [{
                     "word": word.word,
                     "code": word.code,

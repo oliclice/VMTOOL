@@ -53,17 +53,14 @@ class WeightCalculator:
             if not db_word:
                 raise WeightError(f"词条 '{word}' 不存在")
             
-            # 保存旧权重
-            old_weight = db_word.weight
-            
             # 计算新权重
-            new_weight = old_weight + increment
+            new_weight = self.calculate_weight(word, db_word.weight + increment)
             
             # 更新权重
             updated = self.repo.update(db_word.id, weight=new_weight)
             return {
                 "word": updated.word,
-                "old_weight": old_weight,
+                "old_weight": db_word.weight,
                 "new_weight": updated.weight
             }
         except WeightError:
