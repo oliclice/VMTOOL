@@ -28,7 +28,35 @@ def main(ctx: typer.Context):
     """码表处理工具"""
     if ctx.invoked_subcommand is None:
         # 没有指定命令，进入交互式模式
-        interactive_mode()
+        console.print("[bold cyan]VM-TOOL 交互式模式[/bold cyan]")
+        console.print("输入 'help' 查看可用命令，输入 'exit/quit' 退出")
+        
+        while True:
+            command = Prompt.ask("\n请输入命令")
+            
+            if command == "exit" or command == "quit":
+                console.print("[green]再见！[/green]")
+                break
+            elif command == "help":
+                show_typer_help()
+            else:
+                # 使用 Typer 执行命令
+                parts = command.split()
+                if not parts:
+                    continue
+
+                try:
+                    from click.testing import CliRunner
+                    from typer.main import get_command
+                    cmd = get_command(app)
+                    runner = CliRunner()
+                    result = runner.invoke(cmd, parts)
+                    if result.output:
+                        console.print(result.output)
+                    if result.exception:
+                        raise result.exception
+                except Exception as e:
+                    console.print(f"[red]执行命令失败:[/red] {e}")
 
 # 初始化服务
 dict_service = DictService()
@@ -273,38 +301,7 @@ def show_typer_help():
         raise result.exception
 
 
-@app.command("interactive")
-def interactive_mode():
-    """交互式模式"""
-    console.print("[bold cyan]VM-TOOL 交互式模式[/bold cyan]")
-    console.print("输入 'help' 查看可用命令，输入 'exit/quit' 退出")
-    
-    while True:
-        command = Prompt.ask("\n请输入命令")
-        
-        if command == "exit" or command == "quit":
-            console.print("[green]再见！[/green]")
-            break
-        elif command == "help":
-            show_typer_help()
-        else:
-            # 使用 Typer 执行命令
-            parts = command.split()
-            if not parts:
-                continue
 
-            try:
-                from click.testing import CliRunner
-                from typer.main import get_command
-                cmd = get_command(app)
-                runner = CliRunner()
-                result = runner.invoke(cmd, parts)
-                if result.output:
-                    console.print(result.output)
-                if result.exception:
-                    raise result.exception
-            except Exception as e:
-                console.print(f"[red]执行命令失败:[/red] {e}")
 
 
 @app.command("old")
