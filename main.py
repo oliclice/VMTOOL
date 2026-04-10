@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-码表处理工具 - 主程序
+VM-TOOL - 码表处理工具主程序
 支持命令行参数和交互式菜单
 """
 import sys
@@ -17,8 +17,8 @@ from timer import Timer
 from menu import Menu, RichMenu
 
 
-class DictTool:
-    """码表处理工具主类"""
+class VMTool:
+    """VM-TOOL 码表处理工具主类"""
     
     def __init__(self):
         self.config = Config()
@@ -43,7 +43,7 @@ class DictTool:
     
     def _parse_args(self, args=None) -> argparse.Namespace:
         """解析命令行参数"""
-        parser = argparse.ArgumentParser(description="码表处理工具")
+        parser = argparse.ArgumentParser(description="VM-TOOL - 码表处理工具")
         
         # 添加参数
         parser.add_argument('-a', '--add', nargs='*', help='添加新词')
@@ -161,7 +161,7 @@ class DictTool:
 def main():
     """主函数"""
     try:
-        DictTool().run()
+        VMTool().run()
     except KeyboardInterrupt:
         print("\n程序被用户中断")
         sys.exit(0)

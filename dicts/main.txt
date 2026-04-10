@@ -154,9 +154,9 @@
 氨基酸	anjisr	1
 安静	anjk	1
 案件	anjm	1
-安检	anjm	1
-按键	anjm	1
-暗箭	anjm	1
+安检	anjm	3
+按键	anjm	4
+暗箭	anjm	2
 暗礁	anjn	1
 按揭	anjp	1
 案卷	anjr	1
@@ -51874,8 +51874,9 @@
 自从	zics	1
 自忖	zicy	1
 自打	zida	1
-自大	zidd	1
-子代	zidd	1
+自大	zida	1
+子代	zidd	2
+自带	zidd	3
 子弟	zidi	1
 子弟兵	zidibk	1
 紫丁香	zidkxl	1

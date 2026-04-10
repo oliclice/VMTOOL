@@ -80,7 +80,7 @@ class Menu(BaseMenu):
     def show_menu(self):
         """显示菜单"""
         print("\n" + "=" * 50)
-        print("码表处理工具")
+        print("VM-TOOL 码表处理工具")
         print("=" * 50)
         for func in self.dict_mgr.config.FUNCTIONS:
             print(f"{func.id}. {func.name} - {func.desc}")
@@ -133,7 +133,7 @@ class RichMenu(BaseMenu):
                 console.clear()
                 console.print(
                     Panel.fit(
-                        "[bold cyan]📊 码表处理工具[/bold cyan]\n[dim]TUI交互界面[/dim]",
+                        "[bold cyan]📊 VM-TOOL 码表处理工具[/bold cyan]\n[dim]TUI交互界面[/dim]",
                         border_style="cyan",
                         padding=(1, 2),
                     )
