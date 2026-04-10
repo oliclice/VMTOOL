@@ -31,6 +31,9 @@ def main(ctx: typer.Context):
         console.print("[bold cyan]VM-TOOL 交互式模式[/bold cyan]")
         console.print("输入 'help' 查看可用命令，输入 'exit/quit' 退出")
         
+        # 自动显示命令列表
+        show_typer_help()
+        
         while True:
             command = Prompt.ask("\n请输入命令")
             
