@@ -139,6 +139,35 @@ def replace_code(word: str, new_code: str):
         console.print(f"[red]替换编码失败:[/red] {e}")
 
 
+@app.command("calculate-all-codes")
+def calculate_all_codes(rule: str = "first_letter", separator: str = "", max_length: int = 10):
+    """计算所有未手动修改过编码的词条的编码
+    
+    Args:
+        rule: 编码规则 (first_letter, all_letters, custom)
+        separator: 编码分隔符
+        max_length: 最大编码长度
+    """
+    try:
+        # 设置编码生成配置
+        config = {
+            'rule': rule,
+            'separator': separator,
+            'max_length': max_length
+        }
+        dict_service.code_generator.set_config(config)
+        
+        # 批量计算编码
+        result = dict_service.calculate_all_codes()
+        
+        console.print(f"[green]批量计算编码完成:[/green]")
+        console.print(f"总词条数: {result['total']}")
+        console.print(f"成功更新: {result['updated']}")
+        console.print(f"更新失败: {result['failed']}")
+    except Exception as e:
+        console.print(f"[red]批量计算编码失败:[/red] {e}")
+
+
 @app.command("stats")
 def show_stats():
     """显示统计信息"""

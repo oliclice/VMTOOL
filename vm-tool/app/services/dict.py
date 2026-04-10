@@ -5,8 +5,10 @@ import logging
 
 from app.dal.repositories import WordRepository
 from app.dal.database import get_db
+from app.dal.models import Word
 from app.core.errors import DictError
 from app.core.cache import cache, optimize_batch_operation, performance_monitor
+from app.services.code_generator import CodeGenerator
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -21,6 +23,7 @@ class DictService:
         else:
             self.db = next(get_db())
         self.repo = WordRepository(self.db)
+        self.code_generator = CodeGenerator()
     
     @cache.decorator()
     def get_word(self, word: str) -> Optional[Dict[str, Any]]:
@@ -71,19 +74,20 @@ class DictService:
             raise DictError(f"搜索词条失败: {e}")
     
     @performance_monitor
-    def add_word(self, word: str, code: str, weight: float = 1.0) -> Dict[str, Any]:
+    def add_word(self, word: str, code: str, weight: float = 1.0, manual: bool = False) -> Dict[str, Any]:
         """添加单个词条"""
         try:
-            # 检查是否已存在
-            existing = self.repo.get_by_word(word)
+            # 检查是否已存在相同的word和code组合
+            existing = self.repo.get_by_word_and_code(word, code)
             if existing:
-                raise DictError(f"词条 '{word}' 已存在")
+                raise DictError(f"词条 '{word}' 与编码 '{code}' 的组合已存在")
             
-            db_word = self.repo.create(word, code, weight)
+            db_word = self.repo.create(word, code, weight, manual)
             return {
                 "word": db_word.word,
                 "code": db_word.code,
-                "weight": db_word.weight
+                "weight": db_word.weight,
+                "manual": db_word.manual
             }
         except DictError:
             raise
@@ -95,15 +99,17 @@ class DictService:
     def add_words(self, words: List[Dict[str, Any]]) -> Dict[str, Any]:
         """批量添加词条"""
         try:
-            # 过滤已存在的词条
+            # 过滤已存在的词条（不检查manual字段）
             valid_words = []
-            existing_words = []
+            existing_pairs = []
             
             for word_data in words:
-                if not self.repo.get_by_word(word_data.get("word")):
+                word = word_data.get("word")
+                code = word_data.get("code")
+                if not self.repo.get_by_word_and_code(word, code):
                     valid_words.append(word_data)
                 else:
-                    existing_words.append(word_data.get("word"))
+                    existing_pairs.append(f"{word}:{code}")
             
             # 批量创建
             if valid_words:
@@ -111,8 +117,8 @@ class DictService:
                 
             return {
                 "added": len(valid_words),
-                "existing": len(existing_words),
-                "existing_words": existing_words
+                "existing": len(existing_pairs),
+                "existing_pairs": existing_pairs
             }
         except Exception as e:
             logger.error(f"批量添加词条失败: {e}")
@@ -125,13 +131,18 @@ class DictService:
             if not db_word:
                 raise DictError(f"词条 '{word}' 不存在")
             
+            # 如果更新编码，设置manual为True
+            if "code" in kwargs:
+                kwargs["manual"] = True
+            
             # 更新词条
             updated = self.repo.update(db_word.id, **kwargs)
             return {
                 "word": updated.word,
                 "code": updated.code,
                 "weight": updated.weight,
-                "is_active": updated.is_active
+                "is_active": updated.is_active,
+                "manual": updated.manual
             }
         except DictError:
             raise
@@ -178,9 +189,7 @@ class DictService:
     
     def generate_code(self, word: str) -> str:
         """生成编码"""
-        # 这里需要根据具体的编码规则实现
-        # 暂时返回一个简单的示例
-        return "".join([str(ord(c) % 26 + 97) for c in word])[:4]
+        return self.code_generator.generate_code(word)
     
     def replace_code(self, word: str, new_code: str) -> Dict[str, Any]:
         """替换编码"""
@@ -197,8 +206,42 @@ class DictService:
             return [{
                 "word": word.word,
                 "code": word.code,
-                "weight": word.weight
+                "weight": word.weight,
+                "manual": word.manual
             } for word in db_words]
         except Exception as e:
             logger.error(f"获取所有词条失败: {e}")
             raise DictError(f"获取所有词条失败: {e}")
+    
+    def calculate_all_codes(self) -> Dict[str, Any]:
+        """计算所有未手动修改过编码的词条的编码"""
+        try:
+            # 获取所有未手动修改过编码的词条
+            db_words = self.db.query(Word).filter(Word.manual == False).all()
+            
+            updated = 0
+            failed = 0
+            
+            for db_word in db_words:
+                try:
+                    # 生成新编码
+                    new_code = self.generate_code(db_word.word)
+                    if new_code:
+                        # 更新编码，不设置manual为True，因为这是自动计算的
+                        db_word.code = new_code
+                        updated += 1
+                except Exception as e:
+                    logger.error(f"计算词条 '{db_word.word}' 的编码失败: {e}")
+                    failed += 1
+            
+            # 提交更改
+            self.db.commit()
+            
+            return {
+                "total": len(db_words),
+                "updated": updated,
+                "failed": failed
+            }
+        except Exception as e:
+            logger.error(f"批量计算编码失败: {e}")
+            raise DictError(f"批量计算编码失败: {e}")

@@ -14,9 +14,9 @@ class BaseRepository:
 class WordRepository(BaseRepository):
     """词库仓库"""
     
-    def create(self, word: str, code: str, weight: float = 1.0) -> Word:
-        """创建新词"""
-        db_word = Word(word=word, code=code, weight=weight)
+    def create(self, word: str, code: str, weight: float = 1.0, manual: bool = False) -> Word:
+        """创建词条"""
+        db_word = Word(word=word, code=code, weight=weight, manual=manual)
         self.db.add(db_word)
         self.db.commit()
         self.db.refresh(db_word)
@@ -25,6 +25,10 @@ class WordRepository(BaseRepository):
     def get_by_word(self, word: str) -> Optional[Word]:
         """根据词获取词条"""
         return self.db.query(Word).filter(Word.word == word).first()
+    
+    def get_by_word_and_code(self, word: str, code: str) -> Optional[Word]:
+        """根据词和编码获取词条"""
+        return self.db.query(Word).filter(Word.word == word, Word.code == code).first()
     
     def get_by_code(self, code: str) -> List[Word]:
         """根据编码获取词条列表"""
