@@ -10,9 +10,10 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
     QTabWidget, QTableWidget, QTableWidgetItem, QPushButton, QLineEdit,
     QLabel, QDialog, QFormLayout, QComboBox, QMessageBox, QFileDialog,
-    QTreeWidget, QTreeWidgetItem, QSplitter, QStatusBar, QMenuBar, QMenu
+    QTreeWidget, QTreeWidgetItem, QSplitter, QStatusBar, QMenuBar, QMenu,
+    QProgressDialog, QTextEdit
 )
-from PyQt6.QtCore import Qt, QSortFilterProxyModel
+from PyQt6.QtCore import Qt, QSortFilterProxyModel, QThread, pyqtSignal
 from PyQt6.QtGui import QAction, QIcon, QFont, QColor, QStandardItemModel, QStandardItem, QPalette
 
 from app.services.dict import DictService
@@ -20,6 +21,69 @@ from app.services.weight import WeightCalculator
 from app.services.filter import FilterService
 from app.services.stats import StatsService
 from app.core.config_manager import config_manager
+
+
+class ImportThread(QThread):
+    """导入线程"""
+    progress = pyqtSignal(int, str)
+    finished = pyqtSignal(dict)
+    error = pyqtSignal(str)
+    
+    def __init__(self, filter_service, file_path, format):
+        super().__init__()
+        self.filter_service = filter_service
+        self.file_path = file_path
+        self.format = format
+    
+    def run(self):
+        try:
+            def progress_callback(progress, message):
+                self.progress.emit(progress, message)
+            
+            if self.format == "txt":
+                result = self.filter_service.import_from_txt(self.file_path, progress_callback=progress_callback)
+            elif self.format == "csv":
+                result = self.filter_service.import_from_csv(self.file_path, progress_callback=progress_callback)
+            elif self.format == "json":
+                result = self.filter_service.import_from_json(self.file_path, progress_callback=progress_callback)
+            else:
+                self.error.emit("不支持的格式")
+                return
+            
+            self.finished.emit(result)
+        except Exception as e:
+            self.error.emit(str(e))
+
+
+class AddBatchThread(QThread):
+    """批量添加线程"""
+    progress = pyqtSignal(int, str)
+    finished = pyqtSignal(dict)
+    error = pyqtSignal(str)
+    
+    def __init__(self, dict_service, items, is_character=False):
+        super().__init__()
+        self.dict_service = dict_service
+        self.items = items
+        self.is_character = is_character
+    
+    def run(self):
+        try:
+            def progress_callback(progress, message):
+                self.progress.emit(progress, message)
+            
+            item_data = []
+            for item in self.items:
+                item_data.append({"word": item, "code": None, "weight": 1.0})
+            
+            if self.is_character:
+                result = self.dict_service.add_characters(item_data, progress_callback=progress_callback)
+            else:
+                result = self.dict_service.add_words(item_data, progress_callback=progress_callback)
+            
+            self.finished.emit(result)
+        except Exception as e:
+            self.error.emit(str(e))
 
 
 class VMTOOLPyQtApp(QMainWindow):
@@ -201,6 +265,9 @@ class VMTOOLPyQtApp(QMainWindow):
         add_button = QPushButton("添加")
         add_button.clicked.connect(self.add_char)
         
+        add_batch_button = QPushButton("批量添加")
+        add_batch_button.clicked.connect(self.add_batch_chars)
+        
         edit_button = QPushButton("编辑")
         edit_button.clicked.connect(self.edit_char)
         
@@ -211,6 +278,7 @@ class VMTOOLPyQtApp(QMainWindow):
         refresh_button.clicked.connect(self.refresh_chars)
         
         button_layout.addWidget(add_button)
+        button_layout.addWidget(add_batch_button)
         button_layout.addWidget(edit_button)
         button_layout.addWidget(delete_button)
         button_layout.addWidget(refresh_button)
@@ -256,6 +324,9 @@ class VMTOOLPyQtApp(QMainWindow):
         add_button = QPushButton("添加")
         add_button.clicked.connect(self.add_word)
         
+        add_batch_button = QPushButton("批量添加")
+        add_batch_button.clicked.connect(self.add_batch_words)
+        
         edit_button = QPushButton("编辑")
         edit_button.clicked.connect(self.edit_word)
         
@@ -269,6 +340,7 @@ class VMTOOLPyQtApp(QMainWindow):
         refresh_button.clicked.connect(self.refresh_words)
         
         button_layout.addWidget(add_button)
+        button_layout.addWidget(add_batch_button)
         button_layout.addWidget(edit_button)
         button_layout.addWidget(delete_button)
         button_layout.addWidget(calc_all_codes_button)
@@ -691,27 +763,45 @@ class VMTOOLPyQtApp(QMainWindow):
         
         format = self.import_format_combo.currentText()
         
-        self.status_bar.showMessage(f"导入 {format} 文件...")
+        # 创建进度对话框
+        progress_dialog = QProgressDialog("开始导入...", "取消", 0, 100, self)
+        progress_dialog.setWindowTitle("导入进度")
+        progress_dialog.setMinimumDuration(0)
+        progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
         
-        try:
-            if format == "txt":
-                result = self.filter_service.import_from_txt(file_path)
-            elif format == "csv":
-                result = self.filter_service.import_from_csv(file_path)
-            elif format == "json":
-                result = self.filter_service.import_from_json(file_path)
-            else:
-                QMessageBox.critical(self, "错误", "不支持的格式")
-                return
-            
-            QMessageBox.information(
-                self, "成功", f"导入成功: 添加了 {result['added']} 条，跳过了 {result['existing']} 条"
-            )
-            self.refresh_words()
-            self.status_bar.showMessage("导入完成")
-        except Exception as e:
-            QMessageBox.critical(self, "错误", f"导入失败: {e}")
-            self.status_bar.showMessage("导入失败")
+        # 创建导入线程
+        self.import_thread = ImportThread(self.filter_service, file_path, format)
+        
+        # 连接信号
+        self.import_thread.progress.connect(lambda progress, message: self.on_import_progress(progress, message, progress_dialog))
+        self.import_thread.finished.connect(lambda result: self.on_import_finished(result, progress_dialog))
+        self.import_thread.error.connect(lambda error: self.on_import_error(error, progress_dialog))
+        
+        # 开始线程
+        self.import_thread.start()
+        
+        # 显示进度对话框
+        progress_dialog.exec()
+    
+    def on_import_progress(self, progress, message, progress_dialog):
+        """导入进度回调"""
+        progress_dialog.setValue(progress)
+        progress_dialog.setLabelText(message)
+    
+    def on_import_finished(self, result, progress_dialog):
+        """导入完成回调"""
+        progress_dialog.accept()
+        QMessageBox.information(
+            self, "成功", f"导入成功: 添加了 {result['added']} 条，跳过了 {result['existing']} 条"
+        )
+        self.refresh_words()
+        self.status_bar.showMessage("导入完成")
+    
+    def on_import_error(self, error, progress_dialog):
+        """导入错误回调"""
+        progress_dialog.accept()
+        QMessageBox.critical(self, "错误", f"导入失败: {error}")
+        self.status_bar.showMessage("导入失败")
     
     def export_data(self):
         """导出数据"""
@@ -955,6 +1045,151 @@ class VMTOOLPyQtApp(QMainWindow):
                     QMessageBox.warning(self, "警告", "汉字不存在")
             except Exception as e:
                 QMessageBox.critical(self, "错误", f"删除失败: {e}")
+    
+    def add_batch_chars(self):
+        """批量添加汉字"""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("批量添加汉字")
+        dialog.setGeometry(200, 200, 500, 300)
+        
+        layout = QVBoxLayout(dialog)
+        
+        label = QLabel("请输入要添加的汉字，每个汉字占一行:")
+        layout.addWidget(label)
+        
+        text_edit = QTextEdit()
+        layout.addWidget(text_edit)
+        
+        button_layout = QHBoxLayout()
+        add_button = QPushButton("添加")
+        cancel_button = QPushButton("取消")
+        
+        def add_chars():
+            text = text_edit.toPlainText()
+            chars = [char.strip() for char in text.split('\n') if char.strip()]
+            
+            if not chars:
+                QMessageBox.warning(self, "警告", "请输入要添加的汉字")
+                return
+            
+            # 验证输入是否都是单个汉字
+            for char in chars:
+                if len(char) != 1:
+                    QMessageBox.warning(self, "警告", f"'{char}' 不是单个汉字，请检查输入")
+                    return
+            
+            # 创建进度对话框
+            progress_dialog = QProgressDialog("开始批量添加...", "取消", 0, 100, self)
+            progress_dialog.setWindowTitle("添加进度")
+            progress_dialog.setMinimumDuration(0)
+            progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+            
+            # 创建批量添加线程
+            self.add_batch_thread = AddBatchThread(self.dict_service, chars, is_character=True)
+            
+            # 连接信号
+            self.add_batch_thread.progress.connect(lambda progress, message: self.on_add_batch_progress(progress, message, progress_dialog))
+            self.add_batch_thread.finished.connect(lambda result: self.on_add_batch_finished(result, progress_dialog, "汉字"))
+            self.add_batch_thread.error.connect(lambda error: self.on_add_batch_error(error, progress_dialog))
+            
+            # 开始线程
+            self.add_batch_thread.start()
+            
+            # 显示进度对话框
+            progress_dialog.exec()
+            
+            dialog.accept()
+        
+        add_button.clicked.connect(add_chars)
+        cancel_button.clicked.connect(dialog.reject)
+        
+        button_layout.addWidget(add_button)
+        button_layout.addWidget(cancel_button)
+        
+        layout.addLayout(button_layout)
+        
+        dialog.exec()
+    
+    def add_batch_words(self):
+        """批量添加词条"""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("批量添加词条")
+        dialog.setGeometry(200, 200, 500, 300)
+        
+        layout = QVBoxLayout(dialog)
+        
+        label = QLabel("请输入要添加的词条，每个词条占一行:")
+        layout.addWidget(label)
+        
+        text_edit = QTextEdit()
+        layout.addWidget(text_edit)
+        
+        button_layout = QHBoxLayout()
+        add_button = QPushButton("添加")
+        cancel_button = QPushButton("取消")
+        
+        def add_words():
+            text = text_edit.toPlainText()
+            words = [word.strip() for word in text.split('\n') if word.strip()]
+            
+            if not words:
+                QMessageBox.warning(self, "警告", "请输入要添加的词条")
+                return
+            
+            # 创建进度对话框
+            progress_dialog = QProgressDialog("开始批量添加...", "取消", 0, 100, self)
+            progress_dialog.setWindowTitle("添加进度")
+            progress_dialog.setMinimumDuration(0)
+            progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+            
+            # 创建批量添加线程
+            self.add_batch_thread = AddBatchThread(self.dict_service, words, is_character=False)
+            
+            # 连接信号
+            self.add_batch_thread.progress.connect(lambda progress, message: self.on_add_batch_progress(progress, message, progress_dialog))
+            self.add_batch_thread.finished.connect(lambda result: self.on_add_batch_finished(result, progress_dialog, "词条"))
+            self.add_batch_thread.error.connect(lambda error: self.on_add_batch_error(error, progress_dialog))
+            
+            # 开始线程
+            self.add_batch_thread.start()
+            
+            # 显示进度对话框
+            progress_dialog.exec()
+            
+            dialog.accept()
+        
+        add_button.clicked.connect(add_words)
+        cancel_button.clicked.connect(dialog.reject)
+        
+        button_layout.addWidget(add_button)
+        button_layout.addWidget(cancel_button)
+        
+        layout.addLayout(button_layout)
+        
+        dialog.exec()
+    
+    def on_add_batch_progress(self, progress, message, progress_dialog):
+        """批量添加进度回调"""
+        progress_dialog.setValue(progress)
+        progress_dialog.setLabelText(message)
+    
+    def on_add_batch_finished(self, result, progress_dialog, item_type):
+        """批量添加完成回调"""
+        progress_dialog.accept()
+        QMessageBox.information(
+            self, "成功", f"批量添加{item_type}完成: 添加了 {result['added']} 个，跳过了 {result['existing']} 个"
+        )
+        if item_type == "汉字":
+            self.refresh_chars()
+        else:
+            self.refresh_words()
+        self.status_bar.showMessage(f"批量添加{item_type}完成")
+    
+    def on_add_batch_error(self, error, progress_dialog):
+        """批量添加错误回调"""
+        progress_dialog.accept()
+        QMessageBox.critical(self, "错误", f"批量添加失败: {error}")
+        self.status_bar.showMessage("批量添加失败")
     
     def browse_file(self, edit):
         """浏览文件"""
