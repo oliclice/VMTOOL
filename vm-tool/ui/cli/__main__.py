@@ -70,10 +70,10 @@ compatibility = CompatibilityLayer()
 
 
 @app.command("add")
-def add_word(word: str, code: Optional[str] = None, weight: float = 1.0):
+def add_word(word: str, code: Optional[str] = None, weight: float = 1.0, is_character: Optional[bool] = None):
     """添加词条"""
     try:
-        result = dict_service.add_word(word, code, weight)
+        result = dict_service.add_word(word, code, weight, is_character)
         console.print(f"[green]添加成功:[/green] {result}")
     except Exception as e:
         console.print(f"[red]添加失败:[/red] {e}")
@@ -92,6 +92,21 @@ def add_batch(words: List[str]):
         console.print(f"[green]批量添加完成:[/green] 添加了 {result['added']} 条，跳过了 {result['existing']} 条")
     except Exception as e:
         console.print(f"[red]批量添加失败:[/red] {e}")
+
+
+@app.command("add-batch-chars")
+def add_batch_chars(characters: List[str]):
+    """批量添加字表"""
+    try:
+        char_data = []
+        for char in characters:
+            # 简单处理，实际应用中可能需要更复杂的解析
+            char_data.append({"word": char, "code": None, "weight": 1.0})
+        
+        result = dict_service.add_characters(char_data)
+        console.print(f"[green]批量添加字表完成:[/green] 添加了 {result['added']} 个，跳过了 {result['existing']} 个")
+    except Exception as e:
+        console.print(f"[red]批量添加字表失败:[/red] {e}")
 
 
 @app.command("delete")
