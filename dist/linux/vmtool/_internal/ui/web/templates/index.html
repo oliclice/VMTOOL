@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VM-TOOL - 码表处理工具</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/htmx.org@1.9.0/dist/htmx.min.js"></script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">VM-TOOL</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/">首页</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/words">词表管理</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/stats">统计分析</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/import">数据导入</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/docs">API文档</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <div class="jumbotron">
+            <h1 class="display-4">欢迎使用 VM-TOOL</h1>
+            <p class="lead">现代化的码表处理工具，支持词表管理、权重计算、数据导入导出等功能。</p>
+            <hr class="my-4">
+            <p>选择左侧导航栏的功能进行操作，或使用命令行工具进行更高级的操作。</p>
+            <a class="btn btn-primary btn-lg" href="/words" role="button">开始管理词表</a>
+        </div>
+
+        <div class="row mt-5">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">词表管理</h5>
+                        <p class="card-text">添加、删除、修改词条，管理编码和权重。</p>
+                        <a href="/words" class="btn btn-secondary">进入</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">统计分析</h5>
+                        <p class="card-text">查看词表统计信息，分析编码冲突和使用模式。</p>
+                        <a href="/stats" class="btn btn-secondary">进入</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">数据导入</h5>
+                        <p class="card-text">从TXT、CSV、JSON文件导入数据到词表。</p>
+                        <a href="/import" class="btn btn-secondary">进入</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-dark text-white mt-5 py-4">
+        <div class="container text-center">
+            <p>VM-TOOL v2.0.0 - 现代化码表处理工具</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

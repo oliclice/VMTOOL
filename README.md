@@ -1,35 +1,49 @@
 # VM-TOOL 码表处理工具
 
-VM-TOOL 是一个简洁高效的中文输入法码表管理工具，支持命令行操作和交互式菜单。
+VM-TOOL 是一个现代化、模块化的中文输入法码表管理工具，支持命令行、Web和GUI界面，提供高效的码表处理功能。
 
 ## 功能特性
 
-- **过滤码表**: 批量过滤不需要的词条
-- **计算权重**: 自动计算和调整词频权重
-- **码表补充**: 批量添加新词并自动生成编码
-- **写入码表**: 生成输出文件并复制到目标位置
-- **字表去重**: 刷新和优化字库
-- **查字补码**: 自动补全缺失的编码
-- **高频统计**: 统计高频编码
+- **核心功能**:
+  - 过滤码表: 批量过滤不需要的词条
+  - 计算权重: 自动计算和调整词频权重
+  - 码表补充: 批量添加新词并自动生成编码
+  - 写入码表: 生成输出文件并复制到目标位置
+  - 字表去重: 刷新和优化字库
+  - 查字补码: 自动补全缺失的编码
+  - 高频统计: 统计高频编码
+
+- **现代化特性**:
+  - 模块化架构: 清晰的代码组织和职责分离
+  - 多界面支持: 命令行(CLI)、Web界面和GUI界面
+  - 性能优化: 缓存机制、批处理优化和数据库索引
+  - 类型安全: 使用Pydantic进行配置管理
+  - 插件系统: 支持扩展功能
+  - 多平台打包: 支持Windows、Linux和macOS
 
 ## 项目结构
 
 ```
 VMtool/
-├── main.py              # 主程序入口
-├── config.py            # 配置管理
-├── dict_manager.py      # 字典管理
-├── weight_calculator.py # 权重计算
-├── file_ops.py          # 文件操作
-├── menu.py              # 交互式菜单
-├── timer.py             # 计时器
-├── dicts/               # 码表文件目录
-│   └── main.txt        # 主码表
-├── addWords/            # 新词文件目录
-├── toFilter/            # 过滤文件目录
-├── singleWord/          # 单字码表目录
-│   └── 小鹤字库.txt    # 字库文件
-└── output.txt           # 输出码表文件
+├── vm-tool/             # 主项目目录
+│   ├── app/             # 核心应用代码
+│   │   ├── core/        # 核心功能模块
+│   │   ├── dal/         # 数据访问层
+│   │   ├── services/    # 业务逻辑服务
+│   │   └── plugins/     # 插件系统
+│   ├── ui/              # 用户界面
+│   │   ├── cli/         # 命令行界面
+│   │   ├── web/         # Web界面
+│   │   └── gui/         # GUI界面 (Tkinter和PyQt6)
+│   ├── tests/           # 测试代码
+│   ├── main.py          # 主程序入口
+│   ├── vmtool.py        # 命令行工具入口
+│   ├── requirements.txt # 依赖管理
+│   └── pyproject.toml   # 项目配置
+├── build.py             # 多平台打包脚本
+├── install.py           # 安装脚本
+├── README.md            # 项目文档
+└── pyinstaller.spec     # PyInstaller配置
 ```
 
 ## 安装和运行
@@ -37,149 +51,180 @@ VMtool/
 ### 安装依赖
 
 ```bash
-pip install -r requirements.txt
+# 创建虚拟环境
+python3 -m venv vm-tool/.venv
+
+# 激活虚拟环境
+source vm-tool/.venv/bin/activate  # Linux/macOS
+# .\vm-tool\.venv\Scripts\activate  # Windows
+
+# 安装依赖
+pip install -r vm-tool/requirements.txt
 ```
 
 ### 运行程序
 
-```bash
-# 直接运行（推荐）
-python main.py
+#### 命令行界面
 
-# 或使用命令行参数
-python main.py [参数]
+```bash
+# 运行命令行工具
+python vm-tool/vmtool.py
+
+# 查看帮助
+python vm-tool/vmtool.py --help
+```
+
+#### Web界面
+
+```bash
+# 启动Web服务器
+python vm-tool/ui/web/main.py
+
+# 访问 http://localhost:8000
+```
+
+#### GUI界面
+
+```bash
+# 运行Tkinter GUI
+python vm-tool/ui/gui/tkinter_app.py
+
+# 运行PyQt6 GUI
+python vm-tool/ui/gui/pyqt_app.py
 ```
 
 ## 使用方法
 
-### 交互式菜单
+### 命令行界面
 
-直接运行 `python main.py` 会进入交互式菜单：
-
-```
-==================================================
-码表处理工具
-==================================================
-0. 退出程序 - 退出应用程序
-1. 过滤码表 - 过滤toFilter文件夹中的词条
-2. 计算权重 - 计算码表权重
-3. 码表补充 - 补充addWords文件夹中的新词
-4. 写入码表 - 生成输出文件并复制到目标位置
-5. 字表去重 - 刷新字表
-6. 查字补码 - 自动补码
-7. 高频统计 - 统计高频词
-==================================================
-```
-
-输入数字选择功能，多个功能可用空格分隔批量执行。输入 `q` 退出。
-
-### 命令行参数
+VM-TOOL 提供了丰富的命令行命令：
 
 ```bash
-# 添加新词
-python main.py -a "新词1" "新词2"
-
-# 查询词或编码
-python main.py -q "你好"  # 查词
-python main.py -q "nihao" # 查编码
+# 添加词
+vmtool add --word "测试" --code "ceshi" --weight 100
 
 # 删除词
-python main.py -d "要删除的词"
+vmtool delete --word "测试"
 
-# 更新词权重
-python main.py -u "词1" "词2"
+# 查询词
+vmtool get --word "测试"
 
-# 直接设置词权重
-python main.py -U "词" "值"
+# 更新权重
+vmtool update-weight --word "测试" --weight 200
 
-# 替换编码
-python main.py -r "原词" "新编码"
+# 导入数据
+vmtool import --file "path/to/file.txt"
 
-# 统计高频编码（最小长度4，出现10次以上）
-python main.py -H 4 10
+# 导出数据
+vmtool export --file "path/to/output.txt"
 
-# 清理备份文件
-python main.py -C y
-
-# 执行指定功能
-python main.py -c "1 2 3"  # 执行功能1、2、3
+# 显示统计信息
+vmtool stats
 ```
 
-## 功能说明
+### Web界面
 
-### 1. 过滤码表
+Web界面提供了直观的图形化操作：
+- **首页**: 显示应用信息和快捷操作
+- **词表管理**: 查看、添加、编辑、删除词条
+- **统计分析**: 查看码表统计信息
+- **数据导入**: 批量导入词条
 
-将 `toFilter/` 文件夹中的词条从主码表中过滤掉。
+### GUI界面
 
-### 2. 计算权重
-
-重新计算所有词条的权重，确保权重分配合理。
-
-### 3. 码表补充
-
-扫描 `addWords/` 文件夹中的新词文件，自动生成编码并添加到码表中。
-
-### 4. 写入码表
-
-将当前码表写入 `output.txt`，并复制到 `dicts/main.txt` 和 rime输入法目录。
-
-### 5. 字表去重
-
-刷新字库，去重并优化单字码表。
-
-### 6. 查字补码
-
-检查并补全缺失的编码。
-
-### 7. 高频统计
-
-统计出现次数超过阈值的编码。
+GUI界面提供了更友好的桌面应用体验：
+- **Tkinter版本**: 轻量级界面，兼容性好
+- **PyQt6版本**: 功能更丰富，界面更美观
 
 ## 技术架构
 
-### 模块设计
+### 核心模块
 
-- **Config**: 配置管理，统一管理路径和功能配置，支持过滤文件名等自定义设置
-- **DictManager**: 字典管理，处理码表的增删改查，使用惰性计算优化备份文件统计
-- **WeightCalculator**: 权重计算，处理词频权重计算和调整
-- **FileReader/FileWriter**: 文件读写，支持多种编码格式
-- **BaseMenu**: 菜单基类，提取共享功能逻辑和代码执行逻辑
-- **Menu**: 继承自BaseMenu，提供标准命令行交互界面
-- **RichMenu**: 继承自BaseMenu，提供Rich美化的TUI界面，自动降级到普通菜单
-- **Timer**: 计时器，用于性能监控
+- **Core**: 核心功能模块，包括配置管理、缓存机制、兼容性层等
+- **DAL**: 数据访问层，使用SQLAlchemy ORM进行数据库操作
+- **Services**: 业务逻辑服务，包括字典服务、权重计算服务、过滤服务等
+- **Plugins**: 插件系统，支持扩展功能
+- **UI**: 用户界面，包括CLI、Web和GUI三种界面
 
-### 类关系
+### 服务架构
 
 ```
-BaseMenu (基类)
-    ├── Menu (标准命令行菜单)
-    └── RichMenu (Rich美化菜单，可选依赖)
+┌─────────────────┐
+│     UI层        │
+│ (CLI/Web/GUI)   │
+└────────┬────────┘
+         │
+┌────────▼────────┐
+│   服务层        │
+│ (DictService等)  │
+└────────┬────────┘
+         │
+┌────────▼────────┐
+│   数据访问层     │
+│ (Repository)    │
+└────────┬────────┘
+         │
+┌────────▼────────┐
+│   数据库        │
+│ (SQLite)        │
+└─────────────────┘
 ```
 
-### 数据结构
+### 数据模型
 
-词条数据格式：
-```python
-{
-    "词语": {
-        "key": "编码",
-        "weight": 权重,
-        "exsit": True/False
-    }
-}
-```
+- **Word**: 词条模型，包含词、编码、权重等字段
+- **DictConfig**: 字典配置模型，存储配置信息
 
 ## 依赖
 
-- Python 3.7+
-- rich (可选，用于美化TUI界面)
+- Python 3.8+
+- 核心依赖:
+  - pydantic>=2.6.0
+  - pydantic-settings>=2.1.0
+  - sqlalchemy>=2.0.49
+  - typer==0.9.0
+  - rich==13.7.0
+  - fastapi==0.104.1
+  - uvicorn==0.24.0.post1
+  - jinja2==3.1.2
+  - tkinter (标准库)
+  - PyQt6 (可选)
 
-## 注意事项
+## 构建和打包
 
-1. 修改码表前会自动创建备份
-2. 权重值建议使用整数
-3. 新词编码自动生成基于字库
-4. 配置文件路径可在 `config.py` 中修改
+### 构建Linux版本
+
+```bash
+python build.py --linux
+```
+
+### 构建Windows版本
+
+```bash
+python build.py --windows
+```
+
+### 构建macOS版本
+
+```bash
+python build.py --macos
+```
+
+### 构建所有平台版本
+
+```bash
+python build.py --all
+```
+
+## 测试
+
+```bash
+# 运行测试
+python -m pytest vm-tool/tests/
+
+# 运行测试并生成覆盖率报告
+python -m pytest vm-tool/tests/ --cov=app
+```
 
 ## 许可证
 
