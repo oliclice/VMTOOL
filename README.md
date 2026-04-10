@@ -48,7 +48,32 @@ VMtool/
 
 ## 安装和运行
 
-### 安装依赖
+### 方法一：使用构建后的可执行文件（推荐）
+
+构建后的工具位于 `dist/linux` 目录下，包含两个版本：
+- `vmtool` - 命令行工具
+- `vmtool-gui` - 图形界面工具
+
+#### 命令行界面
+
+```bash
+# 运行命令行工具
+./dist/linux/vmtool/vmtool
+
+# 查看帮助
+./dist/linux/vmtool/vmtool --help
+```
+
+#### GUI界面
+
+```bash
+# 运行图形界面工具
+./dist/linux/vmtool-gui/vmtool-gui
+```
+
+### 方法二：从源代码运行
+
+#### 安装依赖
 
 ```bash
 # 创建虚拟环境
@@ -62,32 +87,14 @@ source vm-tool/.venv/bin/activate  # Linux/macOS
 pip install -r vm-tool/requirements.txt
 ```
 
-### 运行程序
-
-#### 命令行界面
+#### 运行程序
 
 ```bash
 # 运行命令行工具
 python vm-tool/vmtool.py
 
-# 查看帮助
-python vm-tool/vmtool.py --help
-```
-
-#### Web界面
-
-```bash
-# 启动Web服务器
+# 运行Web服务器
 python vm-tool/ui/web/main.py
-
-# 访问 http://localhost:8000
-```
-
-#### GUI界面
-
-```bash
-# 运行Tkinter GUI
-python vm-tool/ui/gui/tkinter_app.py
 
 # 运行PyQt6 GUI
 python vm-tool/ui/gui/pyqt_app.py
@@ -101,25 +108,46 @@ VM-TOOL 提供了丰富的命令行命令：
 
 ```bash
 # 添加词
-vmtool add --word "测试" --code "ceshi" --weight 100
+vmtool add --word 测试 --code ceshi --weight 100
+
+# 批量添加词
+vmtool add-batch --file path/to/file.txt
 
 # 删除词
-vmtool delete --word "测试"
+vmtool delete --word 测试
+
+# 批量删除词
+vmtool delete-batch --file path/to/file.txt
 
 # 查询词
-vmtool get --word "测试"
+vmtool query --keyword 测试
 
 # 更新权重
-vmtool update-weight --word "测试" --weight 200
+vmtool update-weight --word 测试 --weight 200
+
+# 直接设置权重
+vmtool set-weight --word 测试 --weight 200
+
+# 替换词条编码
+vmtool replace-code --word 测试 --old-code oldcode --new-code newcode
 
 # 导入数据
-vmtool import --file "path/to/file.txt"
+vmtool import --format txt --path path/to/file.txt
 
 # 导出数据
-vmtool export --file "path/to/output.txt"
+vmtool export --format csv --path path/to/output.csv
 
 # 显示统计信息
 vmtool stats
+
+# 迁移旧数据
+vmtool migrate
+
+# 交互式模式
+vmtool interactive
+
+# 旧版本接口兼容
+vmtool old
 ```
 
 ### Web界面
@@ -182,7 +210,7 @@ GUI界面提供了更友好的桌面应用体验：
   - pydantic>=2.6.0
   - pydantic-settings>=2.1.0
   - sqlalchemy>=2.0.49
-  - typer==0.9.0
+  - typer==0.24.1
   - rich==13.7.0
   - fastapi==0.104.1
   - uvicorn==0.24.0.post1
