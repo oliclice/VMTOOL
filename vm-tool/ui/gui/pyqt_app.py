@@ -19,6 +19,7 @@ from app.services.dict import DictService
 from app.services.weight import WeightCalculator
 from app.services.filter import FilterService
 from app.services.stats import StatsService
+from app.core.config_manager import config_manager
 
 
 class VMTOOLPyQtApp(QMainWindow):
@@ -28,7 +29,9 @@ class VMTOOLPyQtApp(QMainWindow):
         """初始化应用"""
         super().__init__()
         self.setWindowTitle("VM-TOOL - 码表处理工具")
-        self.setGeometry(100, 100, 1000, 700)
+        
+        # 加载配置
+        self.load_config()
         
         # 创建中央组件
         self.central_widget = QWidget()
@@ -60,7 +63,8 @@ class VMTOOLPyQtApp(QMainWindow):
         self.stats_service = StatsService()
         
         # 初始化主题设置
-        self.set_theme("auto")
+        theme = config_manager.get("theme", "auto")
+        self.set_theme(theme)
         
         # 创建标签页
         self.create_tab_widget()
@@ -1053,12 +1057,32 @@ class VMTOOLPyQtApp(QMainWindow):
             self, "关于", "VM-TOOL v2.0.0\n现代化码表处理工具\n\n支持词表管理、权重计算、数据导入导出等功能"
         )
     
+    def load_config(self):
+        """加载配置"""
+        # 加载窗口大小
+        window_size = config_manager.get("window_size", [1000, 700])
+        self.resize(window_size[0], window_size[1])
+        
+        # 加载窗口位置
+        window_position = config_manager.get("window_position", [100, 100])
+        self.move(window_position[0], window_position[1])
+    
+    def save_config(self):
+        """保存配置"""
+        # 保存窗口大小
+        config_manager.set("window_size", [self.width(), self.height()])
+        
+        # 保存窗口位置
+        config_manager.set("window_position", [self.x(), self.y()])
+    
     def on_theme_auto_triggered(self, checked):
         """处理跟随系统主题触发"""
         if checked:
             self.theme_light.setChecked(False)
             self.theme_dark.setChecked(False)
             self.set_theme("auto")
+            # 保存配置
+            config_manager.set("theme", "auto")
     
     def on_theme_light_triggered(self, checked):
         """处理浅色主题触发"""
@@ -1066,6 +1090,8 @@ class VMTOOLPyQtApp(QMainWindow):
             self.theme_auto.setChecked(False)
             self.theme_dark.setChecked(False)
             self.set_theme("light")
+            # 保存配置
+            config_manager.set("theme", "light")
     
     def on_theme_dark_triggered(self, checked):
         """处理深色主题触发"""
@@ -1073,11 +1099,12 @@ class VMTOOLPyQtApp(QMainWindow):
             self.theme_auto.setChecked(False)
             self.theme_light.setChecked(False)
             self.set_theme("dark")
+            # 保存配置
+            config_manager.set("theme", "dark")
     
     def set_theme(self, theme):
         """设置主题"""
         from PyQt6.QtCore import Qt
-        from PyQt6.QtGui import QPalette, QColor
         
         # 更新选中状态
         self.theme_auto.setChecked(theme == "auto")
@@ -1089,7 +1116,8 @@ class VMTOOLPyQtApp(QMainWindow):
         
         if theme == "auto":
             # 跟随系统主题
-            if app.styleHints().colorScheme() == Qt.ColorScheme.Dark:
+            is_dark = self._detect_system_theme()
+            if is_dark:
                 self._set_dark_theme()
             else:
                 self._set_light_theme()
@@ -1099,6 +1127,58 @@ class VMTOOLPyQtApp(QMainWindow):
         else:
             # 浅色主题
             self._set_light_theme()
+    
+    def _detect_system_theme(self):
+        """检测系统主题"""
+        import os
+        from PyQt6.QtCore import Qt
+        
+        # 获取应用实例
+        app = QApplication.instance()
+        
+        # 方法1: 使用Qt的内置方法
+        try:
+            if app.styleHints().colorScheme() == Qt.ColorScheme.Dark:
+                return True
+        except Exception:
+            pass
+        
+        # 方法2: 检查环境变量
+        # 检查GNOME环境变量
+        if os.environ.get("GTK_THEME") and "dark" in os.environ.get("GTK_THEME", "").lower():
+            return True
+        if os.environ.get("GNOME_THEME" ) and "dark" in os.environ.get("GNOME_THEME", "").lower():
+            return True
+        
+        # 检查XDG环境变量
+        if os.environ.get("XDG_CURRENT_DESKTOP"):
+            desktop = os.environ.get("XDG_CURRENT_DESKTOP", "").lower()
+            
+            # 对于Niri桌面环境
+            if "niri" in desktop:
+                # 检查Niri特定的环境变量或配置
+                if os.environ.get("NIRI_THEME") and "dark" in os.environ.get("NIRI_THEME", "").lower():
+                    return True
+                # 尝试读取Niri配置文件
+                try:
+                    config_path = os.path.expanduser("~/.config/niri/config.kdl")
+                    if os.path.exists(config_path):
+                        with open(config_path, 'r') as f:
+                            content = f.read().lower()
+                            if "dark" in content:
+                                return True
+                except Exception:
+                    pass
+        
+        # 默认返回浅色主题
+        return False
+    
+    def closeEvent(self, event):
+        """关闭事件"""
+        # 保存配置
+        self.save_config()
+        # 接受事件
+        event.accept()
     
     def _set_light_theme(self):
         """设置浅色主题"""
