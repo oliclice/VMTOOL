@@ -74,19 +74,29 @@ class DictService:
             raise DictError(f"搜索词条失败: {e}")
     
     @performance_monitor
-    def add_word(self, word: str, code: str, weight: float = 1.0, manual: bool = False) -> Dict[str, Any]:
+    def add_word(self, word: str, code: str = None, weight: float = 1.0, is_character: bool = None, manual: bool = False) -> Dict[str, Any]:
         """添加单个词条"""
         try:
+            # 如果没有提供编码，自动生成
+            if code is None:
+                code = self.generate_code(word)
+                manual = False  # 自动生成的编码，manual设为False
+            
             # 检查是否已存在相同的word和code组合
             existing = self.repo.get_by_word_and_code(word, code)
             if existing:
                 raise DictError(f"词条 '{word}' 与编码 '{code}' 的组合已存在")
             
-            db_word = self.repo.create(word, code, weight, manual)
+            # 自动判断是字还是词
+            if is_character is None:
+                is_character = len(word) == 1
+            
+            db_word = self.repo.create(word, code, weight, is_character, manual)
             return {
                 "word": db_word.word,
                 "code": db_word.code,
                 "weight": db_word.weight,
+                "is_character": db_word.is_character,
                 "manual": db_word.manual
             }
         except DictError:
@@ -106,6 +116,17 @@ class DictService:
             for word_data in words:
                 word = word_data.get("word")
                 code = word_data.get("code")
+                
+                # 如果没有提供编码，自动生成
+                if code is None:
+                    code = self.generate_code(word)
+                    word_data["code"] = code
+                    word_data["manual"] = False  # 自动生成的编码，manual设为False
+                
+                # 自动判断是字还是词
+                if "is_character" not in word_data:
+                    word_data["is_character"] = len(word) == 1
+                
                 if not self.repo.get_by_word_and_code(word, code):
                     valid_words.append(word_data)
                 else:
@@ -123,6 +144,19 @@ class DictService:
         except Exception as e:
             logger.error(f"批量添加词条失败: {e}")
             raise DictError(f"批量添加词条失败: {e}")
+    
+    def add_characters(self, characters: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """批量添加字表"""
+        try:
+            # 为每个字添加is_character=True
+            for char_data in characters:
+                char_data["is_character"] = True
+            
+            # 调用批量添加方法
+            return self.add_words(characters)
+        except Exception as e:
+            logger.error(f"批量添加字表失败: {e}")
+            raise DictError(f"批量添加字表失败: {e}")
     
     def update_word(self, word: str, **kwargs) -> Dict[str, Any]:
         """更新词条"""

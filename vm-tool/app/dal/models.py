@@ -9,10 +9,11 @@ class Word(Base):
     __tablename__ = "words"
     
     id = Column(Integer, primary_key=True, index=True)
-    word = Column(String(255), unique=True, index=True, nullable=False)
+    word = Column(String(255), index=True, nullable=False)
     code = Column(String(50), index=True, nullable=False)
     weight = Column(Float, default=1.0)
     is_active = Column(Boolean, default=True, index=True)
+    is_character = Column(Boolean, default=False, index=True)  # 是否为单个字符（字）
     manual = Column(Boolean, default=False, index=True)  # 是否手动修改过编码
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

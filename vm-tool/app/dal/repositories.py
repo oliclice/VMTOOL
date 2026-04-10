@@ -14,9 +14,9 @@ class BaseRepository:
 class WordRepository(BaseRepository):
     """词库仓库"""
     
-    def create(self, word: str, code: str, weight: float = 1.0, manual: bool = False) -> Word:
+    def create(self, word: str, code: str, weight: float = 1.0, is_character: bool = False, manual: bool = False) -> Word:
         """创建词条"""
-        db_word = Word(word=word, code=code, weight=weight, manual=manual)
+        db_word = Word(word=word, code=code, weight=weight, is_character=is_character, manual=manual)
         self.db.add(db_word)
         self.db.commit()
         self.db.refresh(db_word)
