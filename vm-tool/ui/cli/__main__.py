@@ -257,15 +257,30 @@ def show_stats():
 def import_data(file_path: str, format: str = "txt"):
     """导入数据"""
     try:
-        if format == "txt":
-            result = filter_service.import_from_txt(file_path)
-        elif format == "csv":
-            result = filter_service.import_from_csv(file_path)
-        elif format == "json":
-            result = filter_service.import_from_json(file_path)
-        else:
-            console.print(f"[red]不支持的格式:[/red] {format}")
-            return
+        from rich.progress import Progress, TextColumn, BarColumn, TimeRemainingColumn
+        
+        def progress_callback(progress, message):
+            task_id = progress_task_map.get("import", None)
+            if task_id:
+                progress.update(task_id, completed=progress, description=message)
+        
+        with Progress(
+            TextColumn("[bold cyan]{task.description}[/bold cyan]"),
+            BarColumn(),
+            "[green]{task.percentage:>3.0f}%[/green]",
+            TimeRemainingColumn(),
+        ) as progress:
+            progress_task_map = {"import": progress.add_task("开始导入...", total=100)}
+            
+            if format == "txt":
+                result = filter_service.import_from_txt(file_path, progress_callback=progress_callback)
+            elif format == "csv":
+                result = filter_service.import_from_csv(file_path, progress_callback=progress_callback)
+            elif format == "json":
+                result = filter_service.import_from_json(file_path, progress_callback=progress_callback)
+            else:
+                console.print(f"[red]不支持的格式:[/red] {format}")
+                return
         
         console.print(f"[green]导入成功:[/green] 添加了 {result['added']} 条，跳过了 {result['existing']} 条")
     except Exception as e:

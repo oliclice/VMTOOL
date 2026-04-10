@@ -2,9 +2,11 @@
 import os
 import json
 import csv
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Callable
 from sqlalchemy.orm import Session
 import logging
+import concurrent.futures
+from concurrent.futures import ThreadPoolExecutor
 
 from app.dal.repositories import WordRepository
 from app.dal.database import get_db
@@ -72,13 +74,24 @@ class FilterService:
             logger.error(f"根据模式过滤失败: {e}")
             raise DictError(f"根据模式过滤失败: {e}")
     
-    def import_from_txt(self, file_path: str, encoding: str = 'utf-8') -> Dict[str, Any]:
+    def import_from_txt(self, file_path: str, encoding: str = 'utf-8', progress_callback: Optional[Callable] = None) -> Dict[str, Any]:
         """从TXT文件导入"""
         try:
             if not os.path.exists(file_path):
                 raise FileError(f"文件不存在: {file_path}")
             
+            # 先计算文件行数，用于进度显示
+            total_lines = 0
+            with open(file_path, 'r', encoding=encoding) as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith('#'):
+                        continue
+                    total_lines += 1
+            
             words = []
+            processed_lines = 0
+            
             with open(file_path, 'r', encoding=encoding) as f:
                 for line in f:
                     line = line.strip()
@@ -96,11 +109,19 @@ class FilterService:
                             'code': code,
                             'weight': weight
                         })
+                    
+                    processed_lines += 1
+                    if progress_callback and total_lines > 0:
+                        progress = int((processed_lines / total_lines) * 100)
+                        progress_callback(progress, f"处理文件: {os.path.basename(file_path)}")
             
             # 批量添加
             from app.services.dict import DictService
             dict_service = DictService(self.db)
             result = dict_service.add_words(words)
+            
+            if progress_callback:
+                progress_callback(100, f"导入完成: {os.path.basename(file_path)}")
             
             return result
         except FileError:
@@ -109,13 +130,22 @@ class FilterService:
             logger.error(f"从TXT文件导入失败: {e}")
             raise FileError(f"从TXT文件导入失败: {e}")
     
-    def import_from_csv(self, file_path: str, encoding: str = 'utf-8') -> Dict[str, Any]:
+    def import_from_csv(self, file_path: str, encoding: str = 'utf-8', progress_callback: Optional[Callable] = None) -> Dict[str, Any]:
         """从CSV文件导入"""
         try:
             if not os.path.exists(file_path):
                 raise FileError(f"文件不存在: {file_path}")
             
+            # 先计算文件行数，用于进度显示
+            total_rows = 0
+            with open(file_path, 'r', encoding=encoding) as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    total_rows += 1
+            
             words = []
+            processed_rows = 0
+            
             with open(file_path, 'r', encoding=encoding) as f:
                 reader = csv.DictReader(f)
                 for row in reader:
@@ -129,11 +159,19 @@ class FilterService:
                             'code': code,
                             'weight': weight
                         })
+                    
+                    processed_rows += 1
+                    if progress_callback and total_rows > 0:
+                        progress = int((processed_rows / total_rows) * 100)
+                        progress_callback(progress, f"处理文件: {os.path.basename(file_path)}")
             
             # 批量添加
             from app.services.dict import DictService
             dict_service = DictService(self.db)
             result = dict_service.add_words(words)
+            
+            if progress_callback:
+                progress_callback(100, f"导入完成: {os.path.basename(file_path)}")
             
             return result
         except FileError:
@@ -142,7 +180,7 @@ class FilterService:
             logger.error(f"从CSV文件导入失败: {e}")
             raise FileError(f"从CSV文件导入失败: {e}")
     
-    def import_from_json(self, file_path: str, encoding: str = 'utf-8') -> Dict[str, Any]:
+    def import_from_json(self, file_path: str, encoding: str = 'utf-8', progress_callback: Optional[Callable] = None) -> Dict[str, Any]:
         """从JSON文件导入"""
         try:
             if not os.path.exists(file_path):
@@ -152,6 +190,9 @@ class FilterService:
                 data = json.load(f)
             
             words = []
+            total_items = len(data) if isinstance(data, list) else 0
+            processed_items = 0
+            
             if isinstance(data, list):
                 for item in data:
                     word = item.get('word') or item.get('词')
@@ -164,11 +205,19 @@ class FilterService:
                             'code': code,
                             'weight': weight
                         })
+                    
+                    processed_items += 1
+                    if progress_callback and total_items > 0:
+                        progress = int((processed_items / total_items) * 100)
+                        progress_callback(progress, f"处理文件: {os.path.basename(file_path)}")
             
             # 批量添加
             from app.services.dict import DictService
             dict_service = DictService(self.db)
             result = dict_service.add_words(words)
+            
+            if progress_callback:
+                progress_callback(100, f"导入完成: {os.path.basename(file_path)}")
             
             return result
         except FileError:
@@ -241,32 +290,64 @@ class FilterService:
             logger.error(f"导出到JSON文件失败: {e}")
             raise FileError(f"导出到JSON文件失败: {e}")
     
-    def batch_import(self, directory: str) -> Dict[str, Any]:
+    def batch_import(self, directory: str, progress_callback: Optional[Callable] = None) -> Dict[str, Any]:
         """批量导入目录中的文件"""
         try:
             if not os.path.exists(directory):
                 raise FileError(f"目录不存在: {directory}")
             
-            total_imported = 0
-            failed_files = []
-            
+            # 获取所有待导入的文件
+            import_files = []
             for filename in os.listdir(directory):
                 file_path = os.path.join(directory, filename)
-                if os.path.isfile(file_path):
+                if os.path.isfile(file_path) and (filename.endswith('.txt') or filename.endswith('.csv') or filename.endswith('.json')):
+                    import_files.append(file_path)
+            
+            total_files = len(import_files)
+            if total_files == 0:
+                return {
+                    "total_imported": 0,
+                    "failed_files": []
+                }
+            
+            total_imported = 0
+            failed_files = []
+            processed_files = 0
+            
+            # 多线程处理
+            with ThreadPoolExecutor(max_workers=4) as executor:
+                # 提交所有导入任务
+                future_to_file = {}
+                for file_path in import_files:
+                    filename = os.path.basename(file_path)
+                    if filename.endswith('.txt'):
+                        future = executor.submit(self.import_from_txt, file_path, 'utf-8', progress_callback)
+                    elif filename.endswith('.csv'):
+                        future = executor.submit(self.import_from_csv, file_path, 'utf-8', progress_callback)
+                    elif filename.endswith('.json'):
+                        future = executor.submit(self.import_from_json, file_path, 'utf-8', progress_callback)
+                    else:
+                        continue
+                    future_to_file[future] = file_path
+                
+                # 处理任务结果
+                for future in concurrent.futures.as_completed(future_to_file):
+                    file_path = future_to_file[future]
+                    filename = os.path.basename(file_path)
                     try:
-                        if filename.endswith('.txt'):
-                            result = self.import_from_txt(file_path)
-                        elif filename.endswith('.csv'):
-                            result = self.import_from_csv(file_path)
-                        elif filename.endswith('.json'):
-                            result = self.import_from_json(file_path)
-                        else:
-                            continue
-                        
+                        result = future.result()
                         total_imported += result.get('added', 0)
                     except Exception as e:
                         logger.error(f"导入文件 {filename} 失败: {e}")
                         failed_files.append(filename)
+                    
+                    processed_files += 1
+                    if progress_callback and total_files > 0:
+                        overall_progress = int((processed_files / total_files) * 100)
+                        progress_callback(overall_progress, f"已处理 {processed_files}/{total_files} 个文件")
+            
+            if progress_callback:
+                progress_callback(100, "批量导入完成")
             
             return {
                 "total_imported": total_imported,
