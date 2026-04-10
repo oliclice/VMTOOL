@@ -83,12 +83,27 @@ def add_word(word: str, code: Optional[str] = None, weight: float = 1.0, is_char
 def add_batch(words: List[str]):
     """批量添加词条"""
     try:
+        from rich.progress import Progress, TextColumn, BarColumn, TimeRemainingColumn
+        
+        def progress_callback(progress, message):
+            task_id = progress_task_map.get("add-batch", None)
+            if task_id:
+                progress.update(task_id, completed=progress, description=message)
+        
         word_data = []
         for word in words:
             # 简单处理，实际应用中可能需要更复杂的解析
             word_data.append({"word": word, "code": None, "weight": 1.0})
         
-        result = dict_service.add_words(word_data)
+        with Progress(
+            TextColumn("[bold cyan]{task.description}[/bold cyan]"),
+            BarColumn(),
+            "[green]{task.percentage:>3.0f}%[/green]",
+            TimeRemainingColumn(),
+        ) as progress:
+            progress_task_map = {"add-batch": progress.add_task("开始批量添加...", total=100)}
+            result = dict_service.add_words(word_data, progress_callback=progress_callback)
+        
         console.print(f"[green]批量添加完成:[/green] 添加了 {result['added']} 条，跳过了 {result['existing']} 条")
     except Exception as e:
         console.print(f"[red]批量添加失败:[/red] {e}")
@@ -98,12 +113,27 @@ def add_batch(words: List[str]):
 def add_batch_chars(characters: List[str]):
     """批量添加字表"""
     try:
+        from rich.progress import Progress, TextColumn, BarColumn, TimeRemainingColumn
+        
+        def progress_callback(progress, message):
+            task_id = progress_task_map.get("add-batch-chars", None)
+            if task_id:
+                progress.update(task_id, completed=progress, description=message)
+        
         char_data = []
         for char in characters:
             # 简单处理，实际应用中可能需要更复杂的解析
             char_data.append({"word": char, "code": None, "weight": 1.0})
         
-        result = dict_service.add_characters(char_data)
+        with Progress(
+            TextColumn("[bold cyan]{task.description}[/bold cyan]"),
+            BarColumn(),
+            "[green]{task.percentage:>3.0f}%[/green]",
+            TimeRemainingColumn(),
+        ) as progress:
+            progress_task_map = {"add-batch-chars": progress.add_task("开始批量添加字表...", total=100)}
+            result = dict_service.add_characters(char_data, progress_callback=progress_callback)
+        
         console.print(f"[green]批量添加字表完成:[/green] 添加了 {result['added']} 个，跳过了 {result['existing']} 个")
     except Exception as e:
         console.print(f"[red]批量添加字表失败:[/red] {e}")

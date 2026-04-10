@@ -106,12 +106,21 @@ class DictService:
             raise DictError(f"添加词条失败: {e}")
     
     @optimize_batch_operation(batch_size=500)
-    def add_words(self, words: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def add_words(self, words: List[Dict[str, Any]], progress_callback: Optional[Callable] = None) -> Dict[str, Any]:
         """批量添加词条"""
         try:
+            total_words = len(words)
+            if total_words == 0:
+                return {
+                    "added": 0,
+                    "existing": 0,
+                    "existing_pairs": []
+                }
+            
             # 过滤已存在的词条（不检查manual字段）
             valid_words = []
             existing_pairs = []
+            processed_words = 0
             
             for word_data in words:
                 word = word_data.get("word")
@@ -131,10 +140,19 @@ class DictService:
                     valid_words.append(word_data)
                 else:
                     existing_pairs.append(f"{word}:{code}")
+                
+                processed_words += 1
+                if progress_callback and total_words > 0:
+                    progress = int((processed_words / total_words) * 100)
+                    progress_callback(progress, f"处理词条: {word}")
             
             # 批量创建
             if valid_words:
+                if progress_callback:
+                    progress_callback(100, "开始批量创建...")
                 db_words = self.repo.bulk_create(valid_words)
+                if progress_callback:
+                    progress_callback(100, "批量创建完成")
                 
             return {
                 "added": len(valid_words),
@@ -145,15 +163,23 @@ class DictService:
             logger.error(f"批量添加词条失败: {e}")
             raise DictError(f"批量添加词条失败: {e}")
     
-    def add_characters(self, characters: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def add_characters(self, characters: List[Dict[str, Any]], progress_callback: Optional[Callable] = None) -> Dict[str, Any]:
         """批量添加字表"""
         try:
+            total_chars = len(characters)
+            if total_chars == 0:
+                return {
+                    "added": 0,
+                    "existing": 0,
+                    "existing_pairs": []
+                }
+            
             # 为每个字添加is_character=True
             for char_data in characters:
                 char_data["is_character"] = True
             
             # 调用批量添加方法
-            return self.add_words(characters)
+            return self.add_words(characters, progress_callback=progress_callback)
         except Exception as e:
             logger.error(f"批量添加字表失败: {e}")
             raise DictError(f"批量添加字表失败: {e}")
