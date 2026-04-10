@@ -21,16 +21,16 @@ class FilterService:
     """过滤和导入服务"""
     
     def __init__(self, db: Session = None):
-        if db:
-            self.db = db
-        else:
-            self.db = next(get_db())
-        self.repo = WordRepository(self.db)
+        self.db = db
     
     def filter_by_length(self, min_length: int = 1, max_length: int = None) -> List[Dict[str, Any]]:
         """根据词长过滤"""
         try:
-            all_words = self.repo.get_all()
+            # 使用自己的数据库会话
+            db = self.db or next(get_db())
+            repo = WordRepository(db)
+            
+            all_words = repo.get_all()
             filtered = []
             
             for word in all_words:
@@ -50,7 +50,11 @@ class FilterService:
     def filter_by_weight(self, min_weight: float = 0.0, max_weight: float = None) -> List[Dict[str, Any]]:
         """根据权重过滤"""
         try:
-            all_words = self.repo.get_all()
+            # 使用自己的数据库会话
+            db = self.db or next(get_db())
+            repo = WordRepository(db)
+            
+            all_words = repo.get_all()
             filtered = []
             
             for word in all_words:
@@ -69,7 +73,11 @@ class FilterService:
     def filter_by_pattern(self, pattern: str) -> List[Dict[str, Any]]:
         """根据模式过滤"""
         try:
-            return self.repo.search(pattern)
+            # 使用自己的数据库会话
+            db = self.db or next(get_db())
+            repo = WordRepository(db)
+            
+            return repo.search(pattern)
         except Exception as e:
             logger.error(f"根据模式过滤失败: {e}")
             raise DictError(f"根据模式过滤失败: {e}")
@@ -117,7 +125,9 @@ class FilterService:
             
             # 批量添加
             from app.services.dict import DictService
-            dict_service = DictService(self.db)
+            # 使用自己的数据库会话
+            db = self.db or next(get_db())
+            dict_service = DictService(db)
             result = dict_service.add_words(words)
             
             if progress_callback:
@@ -167,7 +177,9 @@ class FilterService:
             
             # 批量添加
             from app.services.dict import DictService
-            dict_service = DictService(self.db)
+            # 使用自己的数据库会话
+            db = self.db or next(get_db())
+            dict_service = DictService(db)
             result = dict_service.add_words(words)
             
             if progress_callback:
@@ -213,7 +225,9 @@ class FilterService:
             
             # 批量添加
             from app.services.dict import DictService
-            dict_service = DictService(self.db)
+            # 使用自己的数据库会话
+            db = self.db or next(get_db())
+            dict_service = DictService(db)
             result = dict_service.add_words(words)
             
             if progress_callback:
@@ -230,8 +244,11 @@ class FilterService:
         """导出到TXT文件"""
         try:
             if not words:
+                # 使用自己的数据库会话
+                db = self.db or next(get_db())
+                repo = WordRepository(db)
                 # 获取所有词
-                all_words = self.repo.get_all()
+                all_words = repo.get_all()
                 words = [{
                     "word": word.word,
                     "code": word.code,
@@ -251,8 +268,11 @@ class FilterService:
         """导出到CSV文件"""
         try:
             if not words:
+                # 使用自己的数据库会话
+                db = self.db or next(get_db())
+                repo = WordRepository(db)
                 # 获取所有词
-                all_words = self.repo.get_all()
+                all_words = repo.get_all()
                 words = [{
                     "word": word.word,
                     "code": word.code,
@@ -274,8 +294,11 @@ class FilterService:
         """导出到JSON文件"""
         try:
             if not words:
+                # 使用自己的数据库会话
+                db = self.db or next(get_db())
+                repo = WordRepository(db)
                 # 获取所有词
-                all_words = self.repo.get_all()
+                all_words = repo.get_all()
                 words = [{
                     "word": word.word,
                     "code": word.code,
