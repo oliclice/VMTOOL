@@ -12,8 +12,8 @@ from PyQt6.QtWidgets import (
     QLabel, QDialog, QFormLayout, QComboBox, QMessageBox, QFileDialog,
     QTreeWidget, QTreeWidgetItem, QSplitter, QStatusBar, QMenuBar, QMenu
 )
-from PyQt6.QtCore import Qt, QSortFilterProxyModel, QStandardItemModel, QStandardItem
-from PyQt6.QtGui import QAction, QIcon, QFont, QColor
+from PyQt6.QtCore import Qt, QSortFilterProxyModel
+from PyQt6.QtGui import QAction, QIcon, QFont, QColor, QStandardItemModel, QStandardItem
 
 from app.services.dict import DictService
 from app.services.weight import WeightCalculator
@@ -50,9 +50,8 @@ class VMTOOLPyQtApp(QMainWindow):
         self.create_tab_widget()
         
         # 创建状态栏
-        self.status_bar = QStatusBar()
-        self.setStatusBar(self.status_bar)
-        self.status_bar.showMessage("就绪")
+        self.setStatusBar(QStatusBar())
+        self.statusBar().showMessage("就绪")
     
     def create_menu_bar(self):
         """创建菜单栏"""
@@ -273,7 +272,7 @@ class VMTOOLPyQtApp(QMainWindow):
     
     def refresh_words(self):
         """刷新词表"""
-        self.status_bar.showMessage("加载词表...")
+        self.statusBar().showMessage("加载词表...")
         
         # 清空表格
         self.word_table.setRowCount(0)
@@ -287,10 +286,10 @@ class VMTOOLPyQtApp(QMainWindow):
                 self.word_table.setItem(i, 1, QTableWidgetItem(word.code))
                 self.word_table.setItem(i, 2, QTableWidgetItem(str(word.weight)))
             
-            self.status_bar.showMessage(f"加载完成，共 {len(words)} 条词条")
+            self.statusBar().showMessage(f"加载完成，共 {len(words)} 条词条")
         except Exception as e:
             QMessageBox.critical(self, "错误", f"加载词表失败: {e}")
-            self.status_bar.showMessage("加载失败")
+            self.statusBar().showMessage("加载失败")
     
     def search_words(self):
         """搜索词条"""
@@ -299,7 +298,7 @@ class VMTOOLPyQtApp(QMainWindow):
             self.refresh_words()
             return
         
-        self.status_bar.showMessage(f"搜索 '{keyword}'...")
+        self.statusBar().showMessage(f"搜索 '{keyword}'...")
         
         # 清空表格
         self.word_table.setRowCount(0)
@@ -313,10 +312,10 @@ class VMTOOLPyQtApp(QMainWindow):
                 self.word_table.setItem(i, 1, QTableWidgetItem(result["code"]))
                 self.word_table.setItem(i, 2, QTableWidgetItem(str(result["weight"])))
             
-            self.status_bar.showMessage(f"搜索完成，找到 {len(results)} 条结果")
+            self.statusBar().showMessage(f"搜索完成，找到 {len(results)} 条结果")
         except Exception as e:
             QMessageBox.critical(self, "错误", f"搜索失败: {e}")
-            self.status_bar.showMessage("搜索失败")
+            self.statusBar().showMessage("搜索失败")
     
     def add_word(self):
         """添加词条"""
@@ -456,7 +455,7 @@ class VMTOOLPyQtApp(QMainWindow):
     
     def refresh_stats(self):
         """刷新统计信息"""
-        self.status_bar.showMessage("加载统计信息...")
+        self.statusBar().showMessage("加载统计信息...")
         
         try:
             report = self.stats_service.generate_report()
@@ -478,10 +477,10 @@ class VMTOOLPyQtApp(QMainWindow):
                 self.high_freq_table.setItem(i-1, 2, QTableWidgetItem(word['code']))
                 self.high_freq_table.setItem(i-1, 3, QTableWidgetItem(str(word['weight'])))
             
-            self.status_bar.showMessage("统计信息加载完成")
+            self.statusBar().showMessage("统计信息加载完成")
         except Exception as e:
             QMessageBox.critical(self, "错误", f"获取统计信息失败: {e}")
-            self.status_bar.showMessage("统计信息加载失败")
+            self.statusBar().showMessage("统计信息加载失败")
     
     def import_data(self):
         """导入数据"""
@@ -514,7 +513,7 @@ class VMTOOLPyQtApp(QMainWindow):
         
         format = self.import_format_combo.currentText()
         
-        self.status_bar.showMessage(f"导入 {format} 文件...")
+        self.statusBar().showMessage(f"导入 {format} 文件...")
         
         try:
             if format == "txt":
@@ -531,10 +530,10 @@ class VMTOOLPyQtApp(QMainWindow):
                 self, "成功", f"导入成功: 添加了 {result['added']} 条，跳过了 {result['existing']} 条"
             )
             self.refresh_words()
-            self.status_bar.showMessage("导入完成")
+            self.statusBar().showMessage("导入完成")
         except Exception as e:
             QMessageBox.critical(self, "错误", f"导入失败: {e}")
-            self.status_bar.showMessage("导入失败")
+            self.statusBar().showMessage("导入失败")
     
     def export_data(self):
         """导出数据"""
@@ -567,7 +566,7 @@ class VMTOOLPyQtApp(QMainWindow):
         
         format = self.export_format_combo.currentText()
         
-        self.status_bar.showMessage(f"导出 {format} 文件...")
+        self.statusBar().showMessage(f"导出 {format} 文件...")
         
         try:
             if format == "txt":
@@ -581,10 +580,10 @@ class VMTOOLPyQtApp(QMainWindow):
                 return
             
             QMessageBox.information(self, "成功", f"导出成功: 共导出 {count} 条数据")
-            self.status_bar.showMessage("导出完成")
+            self.statusBar().showMessage("导出完成")
         except Exception as e:
             QMessageBox.critical(self, "错误", f"导出失败: {e}")
-            self.status_bar.showMessage("导出失败")
+            self.statusBar().showMessage("导出失败")
     
     def browse_file(self, edit):
         """浏览文件"""
@@ -610,20 +609,20 @@ class VMTOOLPyQtApp(QMainWindow):
         )
         
         if reply == QMessageBox.StandardButton.Yes:
-            self.status_bar.showMessage("计算权重...")
+            self.statusBar().showMessage("计算权重...")
             try:
                 # 这里需要实现批量计算权重的逻辑
                 QMessageBox.information(self, "成功", "权重计算完成")
                 self.refresh_words()
                 self.refresh_stats()
-                self.status_bar.showMessage("权重计算完成")
+                self.statusBar().showMessage("权重计算完成")
             except Exception as e:
                 QMessageBox.critical(self, "错误", f"计算失败: {e}")
-                self.status_bar.showMessage("计算失败")
+                self.statusBar().showMessage("计算失败")
     
     def detect_conflicts(self):
         """检测编码冲突"""
-        self.status_bar.showMessage("检测编码冲突...")
+        self.statusBar().showMessage("检测编码冲突...")
         
         try:
             conflicts = self.stats_service.detect_code_conflicts()
@@ -656,10 +655,10 @@ class VMTOOLPyQtApp(QMainWindow):
             else:
                 QMessageBox.information(self, "信息", "未发现编码冲突")
             
-            self.status_bar.showMessage("编码冲突检测完成")
+            self.statusBar().showMessage("编码冲突检测完成")
         except Exception as e:
             QMessageBox.critical(self, "错误", f"检测失败: {e}")
-            self.status_bar.showMessage("检测失败")
+            self.statusBar().showMessage("检测失败")
     
     def migrate_data(self):
         """数据迁移"""
@@ -669,17 +668,17 @@ class VMTOOLPyQtApp(QMainWindow):
         )
         
         if reply == QMessageBox.StandardButton.Yes:
-            self.status_bar.showMessage("执行数据迁移...")
+            self.statusBar().showMessage("执行数据迁移...")
             try:
                 from app.dal.migration import full_migration
                 result = full_migration()
                 QMessageBox.information(self, "成功", f"数据迁移完成: {result}")
                 self.refresh_words()
                 self.refresh_stats()
-                self.status_bar.showMessage("数据迁移完成")
+                self.statusBar().showMessage("数据迁移完成")
             except Exception as e:
                 QMessageBox.critical(self, "错误", f"迁移失败: {e}")
-                self.status_bar.showMessage("迁移失败")
+                self.statusBar().showMessage("迁移失败")
     
     def show_about(self):
         """显示关于信息"""
@@ -688,8 +687,12 @@ class VMTOOLPyQtApp(QMainWindow):
         )
 
 
-if __name__ == "__main__":
+def main():
+    """主函数"""
     app = QApplication(sys.argv)
     window = VMTOOLPyQtApp()
     window.show()
     sys.exit(app.exec())
+
+if __name__ == "__main__":
+    main()
