@@ -153,8 +153,8 @@ class VMTOOLPyQtApp(QMainWindow):
         
         # 字表表格
         self.char_table = QTableWidget()
-        self.char_table.setColumnCount(3)
-        self.char_table.setHorizontalHeaderLabels(["字", "编码", "权重"])
+        self.char_table.setColumnCount(4)
+        self.char_table.setHorizontalHeaderLabels(["字", "编码", "权重", "手动"])
         self.char_table.setSortingEnabled(True)
         self.char_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         
@@ -162,6 +162,7 @@ class VMTOOLPyQtApp(QMainWindow):
         self.char_table.setColumnWidth(0, 100)
         self.char_table.setColumnWidth(1, 150)
         self.char_table.setColumnWidth(2, 100)
+        self.char_table.setColumnWidth(3, 80)
         
         layout.addWidget(self.char_table)
         
@@ -207,8 +208,8 @@ class VMTOOLPyQtApp(QMainWindow):
         
         # 词表表格
         self.word_table = QTableWidget()
-        self.word_table.setColumnCount(3)
-        self.word_table.setHorizontalHeaderLabels(["词", "编码", "权重"])
+        self.word_table.setColumnCount(4)
+        self.word_table.setHorizontalHeaderLabels(["词", "编码", "权重", "手动"])
         self.word_table.setSortingEnabled(True)
         self.word_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         
@@ -216,6 +217,7 @@ class VMTOOLPyQtApp(QMainWindow):
         self.word_table.setColumnWidth(0, 200)
         self.word_table.setColumnWidth(1, 150)
         self.word_table.setColumnWidth(2, 100)
+        self.word_table.setColumnWidth(3, 80)
         
         layout.addWidget(self.word_table)
         
@@ -230,12 +232,16 @@ class VMTOOLPyQtApp(QMainWindow):
         delete_button = QPushButton("删除")
         delete_button.clicked.connect(self.delete_word)
         
+        calc_all_codes_button = QPushButton("批量计算编码")
+        calc_all_codes_button.clicked.connect(self.calculate_all_codes)
+        
         refresh_button = QPushButton("刷新")
         refresh_button.clicked.connect(self.refresh_words)
         
         button_layout.addWidget(add_button)
         button_layout.addWidget(edit_button)
         button_layout.addWidget(delete_button)
+        button_layout.addWidget(calc_all_codes_button)
         button_layout.addWidget(refresh_button)
         layout.addLayout(button_layout)
         
@@ -355,6 +361,7 @@ class VMTOOLPyQtApp(QMainWindow):
                 self.word_table.setItem(i, 0, QTableWidgetItem(word["word"]))
                 self.word_table.setItem(i, 1, QTableWidgetItem(word["code"]))
                 self.word_table.setItem(i, 2, QTableWidgetItem(str(word["weight"])))
+                self.word_table.setItem(i, 3, QTableWidgetItem("是" if word["manual"] else "否"))
             
             self.status_bar.showMessage(f"加载完成，共 {len(multi_words)} 条词条")
         except Exception as e:
@@ -525,6 +532,75 @@ class VMTOOLPyQtApp(QMainWindow):
             except Exception as e:
                 QMessageBox.critical(self, "错误", f"删除失败: {e}")
     
+    def calculate_all_codes(self):
+        """批量计算编码"""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("批量计算编码")
+        dialog.setGeometry(200, 200, 400, 250)
+        
+        layout = QVBoxLayout(dialog)
+        
+        form_layout = QFormLayout()
+        
+        rule_combo = QComboBox()
+        rule_combo.addItems(["first_letter", "all_letters", "custom"])
+        rule_combo.setCurrentText("first_letter")
+        
+        separator_edit = QLineEdit()
+        separator_edit.setPlaceholderText("编码分隔符")
+        
+        max_length_edit = QLineEdit()
+        max_length_edit.setText("10")
+        
+        form_layout.addRow("编码规则:", rule_combo)
+        form_layout.addRow("分隔符:", separator_edit)
+        form_layout.addRow("最大长度:", max_length_edit)
+        
+        button_layout = QHBoxLayout()
+        calculate_button = QPushButton("计算")
+        cancel_button = QPushButton("取消")
+        
+        def calculate():
+            try:
+                rule = rule_combo.currentText()
+                separator = separator_edit.text()
+                max_length = int(max_length_edit.text())
+                
+                # 设置编码生成配置
+                config = {
+                    'rule': rule,
+                    'separator': separator,
+                    'max_length': max_length
+                }
+                self.dict_service.code_generator.set_config(config)
+                
+                # 批量计算编码
+                result = self.dict_service.calculate_all_codes()
+                
+                QMessageBox.information(
+                    self, "成功", 
+                    f"批量计算编码完成:\n" +
+                    f"总词条数: {result['total']}\n" +
+                    f"成功更新: {result['updated']}\n" +
+                    f"更新失败: {result['failed']}"
+                )
+                
+                # 刷新词表
+                self.refresh_words()
+            except Exception as e:
+                QMessageBox.critical(self, "错误", f"批量计算编码失败: {e}")
+        
+        calculate_button.clicked.connect(calculate)
+        cancel_button.clicked.connect(dialog.reject)
+        
+        button_layout.addWidget(calculate_button)
+        button_layout.addWidget(cancel_button)
+        
+        layout.addLayout(form_layout)
+        layout.addLayout(button_layout)
+        
+        dialog.exec()
+    
     def refresh_stats(self):
         """刷新统计信息"""
         self.status_bar.showMessage("加载统计信息...")
@@ -674,6 +750,7 @@ class VMTOOLPyQtApp(QMainWindow):
                 self.char_table.setItem(i, 0, QTableWidgetItem(char["word"]))
                 self.char_table.setItem(i, 1, QTableWidgetItem(char["code"]))
                 self.char_table.setItem(i, 2, QTableWidgetItem(str(char["weight"])))
+                self.char_table.setItem(i, 3, QTableWidgetItem("是" if char["manual"] else "否"))
             
             self.status_bar.showMessage(f"加载完成，共 {len(chars)} 条汉字")
         except Exception as e:
