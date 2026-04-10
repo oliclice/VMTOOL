@@ -30,12 +30,6 @@ class VMTOOLPyQtApp(QMainWindow):
         self.setWindowTitle("VM-TOOL - 码表处理工具")
         self.setGeometry(100, 100, 1000, 700)
         
-        # 初始化服务
-        self.dict_service = DictService()
-        self.weight_calc = WeightCalculator()
-        self.filter_service = FilterService()
-        self.stats_service = StatsService()
-        
         # 创建中央组件
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
@@ -50,6 +44,20 @@ class VMTOOLPyQtApp(QMainWindow):
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
         self.status_bar.showMessage("就绪")
+        
+        # 初始化数据库
+        try:
+            from app.dal.init_db import init_database
+            init_database()
+            self.status_bar.showMessage("数据库初始化成功")
+        except Exception as e:
+            self.status_bar.showMessage(f"数据库初始化失败: {e}")
+        
+        # 初始化服务
+        self.dict_service = DictService()
+        self.weight_calc = WeightCalculator()
+        self.filter_service = FilterService()
+        self.stats_service = StatsService()
         
         # 创建标签页
         self.create_tab_widget()
@@ -106,6 +114,11 @@ class VMTOOLPyQtApp(QMainWindow):
         self.tab_widget = QTabWidget()
         self.main_layout.addWidget(self.tab_widget)
         
+        # 字表管理标签页
+        chars_tab = QWidget()
+        self.tab_widget.addTab(chars_tab, "字表管理")
+        self.create_chars_tab(chars_tab)
+        
         # 词表管理标签页
         words_tab = QWidget()
         self.tab_widget.addTab(words_tab, "词表管理")
@@ -120,6 +133,60 @@ class VMTOOLPyQtApp(QMainWindow):
         import_export_tab = QWidget()
         self.tab_widget.addTab(import_export_tab, "导入导出")
         self.create_import_export_tab(import_export_tab)
+    
+    def create_chars_tab(self, parent):
+        """创建字表管理标签页"""
+        layout = QVBoxLayout(parent)
+        
+        # 搜索框
+        search_layout = QHBoxLayout()
+        search_label = QLabel("搜索:")
+        self.char_search_edit = QLineEdit()
+        self.char_search_edit.setPlaceholderText("输入汉字搜索")
+        search_button = QPushButton("搜索")
+        search_button.clicked.connect(self.search_chars)
+        
+        search_layout.addWidget(search_label)
+        search_layout.addWidget(self.char_search_edit)
+        search_layout.addWidget(search_button)
+        layout.addLayout(search_layout)
+        
+        # 字表表格
+        self.char_table = QTableWidget()
+        self.char_table.setColumnCount(3)
+        self.char_table.setHorizontalHeaderLabels(["字", "编码", "权重"])
+        self.char_table.setSortingEnabled(True)
+        self.char_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        
+        # 设置列宽
+        self.char_table.setColumnWidth(0, 100)
+        self.char_table.setColumnWidth(1, 150)
+        self.char_table.setColumnWidth(2, 100)
+        
+        layout.addWidget(self.char_table)
+        
+        # 操作按钮
+        button_layout = QHBoxLayout()
+        add_button = QPushButton("添加")
+        add_button.clicked.connect(self.add_char)
+        
+        edit_button = QPushButton("编辑")
+        edit_button.clicked.connect(self.edit_char)
+        
+        delete_button = QPushButton("删除")
+        delete_button.clicked.connect(self.delete_char)
+        
+        refresh_button = QPushButton("刷新")
+        refresh_button.clicked.connect(self.refresh_chars)
+        
+        button_layout.addWidget(add_button)
+        button_layout.addWidget(edit_button)
+        button_layout.addWidget(delete_button)
+        button_layout.addWidget(refresh_button)
+        layout.addLayout(button_layout)
+        
+        # 加载字表
+        self.refresh_chars()
     
     def create_words_tab(self, parent):
         """创建词表管理标签页"""
@@ -280,14 +347,16 @@ class VMTOOLPyQtApp(QMainWindow):
         
         try:
             words = self.dict_service.get_all_words()
-            self.word_table.setRowCount(len(words))
+            # 只获取多个字符的词条
+            multi_words = [word for word in words if len(word["word"]) > 1]
+            self.word_table.setRowCount(len(multi_words))
             
-            for i, word in enumerate(words):
-                self.word_table.setItem(i, 0, QTableWidgetItem(word.word))
-                self.word_table.setItem(i, 1, QTableWidgetItem(word.code))
-                self.word_table.setItem(i, 2, QTableWidgetItem(str(word.weight)))
+            for i, word in enumerate(multi_words):
+                self.word_table.setItem(i, 0, QTableWidgetItem(word["word"]))
+                self.word_table.setItem(i, 1, QTableWidgetItem(word["code"]))
+                self.word_table.setItem(i, 2, QTableWidgetItem(str(word["weight"])))
             
-            self.status_bar.showMessage(f"加载完成，共 {len(words)} 条词条")
+            self.status_bar.showMessage(f"加载完成，共 {len(multi_words)} 条词条")
         except Exception as e:
             QMessageBox.critical(self, "错误", f"加载词表失败: {e}")
             self.status_bar.showMessage("加载失败")
@@ -306,14 +375,16 @@ class VMTOOLPyQtApp(QMainWindow):
         
         try:
             results = self.dict_service.search_words(keyword)
-            self.word_table.setRowCount(len(results))
+            # 只获取多个字符的词条
+            multi_words = [result for result in results if len(result["word"]) > 1]
+            self.word_table.setRowCount(len(multi_words))
             
-            for i, result in enumerate(results):
+            for i, result in enumerate(multi_words):
                 self.word_table.setItem(i, 0, QTableWidgetItem(result["word"]))
                 self.word_table.setItem(i, 1, QTableWidgetItem(result["code"]))
                 self.word_table.setItem(i, 2, QTableWidgetItem(str(result["weight"])))
             
-            self.status_bar.showMessage(f"搜索完成，找到 {len(results)} 条结果")
+            self.status_bar.showMessage(f"搜索完成，找到 {len(multi_words)} 条结果")
         except Exception as e:
             QMessageBox.critical(self, "错误", f"搜索失败: {e}")
             self.status_bar.showMessage("搜索失败")
@@ -585,6 +656,198 @@ class VMTOOLPyQtApp(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, "错误", f"导出失败: {e}")
             self.status_bar.showMessage("导出失败")
+    
+    def refresh_chars(self):
+        """刷新字表"""
+        self.status_bar.showMessage("加载字表...")
+        
+        # 清空表格
+        self.char_table.setRowCount(0)
+        
+        try:
+            words = self.dict_service.get_all_words()
+            # 只获取单个字符的词条
+            chars = [word for word in words if len(word["word"]) == 1]
+            self.char_table.setRowCount(len(chars))
+            
+            for i, char in enumerate(chars):
+                self.char_table.setItem(i, 0, QTableWidgetItem(char["word"]))
+                self.char_table.setItem(i, 1, QTableWidgetItem(char["code"]))
+                self.char_table.setItem(i, 2, QTableWidgetItem(str(char["weight"])))
+            
+            self.status_bar.showMessage(f"加载完成，共 {len(chars)} 条汉字")
+        except Exception as e:
+            QMessageBox.critical(self, "错误", f"加载字表失败: {e}")
+            self.status_bar.showMessage("加载失败")
+    
+    def search_chars(self):
+        """搜索汉字"""
+        keyword = self.char_search_edit.text()
+        if not keyword:
+            self.refresh_chars()
+            return
+        
+        self.status_bar.showMessage(f"搜索 '{keyword}'...")
+        
+        # 清空表格
+        self.char_table.setRowCount(0)
+        
+        try:
+            results = self.dict_service.search_words(keyword)
+            # 只获取单个字符的词条
+            chars = [result for result in results if len(result["word"]) == 1]
+            self.char_table.setRowCount(len(chars))
+            
+            for i, char in enumerate(chars):
+                self.char_table.setItem(i, 0, QTableWidgetItem(char["word"]))
+                self.char_table.setItem(i, 1, QTableWidgetItem(char["code"]))
+                self.char_table.setItem(i, 2, QTableWidgetItem(str(char["weight"])))
+            
+            self.status_bar.showMessage(f"搜索完成，找到 {len(chars)} 条结果")
+        except Exception as e:
+            QMessageBox.critical(self, "错误", f"搜索失败: {e}")
+            self.status_bar.showMessage("搜索失败")
+    
+    def add_char(self):
+        """添加汉字"""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("添加汉字")
+        dialog.setGeometry(200, 200, 400, 200)
+        
+        layout = QVBoxLayout(dialog)
+        
+        form_layout = QFormLayout()
+        
+        char_edit = QLineEdit()
+        char_edit.setPlaceholderText("请输入单个汉字")
+        code_edit = QLineEdit()
+        weight_edit = QLineEdit()
+        weight_edit.setText("1.0")
+        
+        form_layout.addRow("字:", char_edit)
+        form_layout.addRow("编码:", code_edit)
+        form_layout.addRow("权重:", weight_edit)
+        
+        button_layout = QHBoxLayout()
+        save_button = QPushButton("保存")
+        cancel_button = QPushButton("取消")
+        
+        def save_char():
+            try:
+                char = char_edit.text().strip()
+                if len(char) != 1:
+                    QMessageBox.warning(self, "警告", "请输入单个汉字")
+                    return
+                
+                code = code_edit.text()
+                weight = float(weight_edit.text())
+                
+                self.dict_service.add_word(char, code, weight)
+                QMessageBox.information(self, "成功", "汉字添加成功")
+                dialog.accept()
+                self.refresh_chars()
+            except Exception as e:
+                QMessageBox.critical(self, "错误", f"添加失败: {e}")
+        
+        save_button.clicked.connect(save_char)
+        cancel_button.clicked.connect(dialog.reject)
+        
+        button_layout.addWidget(save_button)
+        button_layout.addWidget(cancel_button)
+        
+        layout.addLayout(form_layout)
+        layout.addLayout(button_layout)
+        
+        dialog.exec()
+    
+    def edit_char(self):
+        """编辑汉字"""
+        selected_row = self.char_table.currentRow()
+        if selected_row == -1:
+            QMessageBox.warning(self, "警告", "请选择要编辑的汉字")
+            return
+        
+        char = self.char_table.item(selected_row, 0).text()
+        code = self.char_table.item(selected_row, 1).text()
+        weight = float(self.char_table.item(selected_row, 2).text())
+        
+        dialog = QDialog(self)
+        dialog.setWindowTitle("编辑汉字")
+        dialog.setGeometry(200, 200, 400, 200)
+        
+        layout = QVBoxLayout(dialog)
+        
+        form_layout = QFormLayout()
+        
+        char_edit = QLineEdit(char)
+        char_edit.setReadOnly(True)
+        code_edit = QLineEdit(code)
+        weight_edit = QLineEdit(str(weight))
+        
+        form_layout.addRow("字:", char_edit)
+        form_layout.addRow("编码:", code_edit)
+        form_layout.addRow("权重:", weight_edit)
+        
+        button_layout = QHBoxLayout()
+        save_button = QPushButton("保存")
+        cancel_button = QPushButton("取消")
+        
+        def save_edit():
+            try:
+                new_code = code_edit.text()
+                new_weight = float(weight_edit.text())
+                
+                update_data = {}
+                if new_code != code:
+                    update_data["code"] = new_code
+                if new_weight != weight:
+                    update_data["weight"] = new_weight
+                
+                if update_data:
+                    self.dict_service.update_word(char, **update_data)
+                    QMessageBox.information(self, "成功", "汉字更新成功")
+                    dialog.accept()
+                    self.refresh_chars()
+                else:
+                    dialog.reject()
+            except Exception as e:
+                QMessageBox.critical(self, "错误", f"更新失败: {e}")
+        
+        save_button.clicked.connect(save_edit)
+        cancel_button.clicked.connect(dialog.reject)
+        
+        button_layout.addWidget(save_button)
+        button_layout.addWidget(cancel_button)
+        
+        layout.addLayout(form_layout)
+        layout.addLayout(button_layout)
+        
+        dialog.exec()
+    
+    def delete_char(self):
+        """删除汉字"""
+        selected_row = self.char_table.currentRow()
+        if selected_row == -1:
+            QMessageBox.warning(self, "警告", "请选择要删除的汉字")
+            return
+        
+        char = self.char_table.item(selected_row, 0).text()
+        
+        reply = QMessageBox.question(
+            self, "确认", f"确定要删除汉字 '{char}' 吗？",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            try:
+                result = self.dict_service.delete_word(char)
+                if result:
+                    QMessageBox.information(self, "成功", "汉字删除成功")
+                    self.refresh_chars()
+                else:
+                    QMessageBox.warning(self, "警告", "汉字不存在")
+            except Exception as e:
+                QMessageBox.critical(self, "错误", f"删除失败: {e}")
     
     def browse_file(self, edit):
         """浏览文件"""
