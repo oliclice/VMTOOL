@@ -1,5 +1,5 @@
 """码表词条服务"""
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Callable
 from sqlalchemy.orm import Session
 import logging
 

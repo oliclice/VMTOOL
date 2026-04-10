@@ -116,7 +116,7 @@ def optimize_batch_operation(batch_size: int = 1000):
             if not items:
                 # 检查函数名，返回适当的空值
                 if func.__name__ == 'add_words':
-                    return {"added": 0, "existing": 0, "existing_words": []}
+                    return {"added": 0, "existing": 0, "existing_pairs": []}
                 return []
             
             # 特殊处理 add_words 方法
