@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import (
     QTreeWidget, QTreeWidgetItem, QSplitter, QStatusBar, QMenuBar, QMenu
 )
 from PyQt6.QtCore import Qt, QSortFilterProxyModel
-from PyQt6.QtGui import QAction, QIcon, QFont, QColor, QStandardItemModel, QStandardItem
+from PyQt6.QtGui import QAction, QIcon, QFont, QColor, QStandardItemModel, QStandardItem, QPalette
 
 from app.services.dict import DictService
 from app.services.weight import WeightCalculator
@@ -59,6 +59,9 @@ class VMTOOLPyQtApp(QMainWindow):
         self.filter_service = FilterService()
         self.stats_service = StatsService()
         
+        # 初始化主题设置
+        self.set_theme("auto")
+        
         # 创建标签页
         self.create_tab_widget()
     
@@ -100,6 +103,29 @@ class VMTOOLPyQtApp(QMainWindow):
         migrate_data_action = QAction("数据迁移", self)
         migrate_data_action.triggered.connect(self.migrate_data)
         tool_menu.addAction(migrate_data_action)
+        
+        # 设置菜单
+        settings_menu = QMenu("设置", self)
+        menu_bar.addMenu(settings_menu)
+        
+        # 主题子菜单
+        theme_menu = QMenu("主题", self)
+        settings_menu.addMenu(theme_menu)
+        
+        # 主题选项
+        self.theme_auto = QAction("跟随系统", self, checkable=True)
+        self.theme_light = QAction("浅色", self, checkable=True)
+        self.theme_dark = QAction("深色", self, checkable=True)
+        
+        # 连接信号
+        self.theme_auto.triggered.connect(self.on_theme_auto_triggered)
+        self.theme_light.triggered.connect(self.on_theme_light_triggered)
+        self.theme_dark.triggered.connect(self.on_theme_dark_triggered)
+        
+        # 添加到子菜单
+        theme_menu.addAction(self.theme_auto)
+        theme_menu.addAction(self.theme_light)
+        theme_menu.addAction(self.theme_dark)
         
         # 帮助菜单
         help_menu = QMenu("帮助", self)
@@ -1026,6 +1052,95 @@ class VMTOOLPyQtApp(QMainWindow):
         QMessageBox.about(
             self, "关于", "VM-TOOL v2.0.0\n现代化码表处理工具\n\n支持词表管理、权重计算、数据导入导出等功能"
         )
+    
+    def on_theme_auto_triggered(self, checked):
+        """处理跟随系统主题触发"""
+        if checked:
+            self.theme_light.setChecked(False)
+            self.theme_dark.setChecked(False)
+            self.set_theme("auto")
+    
+    def on_theme_light_triggered(self, checked):
+        """处理浅色主题触发"""
+        if checked:
+            self.theme_auto.setChecked(False)
+            self.theme_dark.setChecked(False)
+            self.set_theme("light")
+    
+    def on_theme_dark_triggered(self, checked):
+        """处理深色主题触发"""
+        if checked:
+            self.theme_auto.setChecked(False)
+            self.theme_light.setChecked(False)
+            self.set_theme("dark")
+    
+    def set_theme(self, theme):
+        """设置主题"""
+        from PyQt6.QtCore import Qt
+        from PyQt6.QtGui import QPalette, QColor
+        
+        # 更新选中状态
+        self.theme_auto.setChecked(theme == "auto")
+        self.theme_light.setChecked(theme == "light")
+        self.theme_dark.setChecked(theme == "dark")
+        
+        # 获取应用实例
+        app = QApplication.instance()
+        
+        if theme == "auto":
+            # 跟随系统主题
+            if app.styleHints().colorScheme() == Qt.ColorScheme.Dark:
+                self._set_dark_theme()
+            else:
+                self._set_light_theme()
+        elif theme == "dark":
+            # 深色主题
+            self._set_dark_theme()
+        else:
+            # 浅色主题
+            self._set_light_theme()
+    
+    def _set_light_theme(self):
+        """设置浅色主题"""
+        app = QApplication.instance()
+        app.setStyle("Fusion")
+        
+        # 浅色主题调色板
+        palette = QPalette()
+        palette.setColor(QPalette.ColorRole.Window, QColor(240, 240, 240))
+        palette.setColor(QPalette.ColorRole.WindowText, QColor(0, 0, 0))
+        palette.setColor(QPalette.ColorRole.Base, QColor(255, 255, 255))
+        palette.setColor(QPalette.ColorRole.AlternateBase, QColor(240, 240, 240))
+        palette.setColor(QPalette.ColorRole.ToolTipBase, QColor(255, 255, 220))
+        palette.setColor(QPalette.ColorRole.ToolTipText, QColor(0, 0, 0))
+        palette.setColor(QPalette.ColorRole.Text, QColor(0, 0, 0))
+        palette.setColor(QPalette.ColorRole.Button, QColor(240, 240, 240))
+        palette.setColor(QPalette.ColorRole.ButtonText, QColor(0, 0, 0))
+        palette.setColor(QPalette.ColorRole.BrightText, QColor(255, 0, 0))
+        palette.setColor(QPalette.ColorRole.Link, QColor(0, 0, 255))
+        
+        app.setPalette(palette)
+    
+    def _set_dark_theme(self):
+        """设置深色主题"""
+        app = QApplication.instance()
+        app.setStyle("Fusion")
+        
+        # 深色主题调色板
+        palette = QPalette()
+        palette.setColor(QPalette.ColorRole.Window, QColor(53, 53, 53))
+        palette.setColor(QPalette.ColorRole.WindowText, QColor(255, 255, 255))
+        palette.setColor(QPalette.ColorRole.Base, QColor(25, 25, 25))
+        palette.setColor(QPalette.ColorRole.AlternateBase, QColor(53, 53, 53))
+        palette.setColor(QPalette.ColorRole.ToolTipBase, QColor(255, 255, 220))
+        palette.setColor(QPalette.ColorRole.ToolTipText, QColor(0, 0, 0))
+        palette.setColor(QPalette.ColorRole.Text, QColor(255, 255, 255))
+        palette.setColor(QPalette.ColorRole.Button, QColor(53, 53, 53))
+        palette.setColor(QPalette.ColorRole.ButtonText, QColor(255, 255, 255))
+        palette.setColor(QPalette.ColorRole.BrightText, QColor(255, 0, 0))
+        palette.setColor(QPalette.ColorRole.Link, QColor(42, 130, 218))
+        
+        app.setPalette(palette)
 
 
 if __name__ == "__main__":
