@@ -1670,11 +1670,11 @@ class VMTOOLPyQtApp(QMainWindow):
         QTreeWidgetItem(settings_types, ["语言设置"])
         QTreeWidgetItem(settings_types, ["编码规则"])
         QTreeWidgetItem(settings_types, ["编码长度"])
+        QTreeWidgetItem(settings_types, ["配置目录"])
         QTreeWidgetItem(settings_types, ["数据库路径"])
         QTreeWidgetItem(settings_types, ["缓存设置"])
         QTreeWidgetItem(settings_types, ["删除表"])
-        QTreeWidgetItem(settings_types, ["导出格式"])
-        QTreeWidgetItem(settings_types, ["导出路径"])
+        QTreeWidgetItem(settings_types, ["导入导出设置"])
         
         left_layout.addWidget(settings_types)
         splitter.addWidget(left_widget)
@@ -2193,11 +2193,34 @@ elif len(vac) >= 4:
             # 连接信号，自动保存
             length_spin.textChanged.connect(lambda text: config_manager.set("max_code_length", text))
             self.settings_content_layout.addRow(length_label, length_spin)
+        elif settings_type == "配置目录":
+            # 配置目录设置
+            dir_label = QLabel("配置目录:")
+            dir_edit = QLineEdit()
+            dir_edit.setText(config_manager.get("config_dir", "~/.config/vm-tool"))
+            # 连接信号，自动保存
+            dir_edit.textChanged.connect(lambda text: config_manager.set("config_dir", text))
+            browse_button = QPushButton("浏览")
+            # 连接浏览按钮点击事件
+            def browse_config_dir():
+                directory = QFileDialog.getExistingDirectory(
+                    self, "选择配置目录", "~/.config"
+                )
+                if directory:
+                    dir_edit.setText(directory)
+                    config_manager.set("config_dir", directory)
+            browse_button.clicked.connect(browse_config_dir)
+            browse_layout = QHBoxLayout()
+            browse_layout.addWidget(dir_edit)
+            browse_layout.addWidget(browse_button)
+            self.settings_content_layout.addRow(dir_label, browse_layout)
         elif settings_type == "数据库路径":
             # 数据库路径设置
             path_label = QLabel("数据库路径:")
             path_edit = QLineEdit()
-            path_edit.setText(config_manager.get("database_path", "./vmtool.db"))
+            config_dir = config_manager.get("config_dir", "~/.config/vm-tool")
+            default_db_path = os.path.join(config_dir, "vm_tool.db")
+            path_edit.setText(config_manager.get("database_path", default_db_path))
             # 连接信号，自动保存
             path_edit.textChanged.connect(lambda text: config_manager.set("database_path", text))
             browse_button = QPushButton("浏览")
@@ -2222,7 +2245,7 @@ elif len(vac) >= 4:
             # 连接信号，自动保存
             cache_spin.textChanged.connect(lambda text: config_manager.set("cache_size", text))
             self.settings_content_layout.addRow(cache_label, cache_spin)
-        elif settings_type == "导出格式":
+        elif settings_type == "导入导出设置":
             # 导出格式设置
             format_label = QLabel("默认导出格式:")
             format_combo = QComboBox()
@@ -2231,7 +2254,36 @@ elif len(vac) >= 4:
             # 连接信号，自动保存
             format_combo.currentTextChanged.connect(lambda text: config_manager.set("default_export_format", text))
             self.settings_content_layout.addRow(format_label, format_combo)
-        elif settings_type == "导出路径":
+            
+            # 分隔符设置
+            separator_label = QLabel("分隔符:")
+            separator_combo = QComboBox()
+            separator_combo.addItems(["Tab", ",", "|", "空格"])
+            # 加载当前设置，默认为 Tab
+            current_separator = config_manager.get("separator", "\t")
+            # 映射分隔符值到显示名称
+            separator_map = {
+                "\t": "Tab",
+                ",": ",",
+                "|": "|",
+                " ": "空格"
+            }
+            display_separator = separator_map.get(current_separator, "Tab")
+            separator_combo.setCurrentText(display_separator)
+            # 连接信号，自动保存
+            def on_separator_changed(text):
+                # 映射显示名称到分隔符值
+                separator_map_reverse = {
+                    "Tab": "\t",
+                    ",": ",",
+                    "|": "|",
+                    "空格": " "
+                }
+                separator_value = separator_map_reverse.get(text, "\t")
+                config_manager.set("separator", separator_value)
+            separator_combo.currentTextChanged.connect(on_separator_changed)
+            self.settings_content_layout.addRow(separator_label, separator_combo)
+            
             # 导出路径设置
             export_path_label = QLabel("默认导出路径:")
             export_path_edit = QLineEdit()
@@ -2252,6 +2304,27 @@ elif len(vac) >= 4:
             export_browse_layout.addWidget(export_path_edit)
             export_browse_layout.addWidget(export_browse_button)
             self.settings_content_layout.addRow(export_path_label, export_browse_layout)
+            
+            # 导入路径设置
+            import_path_label = QLabel("默认导入路径:")
+            import_path_edit = QLineEdit()
+            import_path_edit.setText(config_manager.get("import_path", "./"))
+            # 连接信号，自动保存
+            import_path_edit.textChanged.connect(lambda text: config_manager.set("import_path", text))
+            import_browse_button = QPushButton("浏览")
+            # 连接浏览按钮点击事件
+            def browse_import_path():
+                file_path, _ = QFileDialog.getOpenFileName(
+                    self, "选择导入文件", "./", "文本文件 (*.txt);;CSV文件 (*.csv);;JSON文件 (*.json)"
+                )
+                if file_path:
+                    import_path_edit.setText(file_path)
+                    config_manager.set("import_path", file_path)
+            import_browse_button.clicked.connect(browse_import_path)
+            import_browse_layout = QHBoxLayout()
+            import_browse_layout.addWidget(import_path_edit)
+            import_browse_layout.addWidget(import_browse_button)
+            self.settings_content_layout.addRow(import_path_label, import_browse_layout)
         elif settings_type == "删除表":
             # 删除表设置
             delete_table_label = QLabel("删除表:")

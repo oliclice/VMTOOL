@@ -23,5 +23,6 @@
   "default_code_rule": "flypy",
   "import_path": "/home/wtuj/tools/VMtool/dicts/main.txt",
   "export_path": "/test/export/path.txt",
-  "font_family": "AdwaitaMono Nerd Font Mono"
+  "font_family": "AdwaitaMono Nerd Font Mono",
+  "separator": "\t"
 }
