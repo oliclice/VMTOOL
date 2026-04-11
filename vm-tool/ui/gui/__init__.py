@@ -1,1 +1,1 @@
-"""GUI界面模块"""
+# GUI module initialization

@@ -95,6 +95,18 @@ class StatsService:
             logger.error(f"检测编码冲突失败: {e}")
             raise DictError(f"检测编码冲突失败: {e}")
     
+    def get_stats(self) -> Dict[str, Any]:
+        """获取所有统计数据"""
+        try:
+            return {
+                "word_length_stats": self.get_word_length_stats(),
+                "code_stats": self.get_code_stats(),
+                "weight_stats": self.get_weight_stats()
+            }
+        except Exception as e:
+            logger.error(f"获取统计数据失败: {e}")
+            raise DictError(f"获取统计数据失败: {e}")
+    
     def get_weight_stats(self) -> Dict[str, Any]:
         """获取权重统计"""
         try:
