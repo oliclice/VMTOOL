@@ -1879,8 +1879,8 @@ v[2] = s[1][1] + s[-1][1]
                     # 重新创建表
                     Base.metadata.create_all(bind=engine)
                     # 重新初始化配置
-                    from app.dal.init_db import init_config
-                    init_config()
+                    from app.dal.init_db import init_database
+                    init_database()
                 
                 # 刷新表格
                 self.refresh_chars()
