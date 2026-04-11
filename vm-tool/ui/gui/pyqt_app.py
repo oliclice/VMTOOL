@@ -1190,6 +1190,56 @@ class VMTOOLPyQtApp(QMainWindow):
             # 连接信号，自动保存
             rule_combo.currentTextChanged.connect(lambda text: config_manager.set("code_rule", text))
             self.settings_content_layout.addRow(rule_label, rule_combo)
+            
+            # 自定义编码规则设置
+            custom_rule_group = QGroupBox("自定义编码规则")
+            custom_rule_layout = QVBoxLayout()
+            
+            # 规则名称
+            rule_name_label = QLabel("规则名称:")
+            rule_name_edit = QLineEdit()
+            rule_name_edit.setText(config_manager.get("custom_rule_name", "my_rule"))
+            rule_name_edit.textChanged.connect(lambda text: config_manager.set("custom_rule_name", text))
+            custom_rule_layout.addRow(rule_name_label, rule_name_edit)
+            
+            # 规则内容
+            rule_content_label = QLabel("规则内容:")
+            rule_content_edit = QTextEdit()
+            rule_content_edit.setPlainText(config_manager.get("custom_rule_content", "v[2]=s[1][1]+s[1][2]+s[2][1]+s[2][2]\nv[3]=s[1][1]+s[2][1]+s[3][1]"))
+            rule_content_edit.textChanged.connect(lambda: config_manager.set("custom_rule_content", rule_content_edit.toPlainText()))
+            custom_rule_layout.addRow(rule_content_label, rule_content_edit)
+            
+            # 语法说明
+            syntax_layout = QHBoxLayout()
+            syntax_label = QLabel("语法说明:")
+            syntax_button = QPushButton("?")
+            syntax_button.setFixedSize(20, 20)
+            syntax_button.setStyleSheet("QPushButton { border-radius: 10px; background-color: #4CAF50; color: white; }")
+            
+            def show_syntax_help():
+                help_text = """编码规则语法说明：
+
+v[n] = 表达式 表示词长度为n时的编码规则
+
+s[i][j] 表示第i个字的第j个编码字符
+
++ 表示连接字符串
+
+示例：
+v[2] = s[1][1] + s[1][2] + s[2][1] + s[2][2]
+表示词长度为2时，取前两个字的前两个编码
+
+v[3] = s[1][1] + s[2][1] + s[3][1]
+表示词长度为3时，取前三个字的每个字第一个编码"""
+                QMessageBox.information(self, "语法说明", help_text)
+            
+            syntax_button.clicked.connect(show_syntax_help)
+            syntax_layout.addWidget(syntax_label)
+            syntax_layout.addWidget(syntax_button)
+            custom_rule_layout.addLayout(syntax_layout)
+            
+            custom_rule_group.setLayout(custom_rule_layout)
+            self.settings_content_layout.addRow(custom_rule_group)
         elif settings_type == "编码长度":
             # 编码长度设置
             length_label = QLabel("最大编码长度:")

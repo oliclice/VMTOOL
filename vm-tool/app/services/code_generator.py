@@ -97,8 +97,8 @@ class CodeGenerator:
                 # 拼接所有字的编码
                 code = self.config['separator'].join(char_codes)
             elif self.config['rule'] == 'custom':
-                # 自定义规则，可以在这里扩展
-                code = self.config['separator'].join(char_codes)
+                # 自定义规则
+                code = self._execute_custom_rule(word, char_codes)
             else:
                 # 默认规则
                 code = self.config['separator'].join([c[0] for c in char_codes])
@@ -108,6 +108,67 @@ class CodeGenerator:
         except Exception as e:
             logger.error(f"根据字表生成编码失败: {e}")
             return ""
+    
+    def _execute_custom_rule(self, word: str, char_codes: List[str]) -> str:
+        """执行自定义编码规则
+        
+        Args:
+            word: 词条
+            char_codes: 每个字的编码列表
+            
+        Returns:
+            生成的编码
+        """
+        try:
+            # 读取自定义规则配置
+            from app.core.config_manager import config_manager
+            custom_rule_content = config_manager.get("custom_rule_content", "")
+            
+            if not custom_rule_content:
+                # 如果没有自定义规则，使用默认规则
+                return self.config['separator'].join([c[0] for c in char_codes])
+            
+            word_length = len(word)
+            
+            # 解析规则
+            rules = {}
+            for line in custom_rule_content.strip().split('\n'):
+                line = line.strip()
+                if line and '=' in line:
+                    key, value = line.split('=', 1)
+                    key = key.strip()
+                    value = value.strip()
+                    # 提取长度
+                    if key.startswith('v[') and key.endswith(']'):
+                        try:
+                            length = int(key[2:-1])
+                            rules[length] = value
+                        except:
+                            pass
+            
+            # 找到匹配的规则
+            if word_length in rules:
+                rule = rules[word_length]
+                # 替换s[i][j]为实际编码
+                result = rule
+                for i in range(1, word_length + 1):
+                    for j in range(1, len(char_codes[i-1]) + 1):
+                        placeholder = f"s[{i}][{j}]"
+                        if placeholder in result:
+                            if j <= len(char_codes[i-1]):
+                                result = result.replace(placeholder, char_codes[i-1][j-1])
+                            else:
+                                result = result.replace(placeholder, '')
+                # 处理连接符
+                result = result.replace('+', '')
+                return result
+            else:
+                # 如果没有匹配的规则，使用默认规则
+                return self.config['separator'].join([c[0] for c in char_codes])
+        except Exception as e:
+            logger.error(f"执行自定义规则失败: {e}")
+            # 失败时使用默认规则
+            return self.config['separator'].join([c[0] for c in char_codes])
     
     def validate_code(self, code: str) -> bool:
         """验证编码
