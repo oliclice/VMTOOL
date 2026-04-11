@@ -12,21 +12,16 @@
   "custom_rule_name": "flypy",
   "custom_rule_content": "v[2]=s[1][1]+s[1][2]+s[2][1]+s[2][2]\nv[3]=s[1][1]+s[2][1]+s[3][1]+s[3][2]\nv[4]=s[1][1]+s[2][1]+s[3][1]+s[4][1]",
   "custom_rules": {
-    "默认规则": {
-      "content": "v[2]=s[1][1]+s[1][2]+s[2][1]+s[2][2]\nv[3]=s[1][1]+s[2][1]+s[3][1]",
-      "python_mode": false
-    },
     "flypy": {
-      "content": "v[2] = s[1][1] + s[1][2] + s[2][1] + s[2][2]\nv[3] = s[1][1] + s[2][1] + s[3][1]+ s[3][2]\nv[4] = s[1][1] + s[2][1] + s[3][1]+ s[4][1]",
-      "python_mode": false
-    },
-    "flypy-python": {
-      "content": "result = ''\nfor char in vac:\n    if char in code:\n        result += code[char][0]\nresult+=code[vac[-1]][1]",
+      "content": "result = ''\nfor char in vac:\n    if char in code:\n        result += code[char][0]+code[char][1]",
       "python_mode": true
     }
   },
   "theme_name": "经典",
   "theme_mode": "dark",
   "theme_color": "蓝色",
-  "default_code_rule": "flypy"
+  "default_code_rule": "flypy",
+  "import_path": "/test/import/path.txt",
+  "export_path": "/test/export/path.txt",
+  "font_family": "AdwaitaMono Nerd Font Mono"
 }

@@ -14,7 +14,7 @@ from PyQt6.QtWidgets import (
     QProgressDialog, QTextEdit, QGroupBox, QProgressBar, QCheckBox
 )
 from PyQt6.QtCore import Qt, QSortFilterProxyModel, QThread, pyqtSignal
-from PyQt6.QtGui import QAction, QIcon, QFont, QColor, QStandardItemModel, QStandardItem, QPalette
+from PyQt6.QtGui import QAction, QIcon, QFont, QColor, QStandardItemModel, QStandardItem, QPalette, QFontDatabase
 
 from app.services.dict import DictService
 from app.services.weight import WeightCalculator
@@ -61,11 +61,12 @@ class AddBatchThread(QThread):
     finished = pyqtSignal(dict)
     error = pyqtSignal(str)
     
-    def __init__(self, dict_service, items, is_character=False):
+    def __init__(self, dict_service, items, is_character=False, is_special=False):
         super().__init__()
         self.dict_service = dict_service
         self.items = items
         self.is_character = is_character
+        self.is_special = is_special
     
     def run(self):
         try:
@@ -74,7 +75,7 @@ class AddBatchThread(QThread):
             
             item_data = []
             for item in self.items:
-                item_data.append({"word": item, "code": None, "weight": 1.0})
+                item_data.append({"word": item, "code": None, "weight": 1.0, "is_special": self.is_special})
             
             if self.is_character:
                 result = self.dict_service.add_characters(item_data, progress_callback=progress_callback)
@@ -193,6 +194,11 @@ class VMTOOLPyQtApp(QMainWindow):
         self.tab_widget.addTab(chars_tab, "字表管理")
         self.create_chars_tab(chars_tab)
         
+        # 特殊表管理标签页
+        special_tab = QWidget()
+        self.tab_widget.addTab(special_tab, "特殊表管理")
+        self.create_special_tab(special_tab)
+        
         # 词表管理标签页
         words_tab = QWidget()
         self.tab_widget.addTab(words_tab, "词表管理")
@@ -279,8 +285,87 @@ class VMTOOLPyQtApp(QMainWindow):
         button_layout.addWidget(refresh_button)
         layout.addLayout(button_layout)
         
+        # 添加表条数显示标签
+        self.char_count_label = QLabel("共 0 条汉字")
+        self.char_count_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.char_count_label)
+        
         # 加载字表
         self.refresh_chars()
+    
+    def create_special_tab(self, parent):
+        """创建特殊表管理标签页"""
+        layout = QVBoxLayout(parent)
+        
+        # 搜索框
+        search_layout = QHBoxLayout()
+        search_label = QLabel("搜索:")
+        self.special_search_edit = QLineEdit()
+        self.special_search_edit.setPlaceholderText("输入关键词搜索")
+        
+        # 添加字段选择下拉菜单
+        self.special_search_field = QComboBox()
+        self.special_search_field.addItems(["字符", "编码", "权重", "手动"])
+        
+        search_button = QPushButton("搜索")
+        search_button.clicked.connect(self.search_special)
+        
+        search_layout.addWidget(search_label)
+        search_layout.addWidget(self.special_search_edit)
+        search_layout.addWidget(self.special_search_field)
+        search_layout.addWidget(search_button)
+        layout.addLayout(search_layout)
+        
+        # 特殊表表格
+        self.special_table = QTableWidget()
+        self.special_table.setColumnCount(4)
+        self.special_table.setHorizontalHeaderLabels(["字符", "编码", "权重", "手动"])
+        self.special_table.setSortingEnabled(True)
+        self.special_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        
+        # 设置列宽
+        self.special_table.setColumnWidth(0, 100)
+        self.special_table.setColumnWidth(1, 150)
+        self.special_table.setColumnWidth(2, 100)
+        self.special_table.setColumnWidth(3, 80)
+        
+        # 添加右键菜单
+        self.special_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.special_table.customContextMenuRequested.connect(self.show_special_context_menu)
+        
+        layout.addWidget(self.special_table)
+        
+        # 操作按钮
+        button_layout = QHBoxLayout()
+        add_button = QPushButton("添加")
+        add_button.clicked.connect(self.add_special)
+        
+        add_batch_button = QPushButton("批量添加")
+        add_batch_button.clicked.connect(self.add_batch_special)
+        
+        edit_button = QPushButton("编辑")
+        edit_button.clicked.connect(self.edit_special)
+        
+        delete_button = QPushButton("删除")
+        delete_button.clicked.connect(self.delete_special)
+        
+        refresh_button = QPushButton("刷新")
+        refresh_button.clicked.connect(self.refresh_special)
+        
+        button_layout.addWidget(add_button)
+        button_layout.addWidget(add_batch_button)
+        button_layout.addWidget(edit_button)
+        button_layout.addWidget(delete_button)
+        button_layout.addWidget(refresh_button)
+        layout.addLayout(button_layout)
+        
+        # 添加表条数显示标签
+        self.special_count_label = QLabel("共 0 条特殊字符")
+        self.special_count_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.special_count_label)
+        
+        # 加载特殊表
+        self.refresh_special()
     
     def create_words_tab(self, parent):
         """创建词表管理标签页"""
@@ -351,6 +436,11 @@ class VMTOOLPyQtApp(QMainWindow):
         button_layout.addWidget(calc_all_codes_button)
         button_layout.addWidget(refresh_button)
         layout.addLayout(button_layout)
+        
+        # 添加表条数显示标签
+        self.word_count_label = QLabel("共 0 条词条")
+        self.word_count_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.word_count_label)
         
         # 加载词表
         self.refresh_words()
@@ -500,7 +590,10 @@ class VMTOOLPyQtApp(QMainWindow):
                 self.word_table.setItem(i, 2, QTableWidgetItem(str(word["weight"])))
                 self.word_table.setItem(i, 3, QTableWidgetItem("是" if word["manual"] else "否"))
             
-            self.status_bar.showMessage(f"加载完成，共 {len(multi_words)} 条词条，显示前100条")
+            # 更新表条数显示
+            total_count = len(multi_words)
+            self.word_count_label.setText(f"共 {total_count} 条词条")
+            self.status_bar.showMessage(f"加载完成，共 {total_count} 条词条，显示前100条")
         except Exception as e:
             QMessageBox.critical(self, "错误", f"加载词表失败: {e}")
             self.status_bar.showMessage("加载失败")
@@ -1014,6 +1107,10 @@ class VMTOOLPyQtApp(QMainWindow):
             
             self.import_path_edit.setText(file_path)
             self.import_format_combo.setCurrentText(format)
+            
+            # 保存导入路径到配置
+            config_manager.set("import_path", file_path)
+            
             self.import_file()
     
     def import_file(self):
@@ -1095,6 +1192,10 @@ class VMTOOLPyQtApp(QMainWindow):
             
             self.export_path_edit.setText(file_path)
             self.export_format_combo.setCurrentText(format)
+            
+            # 保存导出路径到配置
+            config_manager.set("export_path", file_path)
+            
             self.export_file()
     
     def export_file(self):
@@ -1146,9 +1247,40 @@ class VMTOOLPyQtApp(QMainWindow):
                 self.char_table.setItem(i, 2, QTableWidgetItem(str(char["weight"])))
                 self.char_table.setItem(i, 3, QTableWidgetItem("是" if char["manual"] else "否"))
             
-            self.status_bar.showMessage(f"加载完成，共 {len(chars)} 条汉字，显示前100条")
+            # 更新表条数显示
+            total_count = len(chars)
+            self.char_count_label.setText(f"共 {total_count} 条汉字")
+            self.status_bar.showMessage(f"加载完成，共 {total_count} 条汉字，显示前100条")
         except Exception as e:
             QMessageBox.critical(self, "错误", f"加载字表失败: {e}")
+            self.status_bar.showMessage("加载失败")
+    
+    def refresh_special(self):
+        """刷新特殊表"""
+        self.status_bar.showMessage("加载特殊表...")
+        
+        # 清空表格
+        self.special_table.setRowCount(0)
+        
+        try:
+            # 获取所有特殊字符
+            special_chars = self.dict_service.get_special_chars()
+            # 只显示前100条
+            display_special = special_chars[:100]
+            self.special_table.setRowCount(len(display_special))
+            
+            for i, special in enumerate(display_special):
+                self.special_table.setItem(i, 0, QTableWidgetItem(special["word"]))
+                self.special_table.setItem(i, 1, QTableWidgetItem(special["code"]))
+                self.special_table.setItem(i, 2, QTableWidgetItem(str(special["weight"])))
+                self.special_table.setItem(i, 3, QTableWidgetItem("是" if special["manual"] else "否"))
+            
+            # 更新表条数显示
+            total_count = self.dict_service.count_special_chars()
+            self.special_count_label.setText(f"共 {total_count} 条特殊字符")
+            self.status_bar.showMessage(f"加载完成，共 {total_count} 条特殊字符，显示前100条")
+        except Exception as e:
+            QMessageBox.critical(self, "错误", f"加载特殊表失败: {e}")
             self.status_bar.showMessage("加载失败")
     
     def search_chars(self):
@@ -1180,6 +1312,39 @@ class VMTOOLPyQtApp(QMainWindow):
                 self.char_table.setItem(i, 3, QTableWidgetItem("是" if char["manual"] else "否"))
             
             self.status_bar.showMessage(f"搜索完成，找到 {len(chars)} 条结果")
+        except Exception as e:
+            QMessageBox.critical(self, "错误", f"搜索失败: {e}")
+            self.status_bar.showMessage("搜索失败")
+    
+    def search_special(self):
+        """搜索特殊字符"""
+        keyword = self.special_search_edit.text()
+        if not keyword:
+            self.refresh_special()
+            return
+        
+        # 获取选择的搜索字段
+        field_map = {"字符": "word", "编码": "code", "权重": "weight", "手动": "manual"}
+        field = field_map.get(self.special_search_field.currentText(), "word")
+        
+        self.status_bar.showMessage(f"搜索 '{keyword}'...")
+        
+        # 清空表格
+        self.special_table.setRowCount(0)
+        
+        try:
+            results = self.dict_service.search_words(keyword, field)
+            # 只获取特殊字符的词条
+            special_chars = [result for result in results if result.get("is_special", False)]
+            self.special_table.setRowCount(len(special_chars))
+            
+            for i, special in enumerate(special_chars):
+                self.special_table.setItem(i, 0, QTableWidgetItem(special["word"]))
+                self.special_table.setItem(i, 1, QTableWidgetItem(special["code"]))
+                self.special_table.setItem(i, 2, QTableWidgetItem(str(special["weight"])))
+                self.special_table.setItem(i, 3, QTableWidgetItem("是" if special["manual"] else "否"))
+            
+            self.status_bar.showMessage(f"搜索完成，找到 {len(special_chars)} 条结果")
         except Exception as e:
             QMessageBox.critical(self, "错误", f"搜索失败: {e}")
             self.status_bar.showMessage("搜索失败")
@@ -1235,6 +1400,67 @@ class VMTOOLPyQtApp(QMainWindow):
                 QMessageBox.critical(self, "错误", f"添加失败: {e}")
         
         save_button.clicked.connect(save_char)
+        cancel_button.clicked.connect(dialog.reject)
+        
+        button_layout.addWidget(save_button)
+        button_layout.addWidget(cancel_button)
+        
+        layout.addLayout(form_layout)
+        layout.addLayout(button_layout)
+        
+        dialog.exec()
+    
+    def add_special(self):
+        """添加特殊字符"""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("添加特殊字符")
+        dialog.setGeometry(200, 200, 400, 200)
+        
+        layout = QVBoxLayout(dialog)
+        
+        form_layout = QFormLayout()
+        
+        char_edit = QLineEdit()
+        char_edit.setPlaceholderText("请输入特殊字符（非汉字、emoji等）")
+        code_edit = QLineEdit()
+        weight_edit = QLineEdit()
+        weight_edit.setText("1.0")
+        
+        form_layout.addRow("字符:", char_edit)
+        form_layout.addRow("编码:", code_edit)
+        form_layout.addRow("权重:", weight_edit)
+        
+        button_layout = QHBoxLayout()
+        save_button = QPushButton("保存")
+        cancel_button = QPushButton("取消")
+        
+        def save_special():
+            try:
+                char = char_edit.text().strip()
+                if not char:
+                    QMessageBox.warning(self, "警告", "请输入特殊字符")
+                    return
+                
+                code = code_edit.text()
+                weight = float(weight_edit.text())
+                
+                # 如果没有输入编码，自动计算编码
+                if not code:
+                    code = self.dict_service.generate_code(char)
+                    if code:
+                        QMessageBox.information(self, "提示", f"自动计算编码为: {code}")
+                    else:
+                        QMessageBox.warning(self, "警告", "无法自动计算编码，请手动输入")
+                        return
+                
+                self.dict_service.add_word(char, code, weight, is_character=True, is_special=True, manual=True)
+                QMessageBox.information(self, "成功", "特殊字符添加成功")
+                dialog.accept()
+                self.refresh_special()
+            except Exception as e:
+                QMessageBox.critical(self, "错误", f"添加失败: {e}")
+        
+        save_button.clicked.connect(save_special)
         cancel_button.clicked.connect(dialog.reject)
         
         button_layout.addWidget(save_button)
@@ -1309,6 +1535,70 @@ class VMTOOLPyQtApp(QMainWindow):
         
         dialog.exec()
     
+    def edit_special(self):
+        """编辑特殊字符"""
+        selected_row = self.special_table.currentRow()
+        if selected_row == -1:
+            QMessageBox.warning(self, "警告", "请选择要编辑的特殊字符")
+            return
+        
+        char = self.special_table.item(selected_row, 0).text()
+        code = self.special_table.item(selected_row, 1).text()
+        weight = float(self.special_table.item(selected_row, 2).text())
+        
+        dialog = QDialog(self)
+        dialog.setWindowTitle("编辑特殊字符")
+        dialog.setGeometry(200, 200, 400, 200)
+        
+        layout = QVBoxLayout(dialog)
+        
+        form_layout = QFormLayout()
+        
+        char_edit = QLineEdit(char)
+        char_edit.setReadOnly(True)
+        code_edit = QLineEdit(code)
+        weight_edit = QLineEdit(str(weight))
+        
+        form_layout.addRow("字符:", char_edit)
+        form_layout.addRow("编码:", code_edit)
+        form_layout.addRow("权重:", weight_edit)
+        
+        button_layout = QHBoxLayout()
+        save_button = QPushButton("保存")
+        cancel_button = QPushButton("取消")
+        
+        def save_edit():
+            try:
+                new_code = code_edit.text()
+                new_weight = float(weight_edit.text())
+                
+                update_data = {}
+                if new_code != code:
+                    update_data["code"] = new_code
+                if new_weight != weight:
+                    update_data["weight"] = new_weight
+                
+                if update_data:
+                    self.dict_service.update_word(char, **update_data)
+                    QMessageBox.information(self, "成功", "特殊字符更新成功")
+                    dialog.accept()
+                    self.refresh_special()
+                else:
+                    dialog.reject()
+            except Exception as e:
+                QMessageBox.critical(self, "错误", f"更新失败: {e}")
+        
+        save_button.clicked.connect(save_edit)
+        cancel_button.clicked.connect(dialog.reject)
+        
+        button_layout.addWidget(save_button)
+        button_layout.addWidget(cancel_button)
+        
+        layout.addLayout(form_layout)
+        layout.addLayout(button_layout)
+        
+        dialog.exec()
+    
     def delete_char(self):
         """删除汉字"""
         selected_row = self.char_table.currentRow()
@@ -1334,6 +1624,31 @@ class VMTOOLPyQtApp(QMainWindow):
             except Exception as e:
                 QMessageBox.critical(self, "错误", f"删除失败: {e}")
     
+    def delete_special(self):
+        """删除特殊字符"""
+        selected_row = self.special_table.currentRow()
+        if selected_row == -1:
+            QMessageBox.warning(self, "警告", "请选择要删除的特殊字符")
+            return
+        
+        char = self.special_table.item(selected_row, 0).text()
+        
+        reply = QMessageBox.question(
+            self, "确认", f"确定要删除特殊字符 '{char}' 吗？",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            try:
+                result = self.dict_service.delete_word(char)
+                if result:
+                    QMessageBox.information(self, "成功", "特殊字符删除成功")
+                    self.refresh_special()
+                else:
+                    QMessageBox.warning(self, "警告", "特殊字符不存在")
+            except Exception as e:
+                QMessageBox.critical(self, "错误", f"删除失败: {e}")
+    
     def create_settings_tab(self, parent):
         """创建设置标签页"""
         layout = QHBoxLayout(parent)
@@ -1351,6 +1666,7 @@ class VMTOOLPyQtApp(QMainWindow):
         
         # 添加设置类型（直接添加所有设置项，不需要子目录）
         QTreeWidgetItem(settings_types, ["主题设置"])
+        QTreeWidgetItem(settings_types, ["字体设置"])
         QTreeWidgetItem(settings_types, ["语言设置"])
         QTreeWidgetItem(settings_types, ["编码规则"])
         QTreeWidgetItem(settings_types, ["编码长度"])
@@ -1486,6 +1802,30 @@ class VMTOOLPyQtApp(QMainWindow):
             self.settings_content_layout.addRow(theme_label, theme_combo)
             self.settings_content_layout.addRow(mode_label, mode_combo)
             self.settings_content_layout.addRow(color_label, color_combo)
+        elif settings_type == "字体设置":
+            # 字体设置
+            font_label = QLabel("字体:")
+            font_combo = QComboBox()
+            
+            # 获取系统字体列表
+            font_families = QFontDatabase.families()
+            font_combo.addItems(font_families)
+            
+            # 加载当前字体设置
+            current_font = config_manager.get("font_family", "")
+            if current_font and current_font in font_families:
+                font_combo.setCurrentText(current_font)
+            
+            # 连接信号，自动保存并应用
+            def on_font_changed(font_family):
+                config_manager.set("font_family", font_family)
+                # 应用字体到整个应用
+                font = QFont(font_family)
+                QApplication.instance().setFont(font)
+                self.show_toast(f"字体已更改为: {font_family}")
+            
+            font_combo.currentTextChanged.connect(on_font_changed)
+            self.settings_content_layout.addRow(font_label, font_combo)
         elif settings_type == "语言设置":
             # 语言设置
             language_label = QLabel("语言:")
@@ -1551,17 +1891,21 @@ class VMTOOLPyQtApp(QMainWindow):
             rule_content_layout = QVBoxLayout()
             rule_content_label = QLabel("规则内容:")
             rule_content_edit = QTextEdit()
+            # 设置 tab 缩进相关属性
+            rule_content_edit.setTabStopDistance(20)  # 设置 tab 键宽度为 20 像素
             rule_content_layout.addWidget(rule_content_label)
             rule_content_layout.addWidget(rule_content_edit)
             custom_rule_layout.addLayout(rule_content_layout)
             
-            # 为默认规则添加标识
+            # 为默认规则和Python模式添加标识
             default_rule = config_manager.get("default_code_rule", "")
             for name in rule_names:
+                display_name = name
+                if rules[name].get("python_mode", False):
+                    display_name += " *python"
                 if name == default_rule:
-                    rule_combo.addItem(f"{name} [默认]")
-                else:
-                    rule_combo.addItem(name)
+                    display_name += " [默认]"
+                rule_combo.addItem(display_name)
             
             current_rule = config_manager.get("code_rule", rule_names[0] if rule_names else "")
             if current_rule in rule_names:
@@ -1912,7 +2256,9 @@ elif len(vac) >= 4:
             # 删除表设置
             delete_table_label = QLabel("删除表:")
             delete_table_combo = QComboBox()
-            delete_table_combo.addItems(["字表", "词表", "全部表"])
+            delete_table_combo.addItems(["字表", "词表", "特殊表", "全部表"])
+            # 设置为自动拓展
+            delete_table_combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
             self.settings_content_layout.addRow(delete_table_label, delete_table_combo)
             
             # 添加删除按钮
@@ -2011,6 +2357,16 @@ elif len(vac) >= 4:
                         db.commit()
                     finally:
                         db.close()
+                elif table_type == "特殊表":
+                    # 删除所有特殊字符的词条
+                    from sqlalchemy.orm import Session
+                    from app.dal.database import SessionLocal
+                    db = SessionLocal()
+                    try:
+                        db.query(Word).filter(Word.is_special == True).delete()
+                        db.commit()
+                    finally:
+                        db.close()
                 elif table_type == "全部表":
                     # 删除所有表
                     Base.metadata.drop_all(bind=engine)
@@ -2023,6 +2379,7 @@ elif len(vac) >= 4:
                 # 刷新表格
                 self.refresh_chars()
                 self.refresh_words()
+                self.refresh_special()
                 
                 QMessageBox.information(self, "成功", f"{table_type}删除成功")
             except Exception as e:
@@ -2083,6 +2440,70 @@ elif len(vac) >= 4:
             dialog.accept()
         
         add_button.clicked.connect(add_chars)
+        cancel_button.clicked.connect(dialog.reject)
+        
+        button_layout.addWidget(add_button)
+        button_layout.addWidget(cancel_button)
+        
+        layout.addLayout(button_layout)
+        
+        dialog.exec()
+    
+    def add_batch_special(self):
+        """批量添加特殊字符"""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("批量添加特殊字符")
+        dialog.setGeometry(200, 200, 500, 300)
+        
+        layout = QVBoxLayout(dialog)
+        
+        label = QLabel("请输入要添加的特殊字符，每个字符占一行:")
+        layout.addWidget(label)
+        
+        text_edit = QTextEdit()
+        layout.addWidget(text_edit)
+        
+        button_layout = QHBoxLayout()
+        add_button = QPushButton("添加")
+        cancel_button = QPushButton("取消")
+        
+        def add_special_chars():
+            text = text_edit.toPlainText()
+            chars = [char.strip() for char in text.split('\n') if char.strip()]
+            
+            if not chars:
+                QMessageBox.warning(self, "警告", "请输入要添加的特殊字符")
+                return
+            
+            # 验证输入是否都是单个字符
+            for char in chars:
+                if len(char) != 1:
+                    QMessageBox.warning(self, "警告", f"'{char}' 不是单个字符，请检查输入")
+                    return
+            
+            # 创建进度对话框
+            progress_dialog = QProgressDialog("开始批量添加...", "取消", 0, 100, self)
+            progress_dialog.setWindowTitle("添加进度")
+            progress_dialog.setMinimumDuration(0)
+            progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+            
+            # 创建批量添加线程
+            self.add_batch_thread = AddBatchThread(self.dict_service, chars, is_character=True, is_special=True)
+            
+            # 连接信号
+            self.add_batch_thread.progress.connect(lambda progress, message: self.on_add_batch_progress(progress, message, progress_dialog))
+            self.add_batch_thread.finished.connect(lambda result: self.on_add_batch_finished(result, progress_dialog, "特殊字符"))
+            self.add_batch_thread.error.connect(lambda error: self.on_add_batch_error(error, progress_dialog))
+            
+            # 开始线程
+            self.add_batch_thread.start()
+            
+            # 显示进度对话框
+            progress_dialog.exec()
+            
+            dialog.accept()
+        
+        add_button.clicked.connect(add_special_chars)
         cancel_button.clicked.connect(dialog.reject)
         
         button_layout.addWidget(add_button)
@@ -2283,6 +2704,22 @@ elif len(vac) >= 4:
         # 加载窗口位置
         window_position = config_manager.get("window_position", [100, 100])
         self.move(window_position[0], window_position[1])
+        
+        # 加载导入导出路径
+        import_path = config_manager.get("import_path", "")
+        export_path = config_manager.get("export_path", "")
+        
+        # 设置到对应的编辑框
+        if hasattr(self, 'import_path_edit'):
+            self.import_path_edit.setText(import_path)
+        if hasattr(self, 'export_path_edit'):
+            self.export_path_edit.setText(export_path)
+        
+        # 加载字体设置
+        font_family = config_manager.get("font_family", "")
+        if font_family:
+            font = QFont(font_family)
+            QApplication.instance().setFont(font)
     
     def save_config(self):
         """保存配置"""
@@ -2518,6 +2955,18 @@ elif len(vac) >= 4:
             self.edit_word()
         elif action == delete_action:
             self.delete_word()
+    
+    def show_special_context_menu(self, position):
+        """显示特殊表表格的右键菜单"""
+        menu = QMenu()
+        edit_action = menu.addAction("编辑")
+        delete_action = menu.addAction("删除")
+        
+        action = menu.exec(self.special_table.mapToGlobal(position))
+        if action == edit_action:
+            self.edit_special()
+        elif action == delete_action:
+            self.delete_special()
     
     def show_high_freq_context_menu(self, position):
         """显示高频词表格的右键菜单"""
