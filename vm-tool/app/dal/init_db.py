@@ -17,8 +17,9 @@ def init_database():
     """初始化数据库"""
     try:
         logger.info("开始创建数据库表结构...")
-        # 先删除所有表，然后重新创建（用于开发环境）
-        Base.metadata.drop_all(bind=engine)
+        # 只创建不存在的表，不删除现有表
+        # 注释掉删除表的代码，保持数据库数据
+        # Base.metadata.drop_all(bind=engine)
         # 创建所有表（不包含索引，索引将在数据导入后创建）
         Base.metadata.create_all(bind=engine)
         logger.info("数据库表结构创建成功")
