@@ -164,6 +164,11 @@ class CodeGenerator:
                         if placeholder in result:
                             result = result.replace(placeholder, char_codes[i][j])
                         
+                        # 兼容旧的1-based索引
+                        old_placeholder = f"s[{i+1}][{j+1}]"
+                        if old_placeholder in result:
+                            result = result.replace(old_placeholder, char_codes[i][j])
+                
                 # 处理s[-1][j]表示最后一个字的编码
                 if word_length > 0:
                     last_index = word_length - 1

@@ -280,6 +280,36 @@ class DictService:
             logger.error(f"搜索词条失败: {e}")
             raise DictError(f"搜索词条失败: {e}")
     
+    def get_code_preview(self) -> List[Dict[str, Any]]:
+        """获取编码变化预览数据"""
+        try:
+            from sqlalchemy import func
+            
+            preview_data = []
+            
+            # 获取不同长度的词各2个
+            for length in [2, 3, 4]:
+                # 获取该长度的词，排除手动编码的
+                words = self.db.query(Word).filter(
+                    Word.manual == False, 
+                    Word.is_character == False, 
+                    func.length(Word.word) == length
+                ).limit(2).all()
+                
+                for word in words:
+                    old_code = word.code
+                    new_code = self.generate_code(word.word)
+                    preview_data.append({
+                        "word": word.word,
+                        "old_code": old_code,
+                        "new_code": new_code
+                    })
+            
+            return preview_data
+        except Exception as e:
+            logger.error(f"获取编码预览失败: {e}")
+            return []
+    
     def calculate_all_codes(self) -> Dict[str, Any]:
         """计算所有未手动修改过编码的词条的编码"""
         try:
