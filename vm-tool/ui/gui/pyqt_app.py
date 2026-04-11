@@ -1184,8 +1184,15 @@ class VMTOOLPyQtApp(QMainWindow):
     
     def export_data(self):
         """导出数据"""
+        # 获取默认导出路径和默认导出名称
+        default_export_path = config_manager.get("default_export_path", "./")
+        default_export_name = config_manager.get("default_export_name", "vmtool_export")
+        
+        # 构造默认文件路径
+        default_file_path = default_export_path + "/" + default_export_name
+        
         file_path, _ = QFileDialog.getSaveFileName(
-            self, "选择导出文件", "", "文本文件 (*.txt);;CSV文件 (*.csv);;JSON文件 (*.json)"
+            self, "选择导出文件", default_file_path, "文本文件 (*.txt);;CSV文件 (*.csv);;JSON文件 (*.json)"
         )
         
         if file_path:
@@ -2341,6 +2348,14 @@ elif len(vac) >= 4:
             export_browse_layout.addWidget(export_path_edit)
             export_browse_layout.addWidget(export_browse_button)
             self.settings_content_layout.addRow(export_path_label, export_browse_layout)
+            
+            # 默认导出名称设置
+            export_name_label = QLabel("默认导出名称:")
+            export_name_edit = QLineEdit()
+            export_name_edit.setText(config_manager.get("default_export_name", "vmtool_export"))
+            # 连接信号，自动保存
+            export_name_edit.textChanged.connect(lambda text: config_manager.set("default_export_name", text))
+            self.settings_content_layout.addRow(export_name_label, export_name_edit)
             
             # 导入路径设置
             import_path_label = QLabel("默认导入路径:")
