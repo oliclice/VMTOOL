@@ -86,6 +86,31 @@ class AddBatchThread(QThread):
         except Exception as e:
             self.error.emit(str(e))
 
+class CalculateThread(QThread):
+    """批量计算编码线程"""
+    progress_updated = pyqtSignal(int, str)
+    finished = pyqtSignal(dict)
+    error = pyqtSignal(str)
+    
+    def __init__(self, dict_service):
+        super().__init__()
+        self.dict_service = dict_service
+    
+    def run(self):
+        try:
+            self.progress_updated.emit(0, "准备计算编码...")
+            
+            # 定义进度回调函数
+            def progress_callback(progress, message):
+                self.progress_updated.emit(progress, message)
+            
+            # 调用计算方法，传递进度回调
+            result = self.dict_service.calculate_all_codes(progress_callback)
+            
+            self.finished.emit(result)
+        except Exception as e:
+            self.error.emit(str(e))
+
 
 class VMTOOLPyQtApp(QMainWindow):
     """VM-TOOL PyQt6 GUI应用"""
@@ -112,6 +137,9 @@ class VMTOOLPyQtApp(QMainWindow):
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
         self.status_bar.showMessage("就绪")
+        
+        # 线程对象
+        self.calculate_thread = None
         
         # 初始化数据库
         try:
@@ -880,32 +908,7 @@ class VMTOOLPyQtApp(QMainWindow):
         separator_edit.textChanged.connect(load_preview)
         max_length_edit.textChanged.connect(load_preview)
         
-        # 导入线程模块
-        from PyQt6.QtCore import QThread, pyqtSignal
-        
-        class CalculateThread(QThread):
-            progress_updated = pyqtSignal(int, str)
-            finished = pyqtSignal(dict)
-            error = pyqtSignal(str)
-            
-            def __init__(self, dict_service):
-                super().__init__()
-                self.dict_service = dict_service
-            
-            def run(self):
-                try:
-                    self.progress_updated.emit(0, "准备计算编码...")
-                    
-                    # 定义进度回调函数
-                    def progress_callback(progress, message):
-                        self.progress_updated.emit(progress, message)
-                    
-                    # 调用计算方法，传递进度回调
-                    result = self.dict_service.calculate_all_codes(progress_callback)
-                    
-                    self.finished.emit(result)
-                except Exception as e:
-                    self.error.emit(str(e))
+        # 使用外部定义的 CalculateThread 类
         
         def calculate():
             try:
@@ -929,7 +932,8 @@ class VMTOOLPyQtApp(QMainWindow):
                 calculate_button.setEnabled(False)
                 
                 # 创建并启动线程
-                thread = CalculateThread(self.dict_service)
+                self.calculate_thread = CalculateThread(self.dict_service)
+                thread = self.calculate_thread
                 
                 def on_progress(progress, message):
                     progress_bar.setValue(progress)
