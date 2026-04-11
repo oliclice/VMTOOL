@@ -60,7 +60,8 @@ class StatsService:
                 "total_codes": len(code_counter),
                 "code_length_distribution": dict(code_length_counter),
                 "conflicts": conflicts,
-                "conflict_count": len(conflicts)
+                "conflict_count": len(conflicts),
+                "code_frequency": dict(code_counter)
             }
         except Exception as e:
             logger.error(f"获取编码统计失败: {e}")
