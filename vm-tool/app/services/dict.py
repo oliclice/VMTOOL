@@ -310,16 +310,17 @@ class DictService:
             logger.error(f"获取编码预览失败: {e}")
             return []
     
-    def calculate_all_codes(self) -> Dict[str, Any]:
+    def calculate_all_codes(self, progress_callback: Optional[Callable[[int, str], None]] = None) -> Dict[str, Any]:
         """计算所有未手动修改过编码的词条的编码"""
         try:
             # 获取所有未手动修改过编码的词条，排除字表（is_character=True）
             db_words = self.db.query(Word).filter(Word.manual == False, Word.is_character == False).all()
             
+            total = len(db_words)
             updated = 0
             failed = 0
             
-            for db_word in db_words:
+            for i, db_word in enumerate(db_words):
                 try:
                     # 生成新编码
                     new_code = self.generate_code(db_word.word)
@@ -330,12 +331,20 @@ class DictService:
                 except Exception as e:
                     logger.error(f"计算词条 '{db_word.word}' 的编码失败: {e}")
                     failed += 1
+                
+                # 每处理100个词条更新一次进度
+                if progress_callback and (i + 1) % 100 == 0:
+                    progress = int((i + 1) / total * 100)
+                    progress_callback(progress, f"已处理 {i + 1}/{total} 词条")
             
             # 提交更改
             self.db.commit()
             
+            if progress_callback:
+                progress_callback(100, "计算完成")
+            
             return {
-                "total": len(db_words),
+                "total": total,
                 "updated": updated,
                 "failed": failed
             }
