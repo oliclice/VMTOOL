@@ -120,7 +120,8 @@ class FilterService:
                     
                     processed_lines += 1
                     if progress_callback and total_lines > 0:
-                        progress = int((processed_lines / total_lines) * 100)
+                        # 文件读取阶段只占用0-50%的进度
+                        progress = int((processed_lines / total_lines) * 50)
                         progress_callback(progress, f"处理文件: {os.path.basename(file_path)}")
             
             # 批量添加
@@ -128,7 +129,15 @@ class FilterService:
             # 使用自己的数据库会话
             db = self.db or next(get_db())
             dict_service = DictService(db)
-            result = dict_service.add_words(words)
+            
+            # 传递进度回调，调整进度范围为50-100%
+            def batch_progress_callback(progress, message):
+                # 将批量添加的进度映射到50-100%的范围
+                adjusted_progress = 50 + int(progress * 0.5)
+                if progress_callback:
+                    progress_callback(adjusted_progress, message)
+            
+            result = dict_service.add_words(words, progress_callback=batch_progress_callback)
             
             if progress_callback:
                 progress_callback(100, f"导入完成: {os.path.basename(file_path)}")
@@ -172,7 +181,8 @@ class FilterService:
                     
                     processed_rows += 1
                     if progress_callback and total_rows > 0:
-                        progress = int((processed_rows / total_rows) * 100)
+                        # 文件读取阶段只占用0-50%的进度
+                        progress = int((processed_rows / total_rows) * 50)
                         progress_callback(progress, f"处理文件: {os.path.basename(file_path)}")
             
             # 批量添加
@@ -180,7 +190,15 @@ class FilterService:
             # 使用自己的数据库会话
             db = self.db or next(get_db())
             dict_service = DictService(db)
-            result = dict_service.add_words(words)
+            
+            # 传递进度回调，调整进度范围为50-100%
+            def batch_progress_callback(progress, message):
+                # 将批量添加的进度映射到50-100%的范围
+                adjusted_progress = 50 + int(progress * 0.5)
+                if progress_callback:
+                    progress_callback(adjusted_progress, message)
+            
+            result = dict_service.add_words(words, progress_callback=batch_progress_callback)
             
             if progress_callback:
                 progress_callback(100, f"导入完成: {os.path.basename(file_path)}")
@@ -220,7 +238,8 @@ class FilterService:
                     
                     processed_items += 1
                     if progress_callback and total_items > 0:
-                        progress = int((processed_items / total_items) * 100)
+                        # 文件读取阶段只占用0-50%的进度
+                        progress = int((processed_items / total_items) * 50)
                         progress_callback(progress, f"处理文件: {os.path.basename(file_path)}")
             
             # 批量添加
@@ -228,7 +247,15 @@ class FilterService:
             # 使用自己的数据库会话
             db = self.db or next(get_db())
             dict_service = DictService(db)
-            result = dict_service.add_words(words)
+            
+            # 传递进度回调，调整进度范围为50-100%
+            def batch_progress_callback(progress, message):
+                # 将批量添加的进度映射到50-100%的范围
+                adjusted_progress = 50 + int(progress * 0.5)
+                if progress_callback:
+                    progress_callback(adjusted_progress, message)
+            
+            result = dict_service.add_words(words, progress_callback=batch_progress_callback)
             
             if progress_callback:
                 progress_callback(100, f"导入完成: {os.path.basename(file_path)}")
