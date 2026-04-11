@@ -1314,23 +1314,6 @@ class VMTOOLPyQtApp(QMainWindow):
                 config_manager.set("custom_rules", rules)
                 rule_names = list(rules.keys())
             
-            rule_combo.addItems(rule_names)
-            current_rule = config_manager.get("code_rule", rule_names[0] if rule_names else "")
-            if current_rule in rule_names:
-                rule_combo.setCurrentText(current_rule)
-                # 初始化显示当前规则内容
-                rule_name_edit.setText(current_rule)
-                rule_content_edit.setPlainText(rules.get(current_rule, ""))
-            # 连接信号，自动保存
-            def on_rule_changed(text):
-                config_manager.set("code_rule", text)
-                # 切换规则时，自动填充规则名称和内容
-                rule_name_edit.setText(text)
-                rule_content_edit.setPlainText(rules.get(text, ""))
-            
-            rule_combo.currentTextChanged.connect(on_rule_changed)
-            self.settings_content_layout.addRow(rule_label, rule_combo)
-            
             # 自定义编码规则设置
             custom_rule_group = QGroupBox("自定义编码规则")
             custom_rule_layout = QVBoxLayout()
@@ -1350,6 +1333,23 @@ class VMTOOLPyQtApp(QMainWindow):
             rule_content_layout.addWidget(rule_content_label)
             rule_content_layout.addWidget(rule_content_edit)
             custom_rule_layout.addLayout(rule_content_layout)
+            
+            rule_combo.addItems(rule_names)
+            current_rule = config_manager.get("code_rule", rule_names[0] if rule_names else "")
+            if current_rule in rule_names:
+                rule_combo.setCurrentText(current_rule)
+                # 初始化显示当前规则内容
+                rule_name_edit.setText(current_rule)
+                rule_content_edit.setPlainText(rules.get(current_rule, ""))
+            # 连接信号，自动保存
+            def on_rule_changed(text):
+                config_manager.set("code_rule", text)
+                # 切换规则时，自动填充规则名称和内容
+                rule_name_edit.setText(text)
+                rule_content_edit.setPlainText(rules.get(text, ""))
+            
+            rule_combo.currentTextChanged.connect(on_rule_changed)
+            self.settings_content_layout.addRow(rule_label, rule_combo)
             
             # 语法说明
             syntax_layout = QHBoxLayout()
@@ -1419,8 +1419,14 @@ v[2] = s[0][1] + s[-1][1]
                         if rule_names:
                             rule_combo.setCurrentIndex(0)
                             config_manager.set("code_rule", rule_names[0])
+                            # 更新规则编辑框
+                            rule_name_edit.setText(rule_names[0])
+                            rule_content_edit.setPlainText(rules.get(rule_names[0], ""))
                         else:
                             config_manager.set("code_rule", "")
+                            # 清空规则编辑框
+                            rule_name_edit.setText("")
+                            rule_content_edit.setPlainText("")
                         self.show_toast(f"规则 '{current_rule}' 删除成功")
             
             add_button.clicked.connect(add_rule)
