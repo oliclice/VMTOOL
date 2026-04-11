@@ -633,14 +633,38 @@ class VMTOOLPyQtApp(QMainWindow):
         # 获取默认导出名称
         default_export_name = config_manager.get("default_export_name", "vmtool_export")
         
+        # 检查是否启用了 Rime 自动导出
+        auto_export_ibus_rime = config_manager.get("auto_export_ibus_rime", False)
+        auto_export_fcitx5_rime = config_manager.get("auto_export_fcitx5_rime", False)
+        
         # 构造完整导出路径
+        paths = []
+        
+        # 添加默认导出路径
         if export_path and default_export_name:
             # 确保路径以斜杠结尾
             if not export_path.endswith("/"):
                 export_path += "/"
             # 构造完整路径
             full_path = f"{export_path}{default_export_name}.{export_format}"
-            self.export_full_path_value.setText(full_path)
+            paths.append(f"默认路径: {full_path}")
+        
+        # 添加 Rime 自动导出路径
+        if auto_export_ibus_rime:
+            ibus_rime_path = os.path.expanduser("~/.config/ibus/rime")
+            if os.path.exists(ibus_rime_path):
+                rime_path = f"{ibus_rime_path}/{default_export_name}.{export_format}"
+                paths.append(f"ibus/rime: {rime_path}")
+        
+        if auto_export_fcitx5_rime:
+            fcitx5_rime_path = os.path.expanduser("~/.local/share/fcitx5/rime")
+            if os.path.exists(fcitx5_rime_path):
+                rime_path = f"{fcitx5_rime_path}/{default_export_name}.{export_format}"
+                paths.append(f"fcitx5/rime: {rime_path}")
+        
+        # 显示完整导出路径
+        if paths:
+            self.export_full_path_value.setText("\n".join(paths))
         else:
             self.export_full_path_value.setText("")
     
