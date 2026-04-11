@@ -1502,11 +1502,29 @@ class VMTOOLPyQtApp(QMainWindow):
             
             # 加载自定义规则列表
             rules = config_manager.get("custom_rules", {})
+            # 检查规则格式是否为新格式（包含content和python_mode字段）
+            # 如果是旧格式，转换为新格式
+            new_rules = {}
+            for rule_name, rule_value in rules.items():
+                if isinstance(rule_value, str):
+                    # 旧格式，转换为新格式
+                    new_rules[rule_name] = {
+                        "content": rule_value,
+                        "python_mode": False
+                    }
+                else:
+                    # 新格式，直接使用
+                    new_rules[rule_name] = rule_value
+            rules = new_rules
+            config_manager.set("custom_rules", rules)
             rule_names = list(rules.keys())
             if not rule_names:
                 # 默认规则
                 rules = {
-                    "默认规则": "v[2]=s[1][1]+s[1][2]+s[2][1]+s[2][2]\nv[3]=s[1][1]+s[2][1]+s[3][1]"
+                    "默认规则": {
+                        "content": "v[2]=s[1][1]+s[1][2]+s[2][1]+s[2][2]\nv[3]=s[1][1]+s[2][1]+s[3][1]",
+                        "python_mode": False
+                    }
                 }
                 config_manager.set("custom_rules", rules)
                 rule_names = list(rules.keys())
@@ -1522,6 +1540,12 @@ class VMTOOLPyQtApp(QMainWindow):
             rule_name_layout.addWidget(rule_name_label)
             rule_name_layout.addWidget(rule_name_edit)
             custom_rule_layout.addLayout(rule_name_layout)
+            
+            # Python模式勾选框
+            python_mode_layout = QHBoxLayout()
+            python_mode_checkbox = QCheckBox("开启Python模式")
+            python_mode_layout.addWidget(python_mode_checkbox)
+            custom_rule_layout.addLayout(python_mode_layout)
             
             # 规则内容
             rule_content_layout = QVBoxLayout()
@@ -1541,25 +1565,31 @@ class VMTOOLPyQtApp(QMainWindow):
             
             current_rule = config_manager.get("code_rule", rule_names[0] if rule_names else "")
             if current_rule in rule_names:
-                # 检查是否为默认规则
+                # 检查是否为默认规则和Python模式
+                display_name = current_rule
+                if rules[current_rule].get("python_mode", False):
+                    display_name += " *python"
                 if current_rule == default_rule:
-                    rule_combo.setCurrentText(f"{current_rule} [默认]")
-                else:
-                    rule_combo.setCurrentText(current_rule)
-                # 初始化显示当前规则内容
+                    display_name += " [默认]"
+                rule_combo.setCurrentText(display_name)
+                # 初始化显示当前规则内容和Python模式状态
                 rule_name_edit.setText(current_rule)
-                rule_content_edit.setPlainText(rules.get(current_rule, ""))
+                rule_content_edit.setPlainText(rules.get(current_rule, {}).get("content", ""))
+                python_mode_checkbox.setChecked(rules.get(current_rule, {}).get("python_mode", False))
             # 连接信号，自动保存
             def on_rule_changed(text):
-                # 移除默认标识
+                # 移除默认标识和Python模式标识
                 if " [默认]" in text:
                     rule_name = text.replace(" [默认]", "")
                 else:
                     rule_name = text
+                if " *python" in rule_name:
+                    rule_name = rule_name.replace(" *python", "")
                 config_manager.set("code_rule", rule_name)
-                # 切换规则时，自动填充规则名称和内容
+                # 切换规则时，自动填充规则名称、内容和Python模式状态
                 rule_name_edit.setText(rule_name)
-                rule_content_edit.setPlainText(rules.get(rule_name, ""))
+                rule_content_edit.setPlainText(rules.get(rule_name, {}).get("content", ""))
+                python_mode_checkbox.setChecked(rules.get(rule_name, {}).get("python_mode", False))
             
             rule_combo.currentTextChanged.connect(on_rule_changed)
             self.settings_content_layout.addRow(rule_label, rule_combo)
@@ -1574,6 +1604,7 @@ class VMTOOLPyQtApp(QMainWindow):
             def show_syntax_help():
                 help_text = """编码规则语法说明：
 
+普通模式：
 v[n] = 表达式 表示词长度为n时的编码规则
 
 v[n+] = 表达式 表示词长度为n及以上时的编码规则（如v[4+]表示四个字及以上的词）
@@ -1584,10 +1615,21 @@ s[-1][j] 表示词的最后一个字的第j个编码字符
 
 + 表示连接字符串
 
+Python模式：
+开启Python模式后，可以使用Python代码来生成编码
+
+默认变量：
+- vac：单条词条
+- code['字']：表示字的编码（例如code['测']表示"测"字的编码）
+- result：用于存储生成的编码
+
 默认编码规则：
 在规则名称后添加 [default] 后缀，表示该规则为默认编码规则，用于加词时自动计算编码
 
-示例：
+Python模式标识：
+在规则名称后添加 *python 后缀，表示该规则启用了Python模式
+
+普通模式示例：
 v[2] = s[1][1] + s[1][2] + s[2][1] + s[2][2]
 表示词长度为2时，取前两个字的前两个编码
 
@@ -1598,7 +1640,28 @@ v[4+] = s[1][1] + s[2][1] + s[3][1] + s[4][1]
 表示词长度为4及以上时，取前四个字的每个字第一个编码
 
 v[2] = s[1][1] + s[-1][1]
-表示词长度为2时，取第一个字和最后一个字的第一个编码"""
+表示词长度为2时，取第一个字和最后一个字的第一个编码
+
+Python模式示例：
+# 取每个字的第一个编码
+result = ''
+for char in vac:
+    if char in code:
+        result += code[char][0]
+
+# 取第一个字和最后一个字的编码
+if len(vac) >= 2:
+    result = code[vac[0]] + code[vac[-1]]
+else:
+    result = code.get(vac[0], '')
+
+# 自定义复杂逻辑
+if len(vac) == 2:
+    result = code[vac[0]][:2] + code[vac[1]][:2]
+elif len(vac) == 3:
+    result = code[vac[0]][0] + code[vac[1]][0] + code[vac[2]][:2]
+elif len(vac) >= 4:
+    result = code[vac[0]][0] + code[vac[1]][0] + code[vac[2]][0] + code[vac[3]][0]"""
                 QMessageBox.information(self, "语法说明", help_text)
             
             syntax_button.clicked.connect(show_syntax_help)
@@ -1615,30 +1678,44 @@ v[2] = s[1][1] + s[-1][1]
             def add_rule():
                 rule_name = rule_name_edit.text().strip()
                 rule_content = rule_content_edit.toPlainText().strip()
+                python_mode = python_mode_checkbox.isChecked()
+                
                 if rule_name and rule_content:
                     rules = config_manager.get("custom_rules", {})
-                    rules[rule_name] = rule_content
+                    # 保存规则内容和Python模式状态
+                    rules[rule_name] = {
+                        "content": rule_content,
+                        "python_mode": python_mode
+                    }
                     config_manager.set("custom_rules", rules)
                     # 更新下拉框
                     rule_combo.clear()
                     rule_names = list(rules.keys())
-                    # 为默认规则添加标识
+                    # 为默认规则和Python模式添加标识
                     default_rule = config_manager.get("default_code_rule", "")
                     for name in rule_names:
+                        display_name = name
+                        if rules[name].get("python_mode", False):
+                            display_name += " *python"
                         if name == default_rule:
-                            rule_combo.addItem(f"{name} [默认]")
-                        else:
-                            rule_combo.addItem(name)
-                    rule_combo.setCurrentText(rule_name)
+                            display_name += " [默认]"
+                        rule_combo.addItem(display_name)
+                    # 设置当前规则的显示名称
+                    current_display_name = rule_name
+                    if python_mode:
+                        current_display_name += " *python"
+                    rule_combo.setCurrentText(current_display_name)
                     self.show_toast(f"规则 '{rule_name}' 添加成功")
                 else:
                     self.show_toast("请输入规则名称和内容")
             
             def delete_rule():
                 current_rule = rule_combo.currentText()
-                # 移除默认标识
+                # 移除默认标识和Python模式标识
                 if " [默认]" in current_rule:
                     current_rule = current_rule.replace(" [默认]", "")
+                if " *python" in current_rule:
+                    current_rule = current_rule.replace(" *python", "")
                 
                 if current_rule:
                     rules = config_manager.get("custom_rules", {})
@@ -1652,45 +1729,59 @@ v[2] = s[1][1] + s[-1][1]
                         # 更新下拉框
                         rule_combo.clear()
                         rule_names = list(rules.keys())
-                        # 为默认规则添加标识
+                        # 为默认规则和Python模式添加标识
                         default_rule = config_manager.get("default_code_rule", "")
                         for name in rule_names:
+                            display_name = name
+                            if rules[name].get("python_mode", False):
+                                display_name += " *python"
                             if name == default_rule:
-                                rule_combo.addItem(f"{name} [默认]")
-                            else:
-                                rule_combo.addItem(name)
+                                display_name += " [默认]"
+                            rule_combo.addItem(display_name)
                         if rule_names:
                             rule_combo.setCurrentIndex(0)
                             config_manager.set("code_rule", rule_names[0])
                             # 更新规则编辑框
                             rule_name_edit.setText(rule_names[0])
-                            rule_content_edit.setPlainText(rules.get(rule_names[0], ""))
+                            rule_content_edit.setPlainText(rules.get(rule_names[0], {}).get("content", ""))
+                            # 更新Python模式勾选框
+                            python_mode_checkbox.setChecked(rules.get(rule_names[0], {}).get("python_mode", False))
                         else:
                             config_manager.set("code_rule", "")
                             # 清空规则编辑框
                             rule_name_edit.setText("")
                             rule_content_edit.setPlainText("")
+                            python_mode_checkbox.setChecked(False)
                         self.show_toast(f"规则 '{current_rule}' 删除成功")
             
             def set_default():
                 current_rule = rule_combo.currentText()
-                # 移除默认标识
+                # 移除默认标识和Python模式标识
                 if " [默认]" in current_rule:
                     current_rule = current_rule.replace(" [默认]", "")
+                if " *python" in current_rule:
+                    current_rule = current_rule.replace(" *python", "")
                 
                 if current_rule:
                     # 设置默认规则
                     config_manager.set("default_code_rule", current_rule)
-                    # 更新下拉框，为默认规则添加标识
+                    # 更新下拉框，为默认规则和Python模式添加标识
                     rules = config_manager.get("custom_rules", {})
                     rule_names = list(rules.keys())
                     rule_combo.clear()
                     for name in rule_names:
+                        display_name = name
+                        if rules[name].get("python_mode", False):
+                            display_name += " *python"
                         if name == current_rule:
-                            rule_combo.addItem(f"{name} [默认]")
-                        else:
-                            rule_combo.addItem(name)
-                    rule_combo.setCurrentText(f"{current_rule} [默认]")
+                            display_name += " [默认]"
+                        rule_combo.addItem(display_name)
+                    # 设置当前规则的显示名称
+                    current_display_name = current_rule
+                    if rules.get(current_rule, {}).get("python_mode", False):
+                        current_display_name += " *python"
+                    current_display_name += " [默认]"
+                    rule_combo.setCurrentText(current_display_name)
                     self.show_toast(f"规则 '{current_rule}' 已设为默认")
             
             add_button.clicked.connect(add_rule)
