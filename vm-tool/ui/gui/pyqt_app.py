@@ -172,28 +172,7 @@ class VMTOOLPyQtApp(QMainWindow):
         migrate_data_action.triggered.connect(self.migrate_data)
         tool_menu.addAction(migrate_data_action)
         
-        # 设置菜单
-        settings_menu = QMenu("设置", self)
-        menu_bar.addMenu(settings_menu)
-        
-        # 主题子菜单
-        theme_menu = QMenu("主题", self)
-        settings_menu.addMenu(theme_menu)
-        
-        # 主题选项
-        self.theme_auto = QAction("跟随系统", self, checkable=True)
-        self.theme_light = QAction("浅色", self, checkable=True)
-        self.theme_dark = QAction("深色", self, checkable=True)
-        
-        # 连接信号
-        self.theme_auto.triggered.connect(self.on_theme_auto_triggered)
-        self.theme_light.triggered.connect(self.on_theme_light_triggered)
-        self.theme_dark.triggered.connect(self.on_theme_dark_triggered)
-        
-        # 添加到子菜单
-        theme_menu.addAction(self.theme_auto)
-        theme_menu.addAction(self.theme_light)
-        theme_menu.addAction(self.theme_dark)
+
         
         # 帮助菜单
         help_menu = QMenu("帮助", self)
@@ -1131,6 +1110,7 @@ class VMTOOLPyQtApp(QMainWindow):
         QTreeWidgetItem(code_item, ["编码长度"])
         QTreeWidgetItem(database_item, ["数据库路径"])
         QTreeWidgetItem(database_item, ["缓存设置"])
+        QTreeWidgetItem(database_item, ["删除表"])
         QTreeWidgetItem(export_item, ["导出格式"])
         QTreeWidgetItem(export_item, ["导出路径"])
         
@@ -1188,6 +1168,8 @@ class VMTOOLPyQtApp(QMainWindow):
             theme_combo = QComboBox()
             theme_combo.addItems(["跟随系统", "浅色", "深色"])
             theme_combo.setCurrentText(config_manager.get("theme", "跟随系统"))
+            # 连接信号
+            theme_combo.currentTextChanged.connect(self.on_theme_changed)
             self.settings_content_layout.addRow(theme_label, theme_combo)
         elif settings_type == "语言设置":
             # 语言设置
@@ -1242,11 +1224,74 @@ class VMTOOLPyQtApp(QMainWindow):
             export_browse_layout.addWidget(export_path_edit)
             export_browse_layout.addWidget(export_browse_button)
             self.settings_content_layout.addRow(export_path_label, export_browse_layout)
+        elif settings_type == "删除表":
+            # 删除表设置
+            delete_table_label = QLabel("删除表:")
+            delete_table_combo = QComboBox()
+            delete_table_combo.addItems(["字表", "词表", "全部表"])
+            self.settings_content_layout.addRow(delete_table_label, delete_table_combo)
+            
+            # 添加删除按钮
+            delete_button = QPushButton("删除表")
+            delete_button.clicked.connect(lambda: self.delete_table(delete_table_combo.currentText()))
+            self.settings_content_layout.addRow(delete_button)
     
     def save_settings(self):
         """保存设置"""
         # 这里可以实现保存设置的逻辑
         QMessageBox.information(self, "成功", "设置保存成功")
+    
+    def on_theme_changed(self, theme):
+        """主题变更事件"""
+        config_manager.set("theme", theme)
+        self.set_theme(theme)
+        QMessageBox.information(self, "成功", f"主题已更改为: {theme}")
+    
+    def delete_table(self, table_type):
+        """删除表"""
+        # 显示确认对话框
+        reply = QMessageBox.question(
+            self, "确认", f"确定要删除{table_type}吗？此操作将永久删除所有数据，不可恢复！",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            try:
+                # 导入数据库初始化模块
+                from app.dal.init_db import engine, Base
+                from app.dal.models import Word
+                
+                # 删除表
+                if table_type == "字表":
+                    # 删除所有单个字符的词条
+                    from sqlalchemy.orm import Session
+                    from app.dal.init_db import get_db
+                    db = next(get_db())
+                    db.query(Word).filter(Word.is_character == True).delete()
+                    db.commit()
+                elif table_type == "词表":
+                    # 删除所有多个字符的词条
+                    from sqlalchemy.orm import Session
+                    from app.dal.init_db import get_db
+                    db = next(get_db())
+                    db.query(Word).filter(Word.is_character == False).delete()
+                    db.commit()
+                elif table_type == "全部表":
+                    # 删除所有表
+                    Base.metadata.drop_all(bind=engine)
+                    # 重新创建表
+                    Base.metadata.create_all(bind=engine)
+                    # 重新初始化配置
+                    from app.dal.init_db import init_config
+                    init_config()
+                
+                # 刷新表格
+                self.refresh_chars()
+                self.refresh_words()
+                
+                QMessageBox.information(self, "成功", f"{table_type}删除成功")
+            except Exception as e:
+                QMessageBox.critical(self, "错误", f"删除表失败: {e}")
     
     def add_batch_chars(self):
         """批量添加汉字"""
