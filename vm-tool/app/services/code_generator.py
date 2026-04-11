@@ -54,7 +54,16 @@ class CodeGenerator:
                 return code
             
             # 如果字表中没有对应的字，使用默认方法
-            return "".join([chr(ord(c) % 26 + 97) for c in word])[:self.config['max_length']]
+            # 对于单个字符，生成多个字符的编码，避免编码长度为1
+            if len(word) == 1:
+                # 为单个字符生成更长的编码
+                char = word[0]
+                # 使用字符的ASCII码生成多个字符的编码
+                code = "".join([chr((ord(char) + i) % 26 + 97) for i in range(self.config['max_length'])])
+                return code
+            else:
+                # 对于词语，使用原方法
+                return "".join([chr(ord(c) % 26 + 97) for c in word])[:self.config['max_length']]
         except Exception as e:
             logger.error(f"生成编码失败: {e}")
             return ""

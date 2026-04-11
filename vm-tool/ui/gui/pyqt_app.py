@@ -1305,17 +1305,23 @@ class VMTOOLPyQtApp(QMainWindow):
                 if table_type == "字表":
                     # 删除所有单个字符的词条
                     from sqlalchemy.orm import Session
-                    from app.dal.init_db import get_db
-                    db = next(get_db())
-                    db.query(Word).filter(Word.is_character == True).delete()
-                    db.commit()
+                    from app.dal.database import SessionLocal
+                    db = SessionLocal()
+                    try:
+                        db.query(Word).filter(Word.is_character == True).delete()
+                        db.commit()
+                    finally:
+                        db.close()
                 elif table_type == "词表":
                     # 删除所有多个字符的词条
                     from sqlalchemy.orm import Session
-                    from app.dal.init_db import get_db
-                    db = next(get_db())
-                    db.query(Word).filter(Word.is_character == False).delete()
-                    db.commit()
+                    from app.dal.database import SessionLocal
+                    db = SessionLocal()
+                    try:
+                        db.query(Word).filter(Word.is_character == False).delete()
+                        db.commit()
+                    finally:
+                        db.close()
                 elif table_type == "全部表":
                     # 删除所有表
                     Base.metadata.drop_all(bind=engine)
