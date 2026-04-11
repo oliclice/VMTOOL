@@ -2406,7 +2406,12 @@ elif len(vac) >= 4:
             # 默认导出路径开关
             export_path_enabled_checkbox = QCheckBox("启用默认导出路径")
             export_path_enabled_checkbox.setChecked(config_manager.get("export_path_enabled", True))
-            export_path_enabled_checkbox.stateChanged.connect(lambda state: config_manager.set("export_path_enabled", state == 2))
+            def on_export_path_enabled_changed(state):
+                config_manager.set("export_path_enabled", state == 2)
+                # 更新导出界面中的完整路径
+                if hasattr(self, 'update_export_full_path'):
+                    self.update_export_full_path()
+            export_path_enabled_checkbox.stateChanged.connect(on_export_path_enabled_changed)
             self.settings_content_layout.addRow(export_path_enabled_checkbox)
             
             # 导出路径设置
@@ -2419,6 +2424,9 @@ elif len(vac) >= 4:
                 # 更新导入导出标签页中的路径
                 if hasattr(self, 'export_path_edit'):
                     self.export_path_edit.setText(text)
+                    # 更新导出界面中的完整路径
+                    if hasattr(self, 'update_export_full_path'):
+                        self.update_export_full_path()
             export_path_edit.textChanged.connect(on_export_path_changed)
             export_browse_button = QPushButton("浏览")
             # 连接浏览按钮点击事件
@@ -2440,7 +2448,12 @@ elif len(vac) >= 4:
             export_name_edit = QLineEdit()
             export_name_edit.setText(config_manager.get("default_export_name", "vmtool_export"))
             # 连接信号，自动保存
-            export_name_edit.textChanged.connect(lambda text: config_manager.set("default_export_name", text))
+            def on_export_name_changed(text):
+                config_manager.set("default_export_name", text)
+                # 更新导出界面中的完整路径
+                if hasattr(self, 'update_export_full_path'):
+                    self.update_export_full_path()
+            export_name_edit.textChanged.connect(on_export_name_changed)
             self.settings_content_layout.addRow(export_name_label, export_name_edit)
             
             # 导入路径设置
@@ -2477,7 +2490,12 @@ elif len(vac) >= 4:
             if os.path.exists(ibus_rime_path):
                 ibus_rime_checkbox = QCheckBox(f"自动导出到 ibus/rime 目录 ({ibus_rime_path})")
                 ibus_rime_checkbox.setChecked(config_manager.get("auto_export_ibus_rime", False))
-                ibus_rime_checkbox.stateChanged.connect(lambda state: config_manager.set("auto_export_ibus_rime", state == 2))
+                def on_ibus_rime_changed(state):
+                    config_manager.set("auto_export_ibus_rime", state == 2)
+                    # 更新导出界面中的完整路径
+                    if hasattr(self, 'update_export_full_path'):
+                        self.update_export_full_path()
+                ibus_rime_checkbox.stateChanged.connect(on_ibus_rime_changed)
                 self.settings_content_layout.addRow(ibus_rime_checkbox)
             
             # 检查 fcitx5/rime 目录是否存在
@@ -2485,7 +2503,12 @@ elif len(vac) >= 4:
             if os.path.exists(fcitx5_rime_path):
                 fcitx5_rime_checkbox = QCheckBox(f"自动导出到 fcitx5/rime 目录 ({fcitx5_rime_path})")
                 fcitx5_rime_checkbox.setChecked(config_manager.get("auto_export_fcitx5_rime", False))
-                fcitx5_rime_checkbox.stateChanged.connect(lambda state: config_manager.set("auto_export_fcitx5_rime", state == 2))
+                def on_fcitx5_rime_changed(state):
+                    config_manager.set("auto_export_fcitx5_rime", state == 2)
+                    # 更新导出界面中的完整路径
+                    if hasattr(self, 'update_export_full_path'):
+                        self.update_export_full_path()
+                fcitx5_rime_checkbox.stateChanged.connect(on_fcitx5_rime_changed)
                 self.settings_content_layout.addRow(fcitx5_rime_checkbox)
         elif settings_type == "删除表":
             # 删除表设置
