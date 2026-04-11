@@ -374,8 +374,8 @@ class VMTOOLPyQtApp(QMainWindow):
         # 统计字段选择
         field_label = QLabel("统计字段:")
         self.stats_field_combo = QComboBox()
-        self.stats_field_combo.addItems(["权重", "词长", "编码长度"])
-        self.stats_field_combo.setCurrentText("权重")
+        self.stats_field_combo.addItems(["词长", "编码出现频次", "权重值"])
+        self.stats_field_combo.setCurrentText("词长")
         
         # 显示条数设置
         count_label = QLabel("显示条数:")
@@ -887,12 +887,16 @@ class VMTOOLPyQtApp(QMainWindow):
             words = report.get('all_words', [])
             
             # 根据选择的字段排序
-            if stats_field == "权重":
+            if stats_field == "权重值":
                 sorted_words = sorted(words, key=lambda x: x.get('weight', 0), reverse=True)
             elif stats_field == "词长":
                 sorted_words = sorted(words, key=lambda x: len(x.get('word', '')), reverse=True)
-            elif stats_field == "编码长度":
-                sorted_words = sorted(words, key=lambda x: len(x.get('code', '')), reverse=True)
+            elif stats_field == "编码出现频次":
+                # 获取编码统计信息
+                code_stats = report.get('code_stats', {})
+                code_frequency = code_stats.get('code_frequency', {})
+                # 根据编码出现频次排序
+                sorted_words = sorted(words, key=lambda x: code_frequency.get(x.get('code', ''), 0), reverse=True)
             else:
                 sorted_words = sorted(words, key=lambda x: x.get('weight', 0), reverse=True)
             
