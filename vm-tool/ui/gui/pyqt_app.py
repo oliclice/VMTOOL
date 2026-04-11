@@ -1662,7 +1662,54 @@ elif len(vac) == 3:
     result = code[vac[0]][0] + code[vac[1]][0] + code[vac[2]][:2]
 elif len(vac) >= 4:
     result = code[vac[0]][0] + code[vac[1]][0] + code[vac[2]][0] + code[vac[3]][0]"""
-                QMessageBox.information(self, "语法说明", help_text)
+                # 创建自定义对话框
+                dialog = QDialog(self)
+                dialog.setWindowTitle("语法说明")
+                
+                # 获取屏幕大小
+                screen = self.screen()
+                screen_rect = screen.geometry()
+                screen_width = screen_rect.width()
+                screen_height = screen_rect.height()
+                
+                # 设置对话框大小为1/3屏幕高，2/5屏幕宽
+                dialog_width = int(screen_width * 2/5)
+                dialog_height = int(screen_height * 1/3)
+                dialog.resize(dialog_width, dialog_height)
+                
+                # 设置对话框为可调整大小
+                dialog.setSizeGripEnabled(True)
+                
+                # 创建布局
+                layout = QVBoxLayout(dialog)
+                
+                # 创建文本编辑框显示帮助信息
+                text_edit = QTextEdit()
+                text_edit.setPlainText(help_text)
+                text_edit.setReadOnly(True)
+                text_edit.setLineWrapMode(QTextEdit.LineWrapMode.WidgetWidth)
+                
+                # 添加滚动条
+                text_edit.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+                text_edit.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+                
+                # 添加文本编辑框到布局
+                layout.addWidget(text_edit)
+                
+                # 创建确定按钮
+                button_layout = QHBoxLayout()
+                ok_button = QPushButton("确定")
+                ok_button.clicked.connect(dialog.accept)
+                button_layout.addStretch()
+                button_layout.addWidget(ok_button)
+                button_layout.addStretch()
+                
+                # 添加按钮到布局
+                layout.addLayout(button_layout)
+                
+                # 显示对话框
+                dialog.exec()
+
             
             syntax_button.clicked.connect(show_syntax_help)
             syntax_layout.addWidget(syntax_label)
