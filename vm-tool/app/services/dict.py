@@ -263,7 +263,7 @@ class DictService:
             logger.error(f"替换编码失败: {e}")
             raise DictError(f"替换编码失败: {e}")
     
-    def get_all_words(self, skip: int = 0, limit: int = 100) -> List[Dict[str, Any]]:
+    def get_all_words(self, skip: int = 0, limit: int = None) -> List[Dict[str, Any]]:
         """获取所有词条"""
         try:
             db_words = self.repo.get_all(skip, limit)
@@ -271,7 +271,8 @@ class DictService:
                 "word": word.word,
                 "code": word.code,
                 "weight": word.weight,
-                "manual": word.manual
+                "manual": word.manual,
+                "is_character": word.is_character
             } for word in db_words]
         except Exception as e:
             logger.error(f"获取所有词条失败: {e}")

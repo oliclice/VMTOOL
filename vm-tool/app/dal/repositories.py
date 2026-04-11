@@ -34,9 +34,12 @@ class WordRepository(BaseRepository):
         """根据编码获取词条列表"""
         return self.db.query(Word).filter(Word.code == code).all()
     
-    def get_all(self, skip: int = 0, limit: int = 100) -> List[Word]:
+    def get_all(self, skip: int = 0, limit: int = None) -> List[Word]:
         """获取所有词条"""
-        return self.db.query(Word).offset(skip).limit(limit).all()
+        query = self.db.query(Word).offset(skip)
+        if limit is not None:
+            query = query.limit(limit)
+        return query.all()
     
     def update(self, word_id: int, **kwargs) -> Optional[Word]:
         """更新词条"""

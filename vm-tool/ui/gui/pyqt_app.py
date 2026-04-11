@@ -451,8 +451,8 @@ class VMTOOLPyQtApp(QMainWindow):
         
         try:
             words = self.dict_service.get_all_words()
-            # 只获取多个字符的词条
-            multi_words = [word for word in words if len(word["word"]) > 1]
+            # 只获取词表（is_character=False）
+            multi_words = [word for word in words if not word["is_character"]]
             # 只显示前100条
             display_words = multi_words[:100]
             self.word_table.setRowCount(len(display_words))
@@ -891,8 +891,8 @@ class VMTOOLPyQtApp(QMainWindow):
         
         try:
             words = self.dict_service.get_all_words()
-            # 只获取单个字符的词条
-            chars = [word for word in words if len(word["word"]) == 1]
+            # 只获取字表（is_character=True）
+            chars = [word for word in words if word["is_character"]]
             # 只显示前100条
             display_chars = chars[:100]
             self.char_table.setRowCount(len(display_chars))
@@ -1097,22 +1097,16 @@ class VMTOOLPyQtApp(QMainWindow):
         settings_types = QTreeWidget()
         settings_types.setHeaderLabel("设置类型")
         
-        # 添加设置类型
-        general_item = QTreeWidgetItem(settings_types, ["通用设置"])
-        code_item = QTreeWidgetItem(settings_types, ["编码设置"])
-        database_item = QTreeWidgetItem(settings_types, ["数据库设置"])
-        export_item = QTreeWidgetItem(settings_types, ["导出设置"])
-        
-        # 添加子项
-        QTreeWidgetItem(general_item, ["主题设置"])
-        QTreeWidgetItem(general_item, ["语言设置"])
-        QTreeWidgetItem(code_item, ["编码规则"])
-        QTreeWidgetItem(code_item, ["编码长度"])
-        QTreeWidgetItem(database_item, ["数据库路径"])
-        QTreeWidgetItem(database_item, ["缓存设置"])
-        QTreeWidgetItem(database_item, ["删除表"])
-        QTreeWidgetItem(export_item, ["导出格式"])
-        QTreeWidgetItem(export_item, ["导出路径"])
+        # 添加设置类型（直接添加所有设置项，不需要子目录）
+        QTreeWidgetItem(settings_types, ["主题设置"])
+        QTreeWidgetItem(settings_types, ["语言设置"])
+        QTreeWidgetItem(settings_types, ["编码规则"])
+        QTreeWidgetItem(settings_types, ["编码长度"])
+        QTreeWidgetItem(settings_types, ["数据库路径"])
+        QTreeWidgetItem(settings_types, ["缓存设置"])
+        QTreeWidgetItem(settings_types, ["删除表"])
+        QTreeWidgetItem(settings_types, ["导出格式"])
+        QTreeWidgetItem(settings_types, ["导出路径"])
         
         left_layout.addWidget(settings_types)
         splitter.addWidget(left_widget)
@@ -1156,10 +1150,9 @@ class VMTOOLPyQtApp(QMainWindow):
         
         # 获取选中的设置类型
         settings_type = item.text(column)
-        parent_type = item.parent().text(0) if item.parent() else ""
         
         # 更新标题
-        self.settings_title.setText(f"{parent_type} - {settings_type}")
+        self.settings_title.setText(settings_type)
         
         # 根据选中的设置类型显示对应的设置内容
         if settings_type == "主题设置":
