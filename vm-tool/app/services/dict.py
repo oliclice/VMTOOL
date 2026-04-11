@@ -274,6 +274,20 @@ class DictService:
             logger.error(f"获取所有词条失败: {e}")
             raise DictError(f"获取所有词条失败: {e}")
     
+    def search_words(self, keyword: str, field: str = "word") -> List[Dict[str, Any]]:
+        """搜索词条"""
+        try:
+            db_words = self.repo.search(keyword, field)
+            return [{
+                "word": word.word,
+                "code": word.code,
+                "weight": word.weight,
+                "manual": word.manual
+            } for word in db_words]
+        except Exception as e:
+            logger.error(f"搜索词条失败: {e}")
+            raise DictError(f"搜索词条失败: {e}")
+    
     def calculate_all_codes(self) -> Dict[str, Any]:
         """计算所有未手动修改过编码的词条的编码"""
         try:
