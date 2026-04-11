@@ -1557,41 +1557,9 @@ class VMTOOLPyQtApp(QMainWindow):
         # 保存窗口位置
         config_manager.set("window_position", [self.x(), self.y()])
     
-    def on_theme_auto_triggered(self, checked):
-        """处理跟随系统主题触发"""
-        if checked:
-            self.theme_light.setChecked(False)
-            self.theme_dark.setChecked(False)
-            self.set_theme("auto")
-            # 保存配置
-            config_manager.set("theme", "auto")
-    
-    def on_theme_light_triggered(self, checked):
-        """处理浅色主题触发"""
-        if checked:
-            self.theme_auto.setChecked(False)
-            self.theme_dark.setChecked(False)
-            self.set_theme("light")
-            # 保存配置
-            config_manager.set("theme", "light")
-    
-    def on_theme_dark_triggered(self, checked):
-        """处理深色主题触发"""
-        if checked:
-            self.theme_auto.setChecked(False)
-            self.theme_light.setChecked(False)
-            self.set_theme("dark")
-            # 保存配置
-            config_manager.set("theme", "dark")
-    
     def set_theme(self, theme):
         """设置主题"""
         from PyQt6.QtCore import Qt
-        
-        # 更新选中状态
-        self.theme_auto.setChecked(theme == "auto")
-        self.theme_light.setChecked(theme == "light")
-        self.theme_dark.setChecked(theme == "dark")
         
         # 获取应用实例
         app = QApplication.instance()
