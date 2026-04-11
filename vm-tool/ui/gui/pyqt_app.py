@@ -1144,9 +1144,24 @@ class VMTOOLPyQtApp(QMainWindow):
         """设置类型点击事件"""
         # 清空设置内容
         for i in reversed(range(self.settings_content_layout.count())):
-            widget = self.settings_content_layout.itemAt(i).widget()
-            if widget:
-                widget.deleteLater()
+            item = self.settings_content_layout.itemAt(i)
+            if item:
+                widget = item.widget()
+                if widget:
+                    widget.deleteLater()
+                else:
+                    # 处理布局项
+                    layout = item.layout()
+                    if layout:
+                        # 清空布局中的所有控件
+                        for j in reversed(range(layout.count())):
+                            layout_item = layout.itemAt(j)
+                            if layout_item:
+                                layout_widget = layout_item.widget()
+                                if layout_widget:
+                                    layout_widget.deleteLater()
+                        # 移除布局
+                        self.settings_content_layout.removeItem(item)
         
         # 获取选中的设置类型
         settings_type = item.text(column)
@@ -1196,18 +1211,24 @@ class VMTOOLPyQtApp(QMainWindow):
             custom_rule_layout = QVBoxLayout()
             
             # 规则名称
+            rule_name_layout = QHBoxLayout()
             rule_name_label = QLabel("规则名称:")
             rule_name_edit = QLineEdit()
             rule_name_edit.setText(config_manager.get("custom_rule_name", "my_rule"))
             rule_name_edit.textChanged.connect(lambda text: config_manager.set("custom_rule_name", text))
-            custom_rule_layout.addRow(rule_name_label, rule_name_edit)
+            rule_name_layout.addWidget(rule_name_label)
+            rule_name_layout.addWidget(rule_name_edit)
+            custom_rule_layout.addLayout(rule_name_layout)
             
             # 规则内容
+            rule_content_layout = QVBoxLayout()
             rule_content_label = QLabel("规则内容:")
             rule_content_edit = QTextEdit()
             rule_content_edit.setPlainText(config_manager.get("custom_rule_content", "v[2]=s[1][1]+s[1][2]+s[2][1]+s[2][2]\nv[3]=s[1][1]+s[2][1]+s[3][1]"))
             rule_content_edit.textChanged.connect(lambda: config_manager.set("custom_rule_content", rule_content_edit.toPlainText()))
-            custom_rule_layout.addRow(rule_content_label, rule_content_edit)
+            rule_content_layout.addWidget(rule_content_label)
+            rule_content_layout.addWidget(rule_content_edit)
+            custom_rule_layout.addLayout(rule_content_layout)
             
             # 语法说明
             syntax_layout = QHBoxLayout()
