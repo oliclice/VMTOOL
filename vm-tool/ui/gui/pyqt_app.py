@@ -227,6 +227,11 @@ class VMTOOLPyQtApp(QMainWindow):
         import_export_tab = QWidget()
         self.tab_widget.addTab(import_export_tab, "导入导出")
         self.create_import_export_tab(import_export_tab)
+        
+        # 设置标签页
+        settings_tab = QWidget()
+        self.tab_widget.addTab(settings_tab, "设置")
+        self.create_settings_tab(settings_tab)
     
     def create_chars_tab(self, parent):
         """创建字表管理标签页"""
@@ -236,12 +241,18 @@ class VMTOOLPyQtApp(QMainWindow):
         search_layout = QHBoxLayout()
         search_label = QLabel("搜索:")
         self.char_search_edit = QLineEdit()
-        self.char_search_edit.setPlaceholderText("输入汉字搜索")
+        self.char_search_edit.setPlaceholderText("输入关键词搜索")
+        
+        # 添加字段选择下拉菜单
+        self.char_search_field = QComboBox()
+        self.char_search_field.addItems(["字", "编码", "权重", "手动"])
+        
         search_button = QPushButton("搜索")
         search_button.clicked.connect(self.search_chars)
         
         search_layout.addWidget(search_label)
         search_layout.addWidget(self.char_search_edit)
+        search_layout.addWidget(self.char_search_field)
         search_layout.addWidget(search_button)
         layout.addLayout(search_layout)
         
@@ -296,11 +307,17 @@ class VMTOOLPyQtApp(QMainWindow):
         search_label = QLabel("搜索:")
         self.search_edit = QLineEdit()
         self.search_edit.setPlaceholderText("输入关键词搜索")
+        
+        # 添加字段选择下拉菜单
+        self.word_search_field = QComboBox()
+        self.word_search_field.addItems(["词", "编码", "权重", "手动"])
+        
         search_button = QPushButton("搜索")
         search_button.clicked.connect(self.search_words)
         
         search_layout.addWidget(search_label)
         search_layout.addWidget(self.search_edit)
+        search_layout.addWidget(self.word_search_field)
         search_layout.addWidget(search_button)
         layout.addLayout(search_layout)
         
@@ -457,15 +474,17 @@ class VMTOOLPyQtApp(QMainWindow):
             words = self.dict_service.get_all_words()
             # 只获取多个字符的词条
             multi_words = [word for word in words if len(word["word"]) > 1]
-            self.word_table.setRowCount(len(multi_words))
+            # 只显示前100条
+            display_words = multi_words[:100]
+            self.word_table.setRowCount(len(display_words))
             
-            for i, word in enumerate(multi_words):
+            for i, word in enumerate(display_words):
                 self.word_table.setItem(i, 0, QTableWidgetItem(word["word"]))
                 self.word_table.setItem(i, 1, QTableWidgetItem(word["code"]))
                 self.word_table.setItem(i, 2, QTableWidgetItem(str(word["weight"])))
                 self.word_table.setItem(i, 3, QTableWidgetItem("是" if word["manual"] else "否"))
             
-            self.status_bar.showMessage(f"加载完成，共 {len(multi_words)} 条词条")
+            self.status_bar.showMessage(f"加载完成，共 {len(multi_words)} 条词条，显示前100条")
         except Exception as e:
             QMessageBox.critical(self, "错误", f"加载词表失败: {e}")
             self.status_bar.showMessage("加载失败")
@@ -477,13 +496,17 @@ class VMTOOLPyQtApp(QMainWindow):
             self.refresh_words()
             return
         
+        # 获取选择的搜索字段
+        field_map = {"词": "word", "编码": "code", "权重": "weight", "手动": "manual"}
+        field = field_map.get(self.word_search_field.currentText(), "word")
+        
         self.status_bar.showMessage(f"搜索 '{keyword}'...")
         
         # 清空表格
         self.word_table.setRowCount(0)
         
         try:
-            results = self.dict_service.search_words(keyword)
+            results = self.dict_service.search_words(keyword, field)
             # 只获取多个字符的词条
             multi_words = [result for result in results if len(result["word"]) > 1]
             self.word_table.setRowCount(len(multi_words))
@@ -492,6 +515,7 @@ class VMTOOLPyQtApp(QMainWindow):
                 self.word_table.setItem(i, 0, QTableWidgetItem(result["word"]))
                 self.word_table.setItem(i, 1, QTableWidgetItem(result["code"]))
                 self.word_table.setItem(i, 2, QTableWidgetItem(str(result["weight"])))
+                self.word_table.setItem(i, 3, QTableWidgetItem("是" if result["manual"] else "否"))
             
             self.status_bar.showMessage(f"搜索完成，找到 {len(multi_words)} 条结果")
         except Exception as e:
@@ -890,15 +914,17 @@ class VMTOOLPyQtApp(QMainWindow):
             words = self.dict_service.get_all_words()
             # 只获取单个字符的词条
             chars = [word for word in words if len(word["word"]) == 1]
-            self.char_table.setRowCount(len(chars))
+            # 只显示前100条
+            display_chars = chars[:100]
+            self.char_table.setRowCount(len(display_chars))
             
-            for i, char in enumerate(chars):
+            for i, char in enumerate(display_chars):
                 self.char_table.setItem(i, 0, QTableWidgetItem(char["word"]))
                 self.char_table.setItem(i, 1, QTableWidgetItem(char["code"]))
                 self.char_table.setItem(i, 2, QTableWidgetItem(str(char["weight"])))
                 self.char_table.setItem(i, 3, QTableWidgetItem("是" if char["manual"] else "否"))
             
-            self.status_bar.showMessage(f"加载完成，共 {len(chars)} 条汉字")
+            self.status_bar.showMessage(f"加载完成，共 {len(chars)} 条汉字，显示前100条")
         except Exception as e:
             QMessageBox.critical(self, "错误", f"加载字表失败: {e}")
             self.status_bar.showMessage("加载失败")
@@ -910,13 +936,17 @@ class VMTOOLPyQtApp(QMainWindow):
             self.refresh_chars()
             return
         
+        # 获取选择的搜索字段
+        field_map = {"字": "word", "编码": "code", "权重": "weight", "手动": "manual"}
+        field = field_map.get(self.char_search_field.currentText(), "word")
+        
         self.status_bar.showMessage(f"搜索 '{keyword}'...")
         
         # 清空表格
         self.char_table.setRowCount(0)
         
         try:
-            results = self.dict_service.search_words(keyword)
+            results = self.dict_service.search_words(keyword, field)
             # 只获取单个字符的词条
             chars = [result for result in results if len(result["word"]) == 1]
             self.char_table.setRowCount(len(chars))
@@ -925,6 +955,7 @@ class VMTOOLPyQtApp(QMainWindow):
                 self.char_table.setItem(i, 0, QTableWidgetItem(char["word"]))
                 self.char_table.setItem(i, 1, QTableWidgetItem(char["code"]))
                 self.char_table.setItem(i, 2, QTableWidgetItem(str(char["weight"])))
+                self.char_table.setItem(i, 3, QTableWidgetItem("是" if char["manual"] else "否"))
             
             self.status_bar.showMessage(f"搜索完成，找到 {len(chars)} 条结果")
         except Exception as e:
@@ -1071,6 +1102,151 @@ class VMTOOLPyQtApp(QMainWindow):
                     QMessageBox.warning(self, "警告", "汉字不存在")
             except Exception as e:
                 QMessageBox.critical(self, "错误", f"删除失败: {e}")
+    
+    def create_settings_tab(self, parent):
+        """创建设置标签页"""
+        layout = QHBoxLayout(parent)
+        
+        # 创建分割器
+        splitter = QSplitter()
+        splitter.setOrientation(Qt.Orientation.Horizontal)
+        
+        # 左侧设置类型列表
+        left_widget = QWidget()
+        left_layout = QVBoxLayout(left_widget)
+        
+        settings_types = QTreeWidget()
+        settings_types.setHeaderLabel("设置类型")
+        
+        # 添加设置类型
+        general_item = QTreeWidgetItem(settings_types, ["通用设置"])
+        code_item = QTreeWidgetItem(settings_types, ["编码设置"])
+        database_item = QTreeWidgetItem(settings_types, ["数据库设置"])
+        export_item = QTreeWidgetItem(settings_types, ["导出设置"])
+        
+        # 添加子项
+        QTreeWidgetItem(general_item, ["主题设置"])
+        QTreeWidgetItem(general_item, ["语言设置"])
+        QTreeWidgetItem(code_item, ["编码规则"])
+        QTreeWidgetItem(code_item, ["编码长度"])
+        QTreeWidgetItem(database_item, ["数据库路径"])
+        QTreeWidgetItem(database_item, ["缓存设置"])
+        QTreeWidgetItem(export_item, ["导出格式"])
+        QTreeWidgetItem(export_item, ["导出路径"])
+        
+        left_layout.addWidget(settings_types)
+        splitter.addWidget(left_widget)
+        
+        # 右侧设置内容
+        right_widget = QWidget()
+        right_layout = QVBoxLayout(right_widget)
+        
+        # 设置标题
+        self.settings_title = QLabel("选择设置类型")
+        self.settings_title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        right_layout.addWidget(self.settings_title)
+        
+        # 设置内容区域
+        self.settings_content = QWidget()
+        self.settings_content_layout = QFormLayout(self.settings_content)
+        right_layout.addWidget(self.settings_content)
+        
+        # 保存按钮
+        save_button = QPushButton("保存设置")
+        save_button.clicked.connect(self.save_settings)
+        right_layout.addWidget(save_button)
+        
+        splitter.addWidget(right_widget)
+        
+        # 设置分割器大小
+        splitter.setSizes([200, 400])
+        
+        layout.addWidget(splitter)
+        
+        # 连接信号
+        settings_types.itemClicked.connect(self.on_settings_type_clicked)
+    
+    def on_settings_type_clicked(self, item, column):
+        """设置类型点击事件"""
+        # 清空设置内容
+        for i in reversed(range(self.settings_content_layout.count())):
+            widget = self.settings_content_layout.itemAt(i).widget()
+            if widget:
+                widget.deleteLater()
+        
+        # 获取选中的设置类型
+        settings_type = item.text(column)
+        parent_type = item.parent().text(0) if item.parent() else ""
+        
+        # 更新标题
+        self.settings_title.setText(f"{parent_type} - {settings_type}")
+        
+        # 根据选中的设置类型显示对应的设置内容
+        if settings_type == "主题设置":
+            # 主题设置
+            theme_label = QLabel("主题:")
+            theme_combo = QComboBox()
+            theme_combo.addItems(["跟随系统", "浅色", "深色"])
+            theme_combo.setCurrentText(config_manager.get("theme", "跟随系统"))
+            self.settings_content_layout.addRow(theme_label, theme_combo)
+        elif settings_type == "语言设置":
+            # 语言设置
+            language_label = QLabel("语言:")
+            language_combo = QComboBox()
+            language_combo.addItems(["中文", "English"])
+            language_combo.setCurrentText(config_manager.get("language", "中文"))
+            self.settings_content_layout.addRow(language_label, language_combo)
+        elif settings_type == "编码规则":
+            # 编码规则设置
+            rule_label = QLabel("编码规则:")
+            rule_combo = QComboBox()
+            rule_combo.addItems(["first_letter", "all_letters", "custom"])
+            rule_combo.setCurrentText(config_manager.get("code_rule", "first_letter"))
+            self.settings_content_layout.addRow(rule_label, rule_combo)
+        elif settings_type == "编码长度":
+            # 编码长度设置
+            length_label = QLabel("最大编码长度:")
+            length_spin = QLineEdit()
+            length_spin.setText(config_manager.get("max_code_length", "10"))
+            self.settings_content_layout.addRow(length_label, length_spin)
+        elif settings_type == "数据库路径":
+            # 数据库路径设置
+            path_label = QLabel("数据库路径:")
+            path_edit = QLineEdit()
+            path_edit.setText(config_manager.get("database_path", "./vmtool.db"))
+            browse_button = QPushButton("浏览")
+            browse_layout = QHBoxLayout()
+            browse_layout.addWidget(path_edit)
+            browse_layout.addWidget(browse_button)
+            self.settings_content_layout.addRow(path_label, browse_layout)
+        elif settings_type == "缓存设置":
+            # 缓存设置
+            cache_label = QLabel("缓存大小 (MB):")
+            cache_spin = QLineEdit()
+            cache_spin.setText(config_manager.get("cache_size", "100"))
+            self.settings_content_layout.addRow(cache_label, cache_spin)
+        elif settings_type == "导出格式":
+            # 导出格式设置
+            format_label = QLabel("默认导出格式:")
+            format_combo = QComboBox()
+            format_combo.addItems(["txt", "csv", "json"])
+            format_combo.setCurrentText(config_manager.get("default_export_format", "txt"))
+            self.settings_content_layout.addRow(format_label, format_combo)
+        elif settings_type == "导出路径":
+            # 导出路径设置
+            export_path_label = QLabel("默认导出路径:")
+            export_path_edit = QLineEdit()
+            export_path_edit.setText(config_manager.get("default_export_path", "./"))
+            export_browse_button = QPushButton("浏览")
+            export_browse_layout = QHBoxLayout()
+            export_browse_layout.addWidget(export_path_edit)
+            export_browse_layout.addWidget(export_browse_button)
+            self.settings_content_layout.addRow(export_path_label, export_browse_layout)
+    
+    def save_settings(self):
+        """保存设置"""
+        # 这里可以实现保存设置的逻辑
+        QMessageBox.information(self, "成功", "设置保存成功")
     
     def add_batch_chars(self):
         """批量添加汉字"""

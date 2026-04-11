@@ -76,9 +76,27 @@ class WordRepository(BaseRepository):
         # 如果需要返回对象，需要在插入后查询
         return []
     
-    def search(self, keyword: str) -> List[Word]:
+    def search(self, keyword: str, field: str = "word") -> List[Word]:
         """搜索词条"""
-        return self.db.query(Word).filter(Word.word.contains(keyword)).all()
+        if field == "word":
+            return self.db.query(Word).filter(Word.word.contains(keyword)).all()
+        elif field == "code":
+            return self.db.query(Word).filter(Word.code.contains(keyword)).all()
+        elif field == "weight":
+            try:
+                weight = float(keyword)
+                return self.db.query(Word).filter(Word.weight == weight).all()
+            except ValueError:
+                return []
+        elif field == "manual":
+            if keyword.lower() in ["是", "true", "1"]:
+                return self.db.query(Word).filter(Word.manual == True).all()
+            elif keyword.lower() in ["否", "false", "0"]:
+                return self.db.query(Word).filter(Word.manual == False).all()
+            else:
+                return []
+        else:
+            return self.db.query(Word).filter(Word.word.contains(keyword)).all()
 
 
 class DictConfigRepository(BaseRepository):
