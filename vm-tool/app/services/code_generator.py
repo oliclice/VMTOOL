@@ -128,9 +128,20 @@ class CodeGenerator:
             # 获取当前规则的内容
             custom_rule_content = custom_rules.get(current_rule, "")
             
+            # 如果没有指定规则或规则不存在，查找默认规则
             if not custom_rule_content:
-                # 如果没有自定义规则，使用默认规则
-                return self.config['separator'].join([c[0] for c in char_codes])
+                # 查找带有[default]后缀的规则
+                default_rule = None
+                for rule_name, rule_content in custom_rules.items():
+                    if rule_name.endswith(" [default]"):
+                        default_rule = rule_content
+                        break
+                
+                if default_rule:
+                    custom_rule_content = default_rule
+                else:
+                    # 如果没有自定义规则，使用默认规则
+                    return self.config['separator'].join([c[0] for c in char_codes])
             
             word_length = len(word)
             
