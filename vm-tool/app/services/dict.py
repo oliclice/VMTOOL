@@ -149,7 +149,7 @@ class DictService:
             # 批量创建
             if valid_words:
                 if progress_callback:
-                    progress_callback(100, "开始批量创建...")
+                    progress_callback(90, "开始批量创建...")
                 db_words = self.repo.bulk_create(valid_words)
                 if progress_callback:
                     progress_callback(100, "批量创建完成")
