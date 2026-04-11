@@ -136,6 +136,7 @@ class CodeGenerator:
             
             # 解析规则
             rules = {}
+            plus_rules = {}
             for line in custom_rule_content.strip().split('\n'):
                 line = line.strip()
                 if line and '=' in line:
@@ -144,15 +145,33 @@ class CodeGenerator:
                     value = value.strip()
                     # 提取长度
                     if key.startswith('v[') and key.endswith(']'):
-                        try:
-                            length = int(key[2:-1])
-                            rules[length] = value
-                        except:
-                            pass
+                        length_str = key[2:-1]
+                        # 处理v[4+]格式的规则
+                        if length_str.endswith('+'):
+                            try:
+                                min_length = int(length_str[:-1])
+                                plus_rules[min_length] = value
+                            except:
+                                pass
+                        else:
+                            try:
+                                length = int(length_str)
+                                rules[length] = value
+                            except:
+                                pass
             
             # 找到匹配的规则
+            rule = None
             if word_length in rules:
                 rule = rules[word_length]
+            else:
+                # 检查是否匹配v[4+]格式的规则
+                for min_length, rule_content in plus_rules.items():
+                    if word_length >= min_length:
+                        rule = rule_content
+                        break
+            
+            if rule:
                 # 替换s[i][j]为实际编码
                 result = rule
                 

@@ -567,6 +567,15 @@ class VMTOOLPyQtApp(QMainWindow):
                 code = code_edit.text()
                 weight = float(weight_edit.text())
                 
+                # 如果没有输入编码，自动计算编码
+                if not code:
+                    code = self.dict_service.generate_code(word)
+                    if code:
+                        QMessageBox.information(self, "提示", f"自动计算编码为: {code}")
+                    else:
+                        QMessageBox.warning(self, "警告", "无法自动计算编码，请手动输入")
+                        return
+                
                 self.dict_service.add_word(word, code, weight)
                 QMessageBox.information(self, "成功", "词条添加成功")
                 dialog.accept()
@@ -1208,6 +1217,15 @@ class VMTOOLPyQtApp(QMainWindow):
                 
                 code = code_edit.text()
                 weight = float(weight_edit.text())
+                
+                # 如果没有输入编码，自动计算编码
+                if not code:
+                    code = self.dict_service.generate_code(char)
+                    if code:
+                        QMessageBox.information(self, "提示", f"自动计算编码为: {code}")
+                    else:
+                        QMessageBox.warning(self, "警告", "无法自动计算编码，请手动输入")
+                        return
                 
                 self.dict_service.add_word(char, code, weight)
                 QMessageBox.information(self, "成功", "汉字添加成功")
