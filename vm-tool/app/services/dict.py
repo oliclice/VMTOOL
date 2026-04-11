@@ -126,15 +126,18 @@ class DictService:
                 word = word_data.get("word")
                 code = word_data.get("code")
                 
-                # 如果没有提供编码，自动生成
-                if code is None:
-                    code = self.generate_code(word)
-                    word_data["code"] = code
-                    word_data["manual"] = False  # 自动生成的编码，manual设为False
-                
                 # 自动判断是字还是词
                 if "is_character" not in word_data:
                     word_data["is_character"] = len(word) == 1
+                
+                # 如果没有提供编码，自动生成（仅对词表，字表不自动生成）
+                if code is None and not word_data["is_character"]:
+                    code = self.generate_code(word)
+                    word_data["code"] = code
+                    word_data["manual"] = False  # 自动生成的编码，manual设为False
+                elif code is None and word_data["is_character"]:
+                    # 字表没有提供编码，跳过
+                    continue
                 
                 if not self.repo.get_by_word_and_code(word, code):
                     valid_words.append(word_data)
@@ -291,8 +294,8 @@ class DictService:
     def calculate_all_codes(self) -> Dict[str, Any]:
         """计算所有未手动修改过编码的词条的编码"""
         try:
-            # 获取所有未手动修改过编码的词条
-            db_words = self.db.query(Word).filter(Word.manual == False).all()
+            # 获取所有未手动修改过编码的词条，排除字表（is_character=True）
+            db_words = self.db.query(Word).filter(Word.manual == False, Word.is_character == False).all()
             
             updated = 0
             failed = 0
