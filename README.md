@@ -181,6 +181,12 @@ vmtool interactive
 
 # 启动图形界面
 vmtool gui
+
+# 安装项目
+vmtool --install
+
+# 安装 zsh 命令补全
+vmtool --install-completion
 ```
 
 ### 添加字典和词典

@@ -532,6 +532,9 @@ class VMTOOLPyQtApp(QMainWindow):
         import_layout = QFormLayout(import_frame)
         
         self.import_path_edit = QLineEdit()
+        # 设置默认导入路径
+        import_path = config_manager.get("import_path", "./")
+        self.import_path_edit.setText(import_path)
         import_browse_button = QPushButton("浏览")
         import_browse_button.clicked.connect(lambda: self.browse_file(self.import_path_edit))
         
@@ -553,6 +556,9 @@ class VMTOOLPyQtApp(QMainWindow):
         export_layout = QFormLayout(export_frame)
         
         self.export_path_edit = QLineEdit()
+        # 设置默认导出路径
+        export_path = config_manager.get("default_export_path", "./")
+        self.export_path_edit.setText(export_path)
         export_browse_button = QPushButton("浏览")
         export_browse_button.clicked.connect(lambda: self.browse_save_file(self.export_path_edit))
         

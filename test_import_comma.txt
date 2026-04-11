@@ -1,0 +1,10 @@
+comma_word100000,comma_code100000,1.0
+comma_word100001,comma_code100001,1.0
+comma_word100002,comma_code100002,1.0
+comma_word100003,comma_code100003,1.0
+comma_word100004,comma_code100004,1.0
+comma_word100005,comma_code100005,1.0
+comma_word100006,comma_code100006,1.0
+comma_word100007,comma_code100007,1.0
+comma_word100008,comma_code100008,1.0
+comma_word100009,comma_code100009,1.0
