@@ -54,7 +54,7 @@ class CodeGenerator:
                 return code
             
             # 如果字表中没有对应的字，使用默认方法
-            return "".join([str(ord(c) % 26 + 97) for c in word])[:self.config['max_length']]
+            return "".join([chr(ord(c) % 26 + 97) for c in word])[:self.config['max_length']]
         except Exception as e:
             logger.error(f"生成编码失败: {e}")
             return ""
