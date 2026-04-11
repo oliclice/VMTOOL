@@ -36,6 +36,8 @@ class DictService:
                     "code": db_word.code,
                     "weight": db_word.weight,
                     "is_active": db_word.is_active,
+                    "is_character": db_word.is_character,
+                    "is_special": db_word.is_special,
                     "created_at": db_word.created_at,
                     "updated_at": db_word.updated_at
                 }
@@ -75,10 +77,35 @@ class DictService:
             logger.error(f"根据编码获取词条失败: {e}")
             raise DictError(f"根据编码获取词条失败: {e}")
     
+    def get_special_chars(self, skip: int = 0, limit: int = None) -> List[Dict[str, Any]]:
+        """获取所有特殊字符"""
+        try:
+            db_words = self.repo.get_special_chars(skip, limit)
+            return [{
+                "id": word.id,
+                "word": word.word,
+                "code": word.code,
+                "weight": word.weight,
+                "is_active": word.is_active,
+                "is_special": word.is_special,
+                "manual": word.manual
+            } for word in db_words]
+        except Exception as e:
+            logger.error(f"获取特殊字符失败: {e}")
+            raise DictError(f"获取特殊字符失败: {e}")
+    
+    def count_special_chars(self) -> int:
+        """统计特殊字符数量"""
+        try:
+            return self.repo.count_special_chars()
+        except Exception as e:
+            logger.error(f"统计特殊字符数量失败: {e}")
+            raise DictError(f"统计特殊字符数量失败: {e}")
+    
 
     
     @performance_monitor
-    def add_word(self, word: str, code: Optional[str] = None, weight: float = 1.0, is_character: Optional[bool] = None, manual: bool = False) -> Dict[str, Any]:
+    def add_word(self, word: str, code: Optional[str] = None, weight: float = 1.0, is_character: Optional[bool] = None, is_special: bool = False, manual: bool = False) -> Dict[str, Any]:
         """添加单个词条"""
         try:
             # 如果没有提供编码，自动生成
@@ -95,12 +122,13 @@ class DictService:
             if is_character is None:
                 is_character = len(word) == 1
             
-            db_word = self.repo.create(word, code, weight, is_character, manual)
+            db_word = self.repo.create(word, code, weight, is_character, is_special, manual)
             return {
                 "word": db_word.word,
                 "code": db_word.code,
                 "weight": db_word.weight,
                 "is_character": db_word.is_character,
+                "is_special": db_word.is_special,
                 "manual": db_word.manual
             }
         except DictError:

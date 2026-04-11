@@ -61,8 +61,11 @@ def create_indexes():
             # 为words表创建索引
             conn.execute(text("CREATE INDEX IF NOT EXISTS idx_words_word ON words (word)"))
             conn.execute(text("CREATE INDEX IF NOT EXISTS idx_words_code ON words (code)"))
+            # 创建 (word, code) 复合索引，加速 get_by_word_and_code 查询
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_words_word_code ON words (word, code)"))
             conn.execute(text("CREATE INDEX IF NOT EXISTS idx_words_is_active ON words (is_active)"))
             conn.execute(text("CREATE INDEX IF NOT EXISTS idx_words_is_character ON words (is_character)"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_words_is_special ON words (is_special)"))
             conn.execute(text("CREATE INDEX IF NOT EXISTS idx_words_manual ON words (manual)"))
             # 提交事务
             conn.commit()

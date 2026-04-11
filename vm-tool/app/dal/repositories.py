@@ -14,9 +14,9 @@ class BaseRepository:
 class WordRepository(BaseRepository):
     """词库仓库"""
     
-    def create(self, word: str, code: str, weight: float = 1.0, is_character: bool = False, manual: bool = False) -> Word:
+    def create(self, word: str, code: str, weight: float = 1.0, is_character: bool = False, is_special: bool = False, manual: bool = False) -> Word:
         """创建词条"""
-        db_word = Word(word=word, code=code, weight=weight, is_character=is_character, manual=manual)
+        db_word = Word(word=word, code=code, weight=weight, is_character=is_character, is_special=is_special, manual=manual)
         self.db.add(db_word)
         self.db.commit()
         self.db.refresh(db_word)
@@ -100,6 +100,17 @@ class WordRepository(BaseRepository):
                 return []
         else:
             return self.db.query(Word).filter(Word.word.contains(keyword)).all()
+    
+    def get_special_chars(self, skip: int = 0, limit: int = None) -> List[Word]:
+        """获取所有特殊字符"""
+        query = self.db.query(Word).filter(Word.is_special == True).offset(skip)
+        if limit is not None:
+            query = query.limit(limit)
+        return query.all()
+    
+    def count_special_chars(self) -> int:
+        """统计特殊字符数量"""
+        return self.db.query(Word).filter(Word.is_special == True).count()
 
 
 class DictConfigRepository(BaseRepository):

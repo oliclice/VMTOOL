@@ -14,6 +14,7 @@ class Word(Base):
     weight = Column(Float, default=1.0)
     is_active = Column(Boolean, default=True)
     is_character = Column(Boolean, default=False)  # 是否为单个字符（字）
+    is_special = Column(Boolean, default=False)  # 是否为特殊字符（非汉字、emoji等）
     manual = Column(Boolean, default=False)  # 是否手动修改过编码
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
