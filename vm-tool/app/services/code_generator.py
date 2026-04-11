@@ -155,16 +155,27 @@ class CodeGenerator:
                 rule = rules[word_length]
                 # 替换s[i][j]为实际编码
                 result = rule
-                for i in range(1, word_length + 1):
-                    for j in range(1, len(char_codes[i-1]) + 1):
-                        placeholder = f"s[{i}][{j}]"
+                
+                # 处理s[0][j]表示第一个字的第一个编码（Python风格索引）
+                for i in range(word_length):
+                    for j in range(len(char_codes[i])):
+                        # Python风格索引（从0开始）
+                        placeholder = f"s[{i}][{j+1}]"
                         if placeholder in result:
-                            if j <= len(char_codes[i-1]):
-                                result = result.replace(placeholder, char_codes[i-1][j-1])
-                            else:
-                                result = result.replace(placeholder, '')
-                # 处理连接符
+                            result = result.replace(placeholder, char_codes[i][j])
+                        
+                # 处理s[-1][j]表示最后一个字的编码
+                if word_length > 0:
+                    last_index = word_length - 1
+                    for j in range(len(char_codes[last_index])):
+                        placeholder = f"s[-1][{j+1}]"
+                        if placeholder in result:
+                            result = result.replace(placeholder, char_codes[last_index][j])
+                
+                # 处理连接符（移除+号）
                 result = result.replace('+', '')
+                # 移除所有空格
+                result = result.replace(' ', '')
                 return result
             else:
                 # 如果没有匹配的规则，使用默认规则
