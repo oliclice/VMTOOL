@@ -99,22 +99,27 @@ class FilterService:
             if not os.path.exists(file_path):
                 raise FileError(f"文件不存在: {file_path}")
             
-            # 先计算文件行数，用于进度显示
+            # 先计算文件总行数（包括空行和注释行），用于进度显示
             total_lines = 0
             with open(file_path, 'r', encoding=encoding) as f:
-                for line in f:
-                    line = line.strip()
-                    if not line or line.startswith('#'):
-                        continue
+                for _ in f:
                     total_lines += 1
             
+            # 扫描文件并处理内容
             words = []
             processed_lines = 0
+            valid_lines = 0
             
             with open(file_path, 'r', encoding=encoding) as f:
                 for line in f:
                     line = line.strip()
+                    processed_lines += 1
+                    
                     if not line or line.startswith('#'):
+                        # 跳过空行和注释行
+                        if progress_callback and total_lines > 0:
+                            progress = int((processed_lines / total_lines) * 50)
+                            progress_callback(progress, f"处理文件: {os.path.basename(file_path)}")
                         continue
                     
                     parts = line.split('\t')
@@ -128,12 +133,20 @@ class FilterService:
                             'code': code,
                             'weight': weight
                         })
+                        valid_lines += 1
                     
-                    processed_lines += 1
                     if progress_callback and total_lines > 0:
                         # 文件读取阶段只占用0-50%的进度
                         progress = int((processed_lines / total_lines) * 50)
                         progress_callback(progress, f"处理文件: {os.path.basename(file_path)}")
+            
+            # 如果没有有效行，返回空结果
+            if valid_lines == 0:
+                return {
+                    "added": 0,
+                    "existing": 0,
+                    "existing_pairs": []
+                }
             
             # 批量添加
             from app.services.dict import DictService
@@ -162,12 +175,15 @@ class FilterService:
             result['total_count'] = len(words)
             
             if progress_callback:
-                progress_callback(100, f"导入完成: {os.path.basename(file_path)}")
+                progress_callback(95, f"导入完成: {os.path.basename(file_path)}")
             
             # 数据导入完成后创建索引并优化数据库
             from app.dal.init_db import create_indexes, optimize_database
             create_indexes()
             optimize_database()
+            
+            if progress_callback:
+                progress_callback(100, "数据库优化完成")
             
             return result
         except FileError:
