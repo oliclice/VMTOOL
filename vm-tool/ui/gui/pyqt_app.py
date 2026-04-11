@@ -1318,8 +1318,17 @@ class VMTOOLPyQtApp(QMainWindow):
             current_rule = config_manager.get("code_rule", rule_names[0] if rule_names else "")
             if current_rule in rule_names:
                 rule_combo.setCurrentText(current_rule)
+                # 初始化显示当前规则内容
+                rule_name_edit.setText(current_rule)
+                rule_content_edit.setPlainText(rules.get(current_rule, ""))
             # 连接信号，自动保存
-            rule_combo.currentTextChanged.connect(lambda text: config_manager.set("code_rule", text))
+            def on_rule_changed(text):
+                config_manager.set("code_rule", text)
+                # 切换规则时，自动填充规则名称和内容
+                rule_name_edit.setText(text)
+                rule_content_edit.setPlainText(rules.get(text, ""))
+            
+            rule_combo.currentTextChanged.connect(on_rule_changed)
             self.settings_content_layout.addRow(rule_label, rule_combo)
             
             # 自定义编码规则设置
