@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class DictService:
     """码表词条服务"""
     
-    def __init__(self, db: Session = None):
+    def __init__(self, db: Optional[Session] = None):
         if db:
             self.db = db
         else:
@@ -59,22 +59,10 @@ class DictService:
             logger.error(f"根据编码获取词条失败: {e}")
             raise DictError(f"根据编码获取词条失败: {e}")
     
-    @cache.decorator()
-    def search_words(self, keyword: str) -> List[Dict[str, Any]]:
-        """搜索词条"""
-        try:
-            db_words = self.repo.search(keyword)
-            return [{
-                "word": word.word,
-                "code": word.code,
-                "weight": word.weight
-            } for word in db_words]
-        except Exception as e:
-            logger.error(f"搜索词条失败: {e}")
-            raise DictError(f"搜索词条失败: {e}")
+
     
     @performance_monitor
-    def add_word(self, word: str, code: str = None, weight: float = 1.0, is_character: bool = None, manual: bool = False) -> Dict[str, Any]:
+    def add_word(self, word: str, code: Optional[str] = None, weight: float = 1.0, is_character: Optional[bool] = None, manual: bool = False) -> Dict[str, Any]:
         """添加单个词条"""
         try:
             # 如果没有提供编码，自动生成
@@ -106,7 +94,7 @@ class DictService:
             raise DictError(f"添加词条失败: {e}")
     
     @optimize_batch_operation(batch_size=500)
-    def add_words(self, words: List[Dict[str, Any]], progress_callback: Optional[Callable] = None) -> Dict[str, Any]:
+    def add_words(self, words: List[Dict[str, Any]], progress_callback: Optional[Callable[[int, str], None]] = None) -> Dict[str, Any]:
         """批量添加词条"""
         try:
             total_words = len(words)
@@ -167,7 +155,7 @@ class DictService:
             logger.error(f"批量添加词条失败: {e}")
             raise DictError(f"批量添加词条失败: {e}")
     
-    def add_characters(self, characters: List[Dict[str, Any]], progress_callback: Optional[Callable] = None) -> Dict[str, Any]:
+    def add_characters(self, characters: List[Dict[str, Any]], progress_callback: Optional[Callable[[int, str], None]] = None) -> Dict[str, Any]:
         """批量添加字表"""
         try:
             total_chars = len(characters)
@@ -263,7 +251,7 @@ class DictService:
             logger.error(f"替换编码失败: {e}")
             raise DictError(f"替换编码失败: {e}")
     
-    def get_all_words(self, skip: int = 0, limit: int = None) -> List[Dict[str, Any]]:
+    def get_all_words(self, skip: int = 0, limit: Optional[int] = None) -> List[Dict[str, Any]]:
         """获取所有词条"""
         try:
             db_words = self.repo.get_all(skip, limit)

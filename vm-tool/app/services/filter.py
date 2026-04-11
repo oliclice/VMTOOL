@@ -20,10 +20,10 @@ logger = logging.getLogger(__name__)
 class FilterService:
     """过滤和导入服务"""
     
-    def __init__(self, db: Session = None):
+    def __init__(self, db: Optional[Session] = None):
         self.db = db
     
-    def filter_by_length(self, min_length: int = 1, max_length: int = None) -> List[Dict[str, Any]]:
+    def filter_by_length(self, min_length: int = 1, max_length: Optional[int] = None) -> List[Dict[str, Any]]:
         """根据词长过滤"""
         try:
             # 使用自己的数据库会话
@@ -47,7 +47,7 @@ class FilterService:
             logger.error(f"根据词长过滤失败: {e}")
             raise DictError(f"根据词长过滤失败: {e}")
     
-    def filter_by_weight(self, min_weight: float = 0.0, max_weight: float = None) -> List[Dict[str, Any]]:
+    def filter_by_weight(self, min_weight: float = 0.0, max_weight: Optional[float] = None) -> List[Dict[str, Any]]:
         """根据权重过滤"""
         try:
             # 使用自己的数据库会话
@@ -77,17 +77,25 @@ class FilterService:
             db = self.db or next(get_db())
             repo = WordRepository(db)
             
-            return repo.search(pattern)
+            db_words = repo.search(pattern)
+            return [{
+                "word": word.word,
+                "code": word.code,
+                "weight": word.weight
+            } for word in db_words]
         except Exception as e:
             logger.error(f"根据模式过滤失败: {e}")
             raise DictError(f"根据模式过滤失败: {e}")
     
-    def import_from_txt(self, file_path: str, encoding: str = 'utf-8', progress_callback: Optional[Callable] = None) -> Dict[str, Any]:
+    def import_from_txt(self, file_path: str, encoding: str = 'utf-8', progress_callback: Optional[Callable[[int, str], None]] = None) -> Dict[str, Any]:
         """从TXT文件导入"""
         import time
+        import pathlib
         start_time = time.time()
         
         try:
+            # 规范化路径，防止路径遍历攻击
+            file_path = str(pathlib.Path(file_path).resolve())
             if not os.path.exists(file_path):
                 raise FileError(f"文件不存在: {file_path}")
             
@@ -134,7 +142,7 @@ class FilterService:
             dict_service = DictService(db)
             
             # 传递进度回调，调整进度范围为50-100%
-            def batch_progress_callback(progress, message):
+            def batch_progress_callback(progress: int, message: str) -> None:
                 # 将批量添加的进度映射到50-100%的范围
                 adjusted_progress = 50 + int(progress * 0.5)
                 if progress_callback:
@@ -168,12 +176,15 @@ class FilterService:
             logger.error(f"从TXT文件导入失败: {e}")
             raise FileError(f"从TXT文件导入失败: {e}")
     
-    def import_from_csv(self, file_path: str, encoding: str = 'utf-8', progress_callback: Optional[Callable] = None) -> Dict[str, Any]:
+    def import_from_csv(self, file_path: str, encoding: str = 'utf-8', progress_callback: Optional[Callable[[int, str], None]] = None) -> Dict[str, Any]:
         """从CSV文件导入"""
         import time
+        import pathlib
         start_time = time.time()
         
         try:
+            # 规范化路径，防止路径遍历攻击
+            file_path = str(pathlib.Path(file_path).resolve())
             if not os.path.exists(file_path):
                 raise FileError(f"文件不存在: {file_path}")
             
@@ -214,7 +225,7 @@ class FilterService:
             dict_service = DictService(db)
             
             # 传递进度回调，调整进度范围为50-100%
-            def batch_progress_callback(progress, message):
+            def batch_progress_callback(progress: int, message: str) -> None:
                 # 将批量添加的进度映射到50-100%的范围
                 adjusted_progress = 50 + int(progress * 0.5)
                 if progress_callback:
@@ -248,12 +259,15 @@ class FilterService:
             logger.error(f"从CSV文件导入失败: {e}")
             raise FileError(f"从CSV文件导入失败: {e}")
     
-    def import_from_json(self, file_path: str, encoding: str = 'utf-8', progress_callback: Optional[Callable] = None) -> Dict[str, Any]:
+    def import_from_json(self, file_path: str, encoding: str = 'utf-8', progress_callback: Optional[Callable[[int, str], None]] = None) -> Dict[str, Any]:
         """从JSON文件导入"""
         import time
+        import pathlib
         start_time = time.time()
         
         try:
+            # 规范化路径，防止路径遍历攻击
+            file_path = str(pathlib.Path(file_path).resolve())
             if not os.path.exists(file_path):
                 raise FileError(f"文件不存在: {file_path}")
             
@@ -290,7 +304,7 @@ class FilterService:
             dict_service = DictService(db)
             
             # 传递进度回调，调整进度范围为50-100%
-            def batch_progress_callback(progress, message):
+            def batch_progress_callback(progress: int, message: str) -> None:
                 # 将批量添加的进度映射到50-100%的范围
                 adjusted_progress = 50 + int(progress * 0.5)
                 if progress_callback:
@@ -324,9 +338,13 @@ class FilterService:
             logger.error(f"从JSON文件导入失败: {e}")
             raise FileError(f"从JSON文件导入失败: {e}")
     
-    def export_to_txt(self, output_file: str, words: List[Dict[str, Any]] = None, encoding: str = 'utf-8') -> int:
+    def export_to_txt(self, output_file: str, words: Optional[List[Dict[str, Any]]] = None, encoding: str = 'utf-8') -> int:
         """导出到TXT文件"""
+        import pathlib
         try:
+            # 规范化路径，防止路径遍历攻击
+            output_file = str(pathlib.Path(output_file).resolve())
+            
             if not words:
                 # 使用自己的数据库会话
                 db = self.db or next(get_db())
@@ -348,9 +366,13 @@ class FilterService:
             logger.error(f"导出到TXT文件失败: {e}")
             raise FileError(f"导出到TXT文件失败: {e}")
     
-    def export_to_csv(self, output_file: str, words: List[Dict[str, Any]] = None, encoding: str = 'utf-8') -> int:
+    def export_to_csv(self, output_file: str, words: Optional[List[Dict[str, Any]]] = None, encoding: str = 'utf-8') -> int:
         """导出到CSV文件"""
+        import pathlib
         try:
+            # 规范化路径，防止路径遍历攻击
+            output_file = str(pathlib.Path(output_file).resolve())
+            
             if not words:
                 # 使用自己的数据库会话
                 db = self.db or next(get_db())
@@ -374,9 +396,13 @@ class FilterService:
             logger.error(f"导出到CSV文件失败: {e}")
             raise FileError(f"导出到CSV文件失败: {e}")
     
-    def export_to_json(self, output_file: str, words: List[Dict[str, Any]] = None, encoding: str = 'utf-8') -> int:
+    def export_to_json(self, output_file: str, words: Optional[List[Dict[str, Any]]] = None, encoding: str = 'utf-8') -> int:
         """导出到JSON文件"""
+        import pathlib
         try:
+            # 规范化路径，防止路径遍历攻击
+            output_file = str(pathlib.Path(output_file).resolve())
+            
             if not words:
                 # 使用自己的数据库会话
                 db = self.db or next(get_db())
@@ -397,16 +423,23 @@ class FilterService:
             logger.error(f"导出到JSON文件失败: {e}")
             raise FileError(f"导出到JSON文件失败: {e}")
     
-    def batch_import(self, directory: str, progress_callback: Optional[Callable] = None) -> Dict[str, Any]:
+    def batch_import(self, directory: str, progress_callback: Optional[Callable[[int, str], None]] = None) -> Dict[str, Any]:
         """批量导入目录中的文件"""
+        import pathlib
         try:
+            # 规范化路径，防止路径遍历攻击
+            directory = str(pathlib.Path(directory).resolve())
+            
             if not os.path.exists(directory):
                 raise FileError(f"目录不存在: {directory}")
             
             # 获取所有待导入的文件
             import_files = []
             for filename in os.listdir(directory):
-                file_path = os.path.join(directory, filename)
+                # 确保文件名安全，不包含路径分隔符
+                if '/' in filename or '\\' in filename:
+                    continue
+                file_path = str(pathlib.Path(directory) / filename)
                 if os.path.isfile(file_path) and (filename.endswith('.txt') or filename.endswith('.csv') or filename.endswith('.json')):
                     import_files.append(file_path)
             

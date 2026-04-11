@@ -24,6 +24,21 @@ rich = "^13.7.0"
 fastapi = "^0.104.1"
 uvicorn = "^0.24.0"
 jinja2 = "^3.1.2"
+PyQt6 = "^6.6.1"
+
+[project.optional-dependencies]
+test = [
+    "pytest==7.4.3",
+    "pytest-cov==4.1.0",
+    "hypothesis==6.88.0",
+]
+
+quality = [
+    "black==23.11.0",
+    "isort==5.12.0",
+    "ruff==0.1.10",
+    "mypy==1.7.1",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

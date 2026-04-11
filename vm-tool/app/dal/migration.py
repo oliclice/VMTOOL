@@ -16,8 +16,11 @@ logger = logging.getLogger(__name__)
 
 def import_from_old_format(file_path: str) -> List[Dict[str, Any]]:
     """从旧格式文件导入数据"""
-    words = []
+    import pathlib
+    # 规范化路径，防止路径遍历攻击
+    file_path = str(pathlib.Path(file_path).resolve())
     
+    words = []
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             for line in f:
@@ -102,8 +105,13 @@ def migrate_old_data(old_file_path: str = None) -> Dict[str, Any]:
 
 def export_to_old_format(output_file: str = None) -> int:
     """导出数据到旧格式"""
+    import pathlib
+    
     if not output_file:
         output_file = settings.OUTPUT_FILE
+    
+    # 规范化路径，防止路径遍历攻击
+    output_file = str(pathlib.Path(output_file).resolve())
     
     logger.info(f"开始导出数据到 {output_file}...")
     
