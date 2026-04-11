@@ -366,13 +366,37 @@ class VMTOOLPyQtApp(QMainWindow):
         
         layout.addWidget(stats_frame)
         
+        # 统计设置
+        stats_settings_frame = QWidget()
+        stats_settings_layout = QHBoxLayout(stats_settings_frame)
+        
+        # 统计字段选择
+        field_label = QLabel("统计字段:")
+        self.stats_field_combo = QComboBox()
+        self.stats_field_combo.addItems(["权重", "词长", "编码长度"])
+        self.stats_field_combo.setCurrentText("权重")
+        
+        # 显示条数设置
+        count_label = QLabel("显示条数:")
+        self.stats_count_edit = QLineEdit()
+        self.stats_count_edit.setText("10")
+        self.stats_count_edit.setFixedWidth(50)
+        
+        stats_settings_layout.addWidget(field_label)
+        stats_settings_layout.addWidget(self.stats_field_combo)
+        stats_settings_layout.addWidget(count_label)
+        stats_settings_layout.addWidget(self.stats_count_edit)
+        stats_settings_layout.addStretch()
+        
+        layout.addWidget(stats_settings_frame)
+        
         # 高频词
         high_freq_frame = QWidget()
         high_freq_layout = QVBoxLayout(high_freq_frame)
         
-        high_freq_label = QLabel("高频词前10名")
-        high_freq_label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
-        high_freq_layout.addWidget(high_freq_label)
+        self.high_freq_label = QLabel("高频词前10名")
+        self.high_freq_label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        high_freq_layout.addWidget(self.high_freq_label)
         
         self.high_freq_table = QTableWidget()
         self.high_freq_table.setColumnCount(4)
@@ -719,11 +743,35 @@ class VMTOOLPyQtApp(QMainWindow):
             self.conflict_count_label.setText(f"编码冲突数: {report['code_stats']['conflict_count']}")
             self.average_weight_label.setText(f"平均权重: {report['weight_stats']['average_weight']:.2f}")
             
-            # 更新高频词
-            self.high_freq_table.setRowCount(0)
-            high_freq_words = report['high_frequency_words']
+            # 获取统计设置
+            stats_field = self.stats_field_combo.currentText()
+            try:
+                stats_count = int(self.stats_count_edit.text())
+                if stats_count <= 0:
+                    stats_count = 10
+            except:
+                stats_count = 10
             
-            for i, word in enumerate(high_freq_words[:10], 1):
+            # 更新高频词标签
+            self.high_freq_label.setText(f"按{stats_field}排序前{stats_count}名")
+            
+            # 获取并排序数据
+            words = report.get('all_words', [])
+            
+            # 根据选择的字段排序
+            if stats_field == "权重":
+                sorted_words = sorted(words, key=lambda x: x.get('weight', 0), reverse=True)
+            elif stats_field == "词长":
+                sorted_words = sorted(words, key=lambda x: len(x.get('word', '')), reverse=True)
+            elif stats_field == "编码长度":
+                sorted_words = sorted(words, key=lambda x: len(x.get('code', '')), reverse=True)
+            else:
+                sorted_words = sorted(words, key=lambda x: x.get('weight', 0), reverse=True)
+            
+            # 更新表格
+            self.high_freq_table.setRowCount(0)
+            
+            for i, word in enumerate(sorted_words[:stats_count], 1):
                 self.high_freq_table.insertRow(i-1)
                 self.high_freq_table.setItem(i-1, 0, QTableWidgetItem(str(i)))
                 self.high_freq_table.setItem(i-1, 1, QTableWidgetItem(word['word']))
@@ -1200,8 +1248,22 @@ class VMTOOLPyQtApp(QMainWindow):
             # 编码规则设置
             rule_label = QLabel("编码规则:")
             rule_combo = QComboBox()
-            rule_combo.addItems(["first_letter", "all_letters", "custom"])
-            rule_combo.setCurrentText(config_manager.get("code_rule", "first_letter"))
+            
+            # 加载自定义规则列表
+            rules = config_manager.get("custom_rules", {})
+            rule_names = list(rules.keys())
+            if not rule_names:
+                # 默认规则
+                rules = {
+                    "默认规则": "v[2]=s[1][1]+s[1][2]+s[2][1]+s[2][2]\nv[3]=s[1][1]+s[2][1]+s[3][1]"
+                }
+                config_manager.set("custom_rules", rules)
+                rule_names = list(rules.keys())
+            
+            rule_combo.addItems(rule_names)
+            current_rule = config_manager.get("code_rule", rule_names[0] if rule_names else "")
+            if current_rule in rule_names:
+                rule_combo.setCurrentText(current_rule)
             # 连接信号，自动保存
             rule_combo.currentTextChanged.connect(lambda text: config_manager.set("code_rule", text))
             self.settings_content_layout.addRow(rule_label, rule_combo)
@@ -1214,8 +1276,6 @@ class VMTOOLPyQtApp(QMainWindow):
             rule_name_layout = QHBoxLayout()
             rule_name_label = QLabel("规则名称:")
             rule_name_edit = QLineEdit()
-            rule_name_edit.setText(config_manager.get("custom_rule_name", "my_rule"))
-            rule_name_edit.textChanged.connect(lambda text: config_manager.set("custom_rule_name", text))
             rule_name_layout.addWidget(rule_name_label)
             rule_name_layout.addWidget(rule_name_edit)
             custom_rule_layout.addLayout(rule_name_layout)
@@ -1224,8 +1284,6 @@ class VMTOOLPyQtApp(QMainWindow):
             rule_content_layout = QVBoxLayout()
             rule_content_label = QLabel("规则内容:")
             rule_content_edit = QTextEdit()
-            rule_content_edit.setPlainText(config_manager.get("custom_rule_content", "v[2]=s[1][1]+s[1][2]+s[2][1]+s[2][2]\nv[3]=s[1][1]+s[2][1]+s[3][1]"))
-            rule_content_edit.textChanged.connect(lambda: config_manager.set("custom_rule_content", rule_content_edit.toPlainText()))
             rule_content_layout.addWidget(rule_content_label)
             rule_content_layout.addWidget(rule_content_edit)
             custom_rule_layout.addLayout(rule_content_layout)
@@ -1258,6 +1316,50 @@ v[3] = s[1][1] + s[2][1] + s[3][1]
             syntax_layout.addWidget(syntax_label)
             syntax_layout.addWidget(syntax_button)
             custom_rule_layout.addLayout(syntax_layout)
+            
+            # 添加和删除按钮
+            button_layout = QHBoxLayout()
+            add_button = QPushButton("添加规则")
+            delete_button = QPushButton("删除规则")
+            
+            def add_rule():
+                rule_name = rule_name_edit.text().strip()
+                rule_content = rule_content_edit.toPlainText().strip()
+                if rule_name and rule_content:
+                    rules = config_manager.get("custom_rules", {})
+                    rules[rule_name] = rule_content
+                    config_manager.set("custom_rules", rules)
+                    # 更新下拉框
+                    rule_combo.clear()
+                    rule_combo.addItems(list(rules.keys()))
+                    rule_combo.setCurrentText(rule_name)
+                    self.show_toast(f"规则 '{rule_name}' 添加成功")
+                else:
+                    self.show_toast("请输入规则名称和内容")
+            
+            def delete_rule():
+                current_rule = rule_combo.currentText()
+                if current_rule:
+                    rules = config_manager.get("custom_rules", {})
+                    if current_rule in rules:
+                        del rules[current_rule]
+                        config_manager.set("custom_rules", rules)
+                        # 更新下拉框
+                        rule_combo.clear()
+                        rule_names = list(rules.keys())
+                        rule_combo.addItems(rule_names)
+                        if rule_names:
+                            rule_combo.setCurrentIndex(0)
+                            config_manager.set("code_rule", rule_names[0])
+                        else:
+                            config_manager.set("code_rule", "")
+                        self.show_toast(f"规则 '{current_rule}' 删除成功")
+            
+            add_button.clicked.connect(add_rule)
+            delete_button.clicked.connect(delete_rule)
+            button_layout.addWidget(add_button)
+            button_layout.addWidget(delete_button)
+            custom_rule_layout.addLayout(button_layout)
             
             custom_rule_group.setLayout(custom_rule_layout)
             self.settings_content_layout.addRow(custom_rule_group)

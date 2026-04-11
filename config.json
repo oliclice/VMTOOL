@@ -8,5 +8,7 @@
     0,
     0
   ],
-  "code_rule": "custom"
+  "code_rule": "custom",
+  "custom_rule_name": "flypy",
+  "custom_rule_content": "v[2]=s[1][1]+s[1][2]+s[2][1]+s[2][2]\nv[3]=s[1][1]+s[2][1]+s[3][1]+s[3][2]\nv[4]=s[1][1]+s[2][1]+s[3][1]+s[4][1]"
 }
