@@ -647,7 +647,7 @@ class VMTOOLPyQtApp(QMainWindow):
                 export_path += "/"
             # 构造完整路径
             full_path = f"{export_path}{default_export_name}.{export_format}"
-            paths.append(f"默认路径: {full_path}")
+            paths.append(f"default: {full_path}")
         
         # 添加 Rime 自动导出路径
         if auto_export_ibus_rime:
@@ -2322,9 +2322,27 @@ elif len(vac) >= 4:
             browse_button = QPushButton("浏览")
             # 连接浏览按钮点击事件
             def browse_config_dir():
-                directory = QFileDialog.getExistingDirectory(
-                    self, "选择配置目录", "~/.config"
-                )
+                # 尝试使用系统原生文件选择对话框
+                try:
+                    # 创建文件对话框
+                    file_dialog = QFileDialog(self)
+                    file_dialog.setWindowTitle("选择配置目录")
+                    file_dialog.setFileMode(QFileDialog.FileMode.Directory)
+                    file_dialog.setOption(QFileDialog.Option.ShowDirsOnly, True)
+                    
+                    # 尝试使用原生对话框
+                    file_dialog.setOption(QFileDialog.Option.DontUseNativeDialog, False)
+                    
+                    if file_dialog.exec() == QFileDialog.DialogCode.Accepted:
+                        directory = file_dialog.selectedFiles()[0]
+                    else:
+                        directory = ""
+                except Exception:
+                    # 如果原生对话框失败，使用Qt内置对话框
+                    directory = QFileDialog.getExistingDirectory(
+                        self, "选择配置目录", "~/.config"
+                    )
+                
                 if directory:
                     dir_edit.setText(directory)
                     config_manager.set("config_dir", directory)
@@ -2345,9 +2363,27 @@ elif len(vac) >= 4:
             browse_button = QPushButton("浏览")
             # 连接浏览按钮点击事件
             def browse_database_path():
-                file_path, _ = QFileDialog.getSaveFileName(
-                    self, "选择数据库文件", "", "SQLite数据库文件 (*.db)"
-                )
+                # 尝试使用系统原生文件选择对话框
+                try:
+                    # 创建文件对话框
+                    file_dialog = QFileDialog(self)
+                    file_dialog.setWindowTitle("选择数据库文件")
+                    file_dialog.setNameFilters(["SQLite数据库文件 (*.db)"])
+                    file_dialog.setAcceptMode(QFileDialog.AcceptMode.AcceptSave)
+                    
+                    # 尝试使用原生对话框
+                    file_dialog.setOption(QFileDialog.Option.DontUseNativeDialog, False)
+                    
+                    if file_dialog.exec() == QFileDialog.DialogCode.Accepted:
+                        file_path = file_dialog.selectedFiles()[0]
+                    else:
+                        file_path = ""
+                except Exception:
+                    # 如果原生对话框失败，使用Qt内置对话框
+                    file_path, _ = QFileDialog.getSaveFileName(
+                        self, "选择数据库文件", "", "SQLite数据库文件 (*.db)"
+                    )
+                
                 if file_path:
                     path_edit.setText(file_path)
                     config_manager.set("database_path", file_path)
@@ -2431,9 +2467,27 @@ elif len(vac) >= 4:
             export_browse_button = QPushButton("浏览")
             # 连接浏览按钮点击事件
             def browse_export_path():
-                directory = QFileDialog.getExistingDirectory(
-                    self, "选择导出目录", "./"
-                )
+                # 尝试使用系统原生文件选择对话框
+                try:
+                    # 创建文件对话框
+                    file_dialog = QFileDialog(self)
+                    file_dialog.setWindowTitle("选择导出目录")
+                    file_dialog.setFileMode(QFileDialog.FileMode.Directory)
+                    file_dialog.setOption(QFileDialog.Option.ShowDirsOnly, True)
+                    
+                    # 尝试使用原生对话框
+                    file_dialog.setOption(QFileDialog.Option.DontUseNativeDialog, False)
+                    
+                    if file_dialog.exec() == QFileDialog.DialogCode.Accepted:
+                        directory = file_dialog.selectedFiles()[0]
+                    else:
+                        directory = ""
+                except Exception:
+                    # 如果原生对话框失败，使用Qt内置对话框
+                    directory = QFileDialog.getExistingDirectory(
+                        self, "选择导出目录", "./"
+                    )
+                
                 if directory:
                     export_path_edit.setText(directory)
                     config_manager.set("default_export_path", directory)
@@ -2470,9 +2524,26 @@ elif len(vac) >= 4:
             import_browse_button = QPushButton("浏览")
             # 连接浏览按钮点击事件
             def browse_import_path():
-                file_path, _ = QFileDialog.getOpenFileName(
-                    self, "选择导入文件", "./", "文本文件 (*.txt);;CSV文件 (*.csv);;JSON文件 (*.json)"
-                )
+                # 尝试使用系统原生文件选择对话框
+                try:
+                    # 创建文件对话框
+                    file_dialog = QFileDialog(self)
+                    file_dialog.setWindowTitle("选择导入文件")
+                    file_dialog.setNameFilters(["文本文件 (*.txt)", "CSV文件 (*.csv)", "JSON文件 (*.json)"])
+                    
+                    # 尝试使用原生对话框
+                    file_dialog.setOption(QFileDialog.Option.DontUseNativeDialog, False)
+                    
+                    if file_dialog.exec() == QFileDialog.DialogCode.Accepted:
+                        file_path = file_dialog.selectedFiles()[0]
+                    else:
+                        file_path = ""
+                except Exception:
+                    # 如果原生对话框失败，使用Qt内置对话框
+                    file_path, _ = QFileDialog.getOpenFileName(
+                        self, "选择导入文件", "./", "文本文件 (*.txt);;CSV文件 (*.csv);;JSON文件 (*.json)"
+                    )
+                
                 if file_path:
                     import_path_edit.setText(file_path)
                     config_manager.set("import_path", file_path)
@@ -2854,17 +2925,52 @@ elif len(vac) >= 4:
     
     def browse_file(self, edit):
         """浏览文件"""
-        file_path, _ = QFileDialog.getOpenFileName(
-            self, "选择文件", "", "所有文件 (*.*)"
-        )
+        # 尝试使用系统原生文件选择对话框
+        try:
+            # 创建文件对话框
+            file_dialog = QFileDialog(self)
+            file_dialog.setWindowTitle("选择文件")
+            file_dialog.setNameFilters(["所有文件 (*.*)"])
+            
+            # 尝试使用原生对话框
+            file_dialog.setOption(QFileDialog.Option.DontUseNativeDialog, False)
+            
+            if file_dialog.exec() == QFileDialog.DialogCode.Accepted:
+                file_path = file_dialog.selectedFiles()[0]
+            else:
+                file_path = ""
+        except Exception:
+            # 如果原生对话框失败，使用Qt内置对话框
+            file_path, _ = QFileDialog.getOpenFileName(
+                self, "选择文件", "", "所有文件 (*.*)"
+            )
+        
         if file_path:
             edit.setText(file_path)
     
     def browse_save_file(self, edit):
         """浏览保存文件"""
-        file_path, _ = QFileDialog.getSaveFileName(
-            self, "选择保存文件", "", "文本文件 (*.txt);;CSV文件 (*.csv);;JSON文件 (*.json)"
-        )
+        # 尝试使用系统原生文件选择对话框
+        try:
+            # 创建文件对话框
+            file_dialog = QFileDialog(self)
+            file_dialog.setWindowTitle("选择保存文件")
+            file_dialog.setNameFilters(["文本文件 (*.txt)", "CSV文件 (*.csv)", "JSON文件 (*.json)"])
+            file_dialog.setAcceptMode(QFileDialog.AcceptMode.AcceptSave)
+            
+            # 尝试使用原生对话框
+            file_dialog.setOption(QFileDialog.Option.DontUseNativeDialog, False)
+            
+            if file_dialog.exec() == QFileDialog.DialogCode.Accepted:
+                file_path = file_dialog.selectedFiles()[0]
+            else:
+                file_path = ""
+        except Exception:
+            # 如果原生对话框失败，使用Qt内置对话框
+            file_path, _ = QFileDialog.getSaveFileName(
+                self, "选择保存文件", "", "文本文件 (*.txt);;CSV文件 (*.csv);;JSON文件 (*.json)"
+            )
+        
         if file_path:
             edit.setText(file_path)
     
