@@ -16,5 +16,6 @@
     "flypy": "v[2] = s[1][1] + s[1][2] + s[2][1] + s[2][2]\nv[3] = s[1][1] + s[2][1] + s[3][1]+ s[3][2]\nv[4] = s[1][1] + s[2][1] + s[3][1]+ s[4][1]"
   },
   "theme_name": "经典",
-  "theme_mode": "dark"
+  "theme_mode": "dark",
+  "theme_color": "蓝色"
 }
