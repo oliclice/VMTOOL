@@ -2,8 +2,8 @@
 from typing import Optional, Dict, List
 import logging
 
-from app.dal.repositories import WordRepository
-from app.dal.database import get_db
+from ..dal.repositories import WordRepository
+from ..dal.database import get_db
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -181,18 +181,13 @@ class CodeGenerator:
                 # 替换s[i][j]为实际编码
                 result = rule
                 
-                # 处理s[i][j]表示第i+1个字的第j个编码字符（Python风格索引）
+                # 处理s[i][j]表示第i个字的第j个编码字符（1-based索引）
                 for i in range(word_length):
                     for j in range(len(char_codes[i])):
-                        # Python风格索引（从0开始）
-                        placeholder = f"s[{i}][{j+1}]"
+                        # 1-based索引（从1开始）
+                        placeholder = f"s[{i+1}][{j+1}]"
                         if placeholder in result:
                             result = result.replace(placeholder, char_codes[i][j])
-                        
-                        # 兼容旧的1-based索引
-                        old_placeholder = f"s[{i+1}][{j+1}]"
-                        if old_placeholder in result:
-                            result = result.replace(old_placeholder, char_codes[i][j])
                 
                 # 处理s[-1][j]表示最后一个字的编码
                 if word_length > 0:
@@ -239,3 +234,25 @@ class CodeGenerator:
         except Exception as e:
             logger.error(f"验证编码失败: {e}")
             return False
+
+if __name__ == "__main__":
+    # 测试编码生成器
+    generator = CodeGenerator()
+    # 测试默认规则
+    print("测试默认规则:")
+    print(generator.generate_code("测试", ["ce", "shi"]))
+    # 测试自定义规则
+    print("\n测试自定义规则:")
+    # 模拟自定义规则，使用1-based索引
+    from ..core.config_manager import config_manager
+    config_manager.set("custom_rules", {
+        "测试规则": "v[2] = s[1][1] + s[1][2] + s[2][1] + s[2][2]"
+    })
+    config_manager.set("code_rule", "测试规则")
+    print(generator.generate_code("测试", ["ce", "shi"]))
+    # 测试v[4+]语法
+    print("\n测试v[4+]语法:")
+    config_manager.set("custom_rules", {
+        "测试规则": "v[4+] = s[1][1] + s[2][1] + s[3][1] + s[4][1]"
+    })
+    print(generator.generate_code("测试测试", ["ce", "shi", "ce", "shi"]))
