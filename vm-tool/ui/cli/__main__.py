@@ -312,7 +312,17 @@ def import_data(file_path: str, format: str = "txt"):
                 console.print(f"[red]不支持的格式:[/red] {format}")
                 return
         
-        console.print(f"[green]导入成功:[/green] 添加了 {result['added']} 条，跳过了 {result['existing']} 条")
+        # 显示导入数据条数和用时
+        total_time = result.get('total_time', 0)
+        avg_time_per_1000 = result.get('avg_time_per_1000', 0)
+        total_count = result.get('total_count', 0)
+        
+        console.print(f"[green]导入成功:[/green]")
+        console.print(f"  添加了: {result['added']} 条")
+        console.print(f"  跳过了: {result['existing']} 条")
+        console.print(f"  总数据量: {total_count} 条")
+        console.print(f"  总耗时: {total_time:.2f} 秒")
+        console.print(f"  每千条平均耗时: {avg_time_per_1000:.2f} 秒")
     except Exception as e:
         console.print(f"[red]导入失败:[/red] {e}")
 
