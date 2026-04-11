@@ -697,15 +697,33 @@ class VMTOOLPyQtApp(QMainWindow):
         max_length_edit = QLineEdit()
         max_length_edit.setText("10")
         
+        # 预览区域
+        preview_group = QGroupBox("编码变化预览")
+        preview_layout = QVBoxLayout()
+        preview_text_edit = QTextEdit()
+        preview_text_edit.setReadOnly(True)
+        preview_text_edit.setFixedHeight(120)
+        preview_layout.addWidget(preview_text_edit)
+        preview_group.setLayout(preview_layout)
+        
+        # 进度条
+        progress_bar = QProgressBar()
+        progress_bar.setRange(0, 100)
+        progress_bar.setValue(0)
+        progress_bar.setVisible(False)
+        
         form_layout.addRow("编码规则:", rule_combo)
         form_layout.addRow("分隔符:", separator_edit)
         form_layout.addRow("最大长度:", max_length_edit)
+        form_layout.addRow(preview_group)
+        form_layout.addRow(progress_bar)
         
         button_layout = QHBoxLayout()
         calculate_button = QPushButton("计算")
         cancel_button = QPushButton("取消")
         
-        def calculate():
+        # 加载预览数据
+        def load_preview():
             try:
                 rule = rule_combo.currentText()
                 separator = separator_edit.text()
@@ -726,32 +744,106 @@ class VMTOOLPyQtApp(QMainWindow):
                 preview_data = self.dict_service.get_code_preview()
                 
                 # 显示预览
-                preview_text = "编码变化预览:\n\n"
+                preview_text = ""
                 for item in preview_data:
                     preview_text += f"{item['word']} {item['old_code']}-> {item['new_code']}\n"
                 
-                reply = QMessageBox.question(
-                    self, "编码变化预览", 
-                    preview_text + "\n是否继续计算编码？",
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-                )
+                preview_text_edit.setText(preview_text)
+            except Exception as e:
+                preview_text_edit.setText(f"预览加载失败: {e}")
+        
+        # 初始加载预览
+        load_preview()
+        
+        # 当规则或配置变化时重新加载预览
+        rule_combo.currentTextChanged.connect(load_preview)
+        separator_edit.textChanged.connect(load_preview)
+        max_length_edit.textChanged.connect(load_preview)
+        
+        # 导入线程模块
+        from PyQt6.QtCore import QThread, pyqtSignal
+        
+        class CalculateThread(QThread):
+            progress_updated = pyqtSignal(int, str)
+            finished = pyqtSignal(dict)
+            error = pyqtSignal(str)
+            
+            def __init__(self, dict_service):
+                super().__init__()
+                self.dict_service = dict_service
+            
+            def run(self):
+                try:
+                    self.progress_updated.emit(0, "准备计算编码...")
+                    
+                    # 定义进度回调函数
+                    def progress_callback(progress, message):
+                        self.progress_updated.emit(progress, message)
+                    
+                    # 调用计算方法，传递进度回调
+                    result = self.dict_service.calculate_all_codes(progress_callback)
+                    
+                    self.finished.emit(result)
+                except Exception as e:
+                    self.error.emit(str(e))
+        
+        def calculate():
+            try:
+                rule = rule_combo.currentText()
+                separator = separator_edit.text()
+                max_length = int(max_length_edit.text())
                 
-                if reply == QMessageBox.StandardButton.No:
-                    return
+                # 设置编码生成配置
+                config = {
+                    'rule': 'custom',  # 始终使用custom规则
+                    'separator': separator,
+                    'max_length': max_length
+                }
+                self.dict_service.code_generator.set_config(config)
                 
-                # 批量计算编码
-                result = self.dict_service.calculate_all_codes()
+                # 保存当前选择的规则
+                config_manager.set("code_rule", rule)
                 
-                QMessageBox.information(
-                    self, "成功", 
-                    f"批量计算编码完成:\n" +
-                    f"总词条数: {result['total']}\n" +
-                    f"成功更新: {result['updated']}\n" +
-                    f"更新失败: {result['failed']}"
-                )
+                # 显示进度条
+                progress_bar.setVisible(True)
+                calculate_button.setEnabled(False)
                 
-                # 刷新词表
-                self.refresh_words()
+                # 创建并启动线程
+                thread = CalculateThread(self.dict_service)
+                
+                def on_progress(progress, message):
+                    progress_bar.setValue(progress)
+                    dialog.setWindowTitle(f"计算编码 - {message}")
+                
+                def on_finished(result):
+                    progress_bar.setVisible(False)
+                    calculate_button.setEnabled(True)
+                    dialog.setWindowTitle("批量计算编码")
+                    
+                    QMessageBox.information(
+                        self, "成功", 
+                        f"批量计算编码完成:\n" +
+                        f"总词条数: {result['total']}\n" +
+                        f"成功更新: {result['updated']}\n" +
+                        f"更新失败: {result['failed']}"
+                    )
+                    
+                    # 刷新词表
+                    self.refresh_words()
+                    dialog.accept()
+                
+                def on_error(error_msg):
+                    progress_bar.setVisible(False)
+                    calculate_button.setEnabled(True)
+                    dialog.setWindowTitle("批量计算编码")
+                    
+                    QMessageBox.critical(self, "错误", f"批量计算编码失败: {error_msg}")
+                
+                thread.progress_updated.connect(on_progress)
+                thread.finished.connect(on_finished)
+                thread.error.connect(on_error)
+                thread.start()
+                
             except Exception as e:
                 QMessageBox.critical(self, "错误", f"批量计算编码失败: {e}")
         
