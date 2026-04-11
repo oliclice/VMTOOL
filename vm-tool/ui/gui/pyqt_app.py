@@ -127,8 +127,9 @@ class VMTOOLPyQtApp(QMainWindow):
         self.stats_service = StatsService()
         
         # 初始化主题设置
-        theme = config_manager.get("theme", "auto")
-        self.set_theme(theme)
+        theme_name = config_manager.get("theme_name", "经典")
+        theme_mode = config_manager.get("theme_mode", "auto")
+        self.set_theme(theme_mode, theme_name)
         
         # 创建标签页
         self.create_tab_widget()
@@ -672,8 +673,23 @@ class VMTOOLPyQtApp(QMainWindow):
         form_layout = QFormLayout()
         
         rule_combo = QComboBox()
-        rule_combo.addItems(["first_letter", "all_letters", "custom"])
-        rule_combo.setCurrentText("first_letter")
+        
+        # 加载自定义规则列表
+        from app.core.config_manager import config_manager
+        rules = config_manager.get("custom_rules", {})
+        rule_names = list(rules.keys())
+        if not rule_names:
+            # 默认规则
+            rules = {
+                "默认规则": "v[2]=s[1][1]+s[1][2]+s[2][1]+s[2][2]\nv[3]=s[1][1]+s[2][1]+s[3][1]"
+            }
+            config_manager.set("custom_rules", rules)
+            rule_names = list(rules.keys())
+        
+        rule_combo.addItems(rule_names)
+        current_rule = config_manager.get("code_rule", rule_names[0] if rule_names else "")
+        if current_rule in rule_names:
+            rule_combo.setCurrentText(current_rule)
         
         separator_edit = QLineEdit()
         separator_edit.setPlaceholderText("编码分隔符")
@@ -697,11 +713,14 @@ class VMTOOLPyQtApp(QMainWindow):
                 
                 # 设置编码生成配置
                 config = {
-                    'rule': rule,
+                    'rule': 'custom',  # 始终使用custom规则
                     'separator': separator,
                     'max_length': max_length
                 }
                 self.dict_service.code_generator.set_config(config)
+                
+                # 保存当前选择的规则
+                config_manager.set("code_rule", rule)
                 
                 # 批量计算编码
                 result = self.dict_service.calculate_all_codes()
@@ -1222,19 +1241,54 @@ class VMTOOLPyQtApp(QMainWindow):
             # 主题设置
             theme_label = QLabel("主题:")
             theme_combo = QComboBox()
-            theme_combo.addItems(["跟随系统", "浅色", "深色"])
-            # 映射内部主题值到显示名称
-            theme_map = {
+            theme_combo.addItems(["经典", "Material3"])
+            
+            # 模式设置
+            mode_label = QLabel("模式:")
+            mode_combo = QComboBox()
+            mode_combo.addItems(["跟随系统", "浅色", "深色"])
+            
+            # 加载当前设置
+            current_theme = config_manager.get("theme_name", "经典")
+            current_mode = config_manager.get("theme_mode", "auto")
+            
+            theme_combo.setCurrentText(current_theme)
+            
+            # 映射内部模式值到显示名称
+            mode_map = {
                 "auto": "跟随系统",
                 "light": "浅色",
                 "dark": "深色"
             }
-            current_theme = config_manager.get("theme", "auto")
-            display_theme = theme_map.get(current_theme, "跟随系统")
-            theme_combo.setCurrentText(display_theme)
+            display_mode = mode_map.get(current_mode, "跟随系统")
+            mode_combo.setCurrentText(display_mode)
+            
             # 连接信号
-            theme_combo.currentTextChanged.connect(self.on_theme_changed)
+            def on_theme_changed():
+                theme = theme_combo.currentText()
+                mode = mode_combo.currentText()
+                
+                # 映射模式显示名称到内部值
+                mode_map_reverse = {
+                    "跟随系统": "auto",
+                    "浅色": "light",
+                    "深色": "dark"
+                }
+                internal_mode = mode_map_reverse.get(mode, "auto")
+                
+                # 保存设置
+                config_manager.set("theme_name", theme)
+                config_manager.set("theme_mode", internal_mode)
+                
+                # 应用主题
+                self.set_theme(internal_mode, theme)
+                self.show_toast(f"主题已更改为: {theme} - {mode}")
+            
+            theme_combo.currentTextChanged.connect(on_theme_changed)
+            mode_combo.currentTextChanged.connect(on_theme_changed)
+            
             self.settings_content_layout.addRow(theme_label, theme_combo)
+            self.settings_content_layout.addRow(mode_label, mode_combo)
         elif settings_type == "语言设置":
             # 语言设置
             language_label = QLabel("语言:")
@@ -1814,26 +1868,43 @@ v[3] = s[1][1] + s[2][1] + s[3][1]
         # 保存窗口位置
         config_manager.set("window_position", [self.x(), self.y()])
     
-    def set_theme(self, theme):
-        """设置主题"""
+    def set_theme(self, theme_mode, theme_name="经典"):
+        """设置主题
+        
+        Args:
+            theme_mode: 主题模式 (auto, light, dark)
+            theme_name: 主题名称 (经典, Material3)
+        """
         from PyQt6.QtCore import Qt
         
         # 获取应用实例
         app = QApplication.instance()
         
-        if theme == "auto":
+        if theme_mode == "auto":
             # 跟随系统主题
             is_dark = self._detect_system_theme()
             if is_dark:
-                self._set_dark_theme()
+                if theme_name == "Material3":
+                    self._set_material3_dark_theme()
+                else:
+                    self._set_dark_theme()
             else:
-                self._set_light_theme()
-        elif theme == "dark":
+                if theme_name == "Material3":
+                    self._set_material3_light_theme()
+                else:
+                    self._set_light_theme()
+        elif theme_mode == "dark":
             # 深色主题
-            self._set_dark_theme()
+            if theme_name == "Material3":
+                self._set_material3_dark_theme()
+            else:
+                self._set_dark_theme()
         else:
             # 浅色主题
-            self._set_light_theme()
+            if theme_name == "Material3":
+                self._set_material3_light_theme()
+            else:
+                self._set_light_theme()
     
     def _detect_system_theme(self):
         """检测系统主题"""
@@ -1926,6 +1997,48 @@ v[3] = s[1][1] + s[2][1] + s[3][1]
         palette.setColor(QPalette.ColorRole.ButtonText, QColor(255, 255, 255))
         palette.setColor(QPalette.ColorRole.BrightText, QColor(255, 0, 0))
         palette.setColor(QPalette.ColorRole.Link, QColor(42, 130, 218))
+        
+        app.setPalette(palette)
+    
+    def _set_material3_light_theme(self):
+        """设置Material3浅色主题"""
+        app = QApplication.instance()
+        app.setStyle("Fusion")
+        
+        # Material3浅色主题调色板
+        palette = QPalette()
+        palette.setColor(QPalette.ColorRole.Window, QColor(255, 255, 255))
+        palette.setColor(QPalette.ColorRole.WindowText, QColor(0, 0, 0))
+        palette.setColor(QPalette.ColorRole.Base, QColor(245, 245, 245))
+        palette.setColor(QPalette.ColorRole.AlternateBase, QColor(230, 230, 230))
+        palette.setColor(QPalette.ColorRole.ToolTipBase, QColor(255, 255, 220))
+        palette.setColor(QPalette.ColorRole.ToolTipText, QColor(0, 0, 0))
+        palette.setColor(QPalette.ColorRole.Text, QColor(0, 0, 0))
+        palette.setColor(QPalette.ColorRole.Button, QColor(240, 240, 240))
+        palette.setColor(QPalette.ColorRole.ButtonText, QColor(0, 0, 0))
+        palette.setColor(QPalette.ColorRole.BrightText, QColor(255, 0, 0))
+        palette.setColor(QPalette.ColorRole.Link, QColor(37, 99, 235))  # Material3蓝
+        
+        app.setPalette(palette)
+    
+    def _set_material3_dark_theme(self):
+        """设置Material3深色主题"""
+        app = QApplication.instance()
+        app.setStyle("Fusion")
+        
+        # Material3深色主题调色板
+        palette = QPalette()
+        palette.setColor(QPalette.ColorRole.Window, QColor(17, 24, 39))  # Material3深色背景
+        palette.setColor(QPalette.ColorRole.WindowText, QColor(255, 255, 255))
+        palette.setColor(QPalette.ColorRole.Base, QColor(31, 41, 55))  # Material3深色表面
+        palette.setColor(QPalette.ColorRole.AlternateBase, QColor(55, 65, 81))  # Material3深色表面变体
+        palette.setColor(QPalette.ColorRole.ToolTipBase, QColor(255, 255, 220))
+        palette.setColor(QPalette.ColorRole.ToolTipText, QColor(0, 0, 0))
+        palette.setColor(QPalette.ColorRole.Text, QColor(255, 255, 255))
+        palette.setColor(QPalette.ColorRole.Button, QColor(55, 65, 81))
+        palette.setColor(QPalette.ColorRole.ButtonText, QColor(255, 255, 255))
+        palette.setColor(QPalette.ColorRole.BrightText, QColor(255, 0, 0))
+        palette.setColor(QPalette.ColorRole.Link, QColor(96, 165, 250))  # Material3浅蓝
         
         app.setPalette(palette)
 
