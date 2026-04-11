@@ -7,6 +7,9 @@ from app.dal.database import SessionLocal
 from app.dal.init_db import init_database
 
 # 初始化数据库
+from app.dal.database import engine, Base
+# 先删除所有表，确保表结构是最新的
+Base.metadata.drop_all(bind=engine)
 init_database()
 
 # 生成随机字符串

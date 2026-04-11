@@ -1,5 +1,5 @@
 """统计和分析服务"""
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 from collections import Counter, defaultdict
 from sqlalchemy.orm import Session
 import logging
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class StatsService:
     """统计和分析服务"""
     
-    def __init__(self, db: Session = None):
+    def __init__(self, db: Optional[Session] = None):
         if db:
             self.db = db
         else:
@@ -26,7 +26,7 @@ class StatsService:
         """获取词长统计"""
         try:
             all_words = self.repo.get_all(limit=10000)
-            length_counter = Counter()
+            length_counter: Counter[int] = Counter()
             
             for word in all_words:
                 length = len(word.word)
@@ -45,8 +45,8 @@ class StatsService:
         """获取编码统计"""
         try:
             all_words = self.repo.get_all(limit=10000)
-            code_length_counter = Counter()
-            code_counter = Counter()
+            code_length_counter: Counter[int] = Counter()
+            code_counter: Counter[str] = Counter()
             
             for word in all_words:
                 code_length = len(word.code)
@@ -134,8 +134,8 @@ class StatsService:
             return {
                 "total_words": len(all_words),
                 "average_weight": sum(weights) / len(weights),
-                "max_weight": max(weights),
-                "min_weight": min(weights),
+                "max_weight": float(max(weights)),
+                "min_weight": float(min(weights)),
                 "weight_distribution": weight_ranges
             }
         except Exception as e:
@@ -147,7 +147,7 @@ class StatsService:
         try:
             all_words = self.repo.get_all()
             # 按权重排序
-            sorted_words = sorted(all_words, key=lambda x: x.weight, reverse=True)
+            sorted_words = sorted(all_words, key=lambda x: float(x.weight), reverse=True)
             
             return [{
                 "word": word.word,

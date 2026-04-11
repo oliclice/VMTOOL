@@ -17,14 +17,14 @@ logger = logging.getLogger(__name__)
 class CompatibilityLayer:
     """兼容性层"""
     
-    def __init__(self):
+    def __init__(self) -> None:
         """初始化兼容性层"""
         self.dict_service = DictService()
         self.weight_calc = WeightCalculator()
         self.filter_service = FilterService()
         self.stats_service = StatsService()
     
-    def handle_old_api(self, method: str, *args, **kwargs) -> Any:
+    def handle_old_api(self, method: str, *args: Any, **kwargs: Any) -> Any:
         """处理旧API调用
         
         Args:
@@ -54,7 +54,7 @@ class CompatibilityLayer:
             logger.error(f"不支持的旧API方法: {method}")
             raise ValueError(f"不支持的旧API方法: {method}")
     
-    def _add_word(self, word: str, code: str = None, weight: float = 1.0) -> Dict[str, Any]:
+    def _add_word(self, word: str, code: Optional[str] = None, weight: float = 1.0) -> Dict[str, Any]:
         """添加词（旧API兼容）"""
         if not code:
             code = self.dict_service.generate_code(word)
@@ -210,7 +210,7 @@ class CompatibilityLayer:
         print(f"删除结果: {result}")
         return True
     
-    def _handle_query(self, query: str):
+    def _handle_query(self, query: str) -> None:
         """处理查询"""
         results = self.dict_service.search_words(query)
         for result in results:
@@ -236,7 +236,7 @@ class CompatibilityLayer:
             print(f"设置失败: {e}")
         return True
     
-    def _handle_replace(self, args: List[str]):
+    def _handle_replace(self, args: List[str]) -> None:
         """处理替换编码"""
         word, new_code = args
         try:
@@ -245,7 +245,7 @@ class CompatibilityLayer:
         except Exception as e:
             print(f"替换失败: {e}")
     
-    def _handle_high_key(self, args: List[str]):
+    def _handle_high_key(self, args: List[str]) -> None:
         """处理高频统计"""
         min_length, min_count = args
         try:
@@ -255,7 +255,7 @@ class CompatibilityLayer:
         except Exception as e:
             print(f"统计失败: {e}")
     
-    def _handle_clear(self, confirm: str):
+    def _handle_clear(self, confirm: str) -> None:
         """处理清理备份"""
         result = self._clear_backups(confirm)
         if result:
@@ -274,7 +274,7 @@ class CompatibilityLayer:
                 print(f"执行功能失败: {e}")
         return True
     
-    def _run_old_function(self, function_id: int):
+    def _run_old_function(self, function_id: int) -> None:
         """运行旧功能"""
         function_map = {
             1: self._filter_dict,
@@ -291,37 +291,37 @@ class CompatibilityLayer:
         else:
             print(f"不支持的功能ID: {function_id}")
     
-    def _filter_dict(self):
+    def _filter_dict(self) -> None:
         """过滤码表"""
         print("执行过滤码表功能")
         # 这里需要实现过滤码表的逻辑
     
-    def _calculate_weight(self):
+    def _calculate_weight(self) -> None:
         """计算权重"""
         print("执行计算权重功能")
         # 这里需要实现计算权重的逻辑
     
-    def _add_words(self):
+    def _add_words(self) -> None:
         """补充新词"""
         print("执行补充新词功能")
         # 这里需要实现补充新词的逻辑
     
-    def _write_dict(self):
+    def _write_dict(self) -> None:
         """写入码表"""
         print("执行写入码表功能")
         # 这里需要实现写入码表的逻辑
     
-    def _refresh_dict(self):
+    def _refresh_dict(self) -> None:
         """刷新字表"""
         print("执行刷新字表功能")
         # 这里需要实现刷新字表的逻辑
     
-    def _auto_complete(self):
+    def _auto_complete(self) -> None:
         """自动补码"""
         print("执行自动补码功能")
         # 这里需要实现自动补码的逻辑
     
-    def _count_high_frequency(self):
+    def _count_high_frequency(self) -> None:
         """统计高频词"""
         print("执行统计高频词功能")
         # 这里需要实现统计高频词的逻辑
@@ -335,6 +335,10 @@ class CompatibilityLayer:
         Returns:
             Dict[str, Any]: 转换后的配置
         """
+        import pathlib
+        # 规范化路径，防止路径遍历攻击
+        old_config_path = str(pathlib.Path(old_config_path).resolve())
+        
         logger.info(f"转换旧配置文件: {old_config_path}")
         
         if not os.path.exists(old_config_path):
