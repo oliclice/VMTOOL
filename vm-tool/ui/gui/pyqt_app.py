@@ -1140,7 +1140,7 @@ class VMTOOLPyQtApp(QMainWindow):
         # 连接信号
         settings_types.itemClicked.connect(self.on_settings_type_clicked)
     
-    def on_settings_type_clicked(self, item, column):
+    def on_settings_type_clicked(self, tree_item, column):
         """设置类型点击事件"""
         # 清空设置内容
         for i in reversed(range(self.settings_content_layout.count())):
@@ -1164,7 +1164,7 @@ class VMTOOLPyQtApp(QMainWindow):
                         self.settings_content_layout.removeItem(item)
         
         # 获取选中的设置类型
-        settings_type = item.text(column)
+        settings_type = tree_item.text(column)
         
         # 更新标题
         self.settings_title.setText(settings_type)
