@@ -1173,6 +1173,9 @@ class VMTOOLPyQtApp(QMainWindow):
         QMessageBox.information(
             self, "成功", message
         )
+        # 刷新所有表的视图
+        self.refresh_chars()
+        self.refresh_special()
         self.refresh_words()
         self.status_bar.showMessage("导入完成")
     
@@ -1184,12 +1187,19 @@ class VMTOOLPyQtApp(QMainWindow):
     
     def export_data(self):
         """导出数据"""
-        # 获取默认导出路径和默认导出名称
-        default_export_path = config_manager.get("default_export_path", "./")
-        default_export_name = config_manager.get("default_export_name", "vmtool_export")
+        # 检查是否启用默认导出路径
+        export_path_enabled = config_manager.get("export_path_enabled", True)
         
-        # 构造默认文件路径
-        default_file_path = default_export_path + "/" + default_export_name
+        if export_path_enabled:
+            # 获取默认导出路径和默认导出名称
+            default_export_path = config_manager.get("default_export_path", "./")
+            default_export_name = config_manager.get("default_export_name", "vmtool_export")
+            
+            # 构造默认文件路径
+            default_file_path = default_export_path + "/" + default_export_name
+        else:
+            # 不使用默认导出路径和名称
+            default_file_path = ""
         
         file_path, _ = QFileDialog.getSaveFileName(
             self, "选择导出文件", default_file_path, "文本文件 (*.txt);;CSV文件 (*.csv);;JSON文件 (*.json)"
@@ -2328,12 +2338,23 @@ elif len(vac) >= 4:
             separator_combo.currentTextChanged.connect(on_separator_changed)
             self.settings_content_layout.addRow(separator_label, separator_combo)
             
+            # 默认导出路径开关
+            export_path_enabled_checkbox = QCheckBox("启用默认导出路径")
+            export_path_enabled_checkbox.setChecked(config_manager.get("export_path_enabled", True))
+            export_path_enabled_checkbox.stateChanged.connect(lambda state: config_manager.set("export_path_enabled", state == 2))
+            self.settings_content_layout.addRow(export_path_enabled_checkbox)
+            
             # 导出路径设置
             export_path_label = QLabel("默认导出路径:")
             export_path_edit = QLineEdit()
             export_path_edit.setText(config_manager.get("default_export_path", "./"))
             # 连接信号，自动保存
-            export_path_edit.textChanged.connect(lambda text: config_manager.set("default_export_path", text))
+            def on_export_path_changed(text):
+                config_manager.set("default_export_path", text)
+                # 更新导入导出标签页中的路径
+                if hasattr(self, 'export_path_edit'):
+                    self.export_path_edit.setText(text)
+            export_path_edit.textChanged.connect(on_export_path_changed)
             export_browse_button = QPushButton("浏览")
             # 连接浏览按钮点击事件
             def browse_export_path():
@@ -2362,7 +2383,12 @@ elif len(vac) >= 4:
             import_path_edit = QLineEdit()
             import_path_edit.setText(config_manager.get("import_path", "./"))
             # 连接信号，自动保存
-            import_path_edit.textChanged.connect(lambda text: config_manager.set("import_path", text))
+            def on_import_path_changed(text):
+                config_manager.set("import_path", text)
+                # 更新导入导出标签页中的路径
+                if hasattr(self, 'import_path_edit'):
+                    self.import_path_edit.setText(text)
+            import_path_edit.textChanged.connect(on_import_path_changed)
             import_browse_button = QPushButton("浏览")
             # 连接浏览按钮点击事件
             def browse_import_path():
