@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
     QTabWidget, QTableWidget, QTableWidgetItem, QPushButton, QLineEdit,
     QLabel, QDialog, QFormLayout, QComboBox, QMessageBox, QFileDialog,
     QTreeWidget, QTreeWidgetItem, QSplitter, QStatusBar, QMenuBar, QMenu,
-    QProgressDialog, QTextEdit, QGroupBox, QProgressBar
+    QProgressDialog, QTextEdit, QGroupBox, QProgressBar, QCheckBox
 )
 from PyQt6.QtCore import Qt, QSortFilterProxyModel, QThread, pyqtSignal
 from PyQt6.QtGui import QAction, QIcon, QFont, QColor, QStandardItemModel, QStandardItem, QPalette
