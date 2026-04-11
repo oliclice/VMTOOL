@@ -130,15 +130,10 @@ class CodeGenerator:
             
             # 如果没有指定规则或规则不存在，查找默认规则
             if not custom_rule_content:
-                # 查找带有[default]后缀的规则
-                default_rule = None
-                for rule_name, rule_content in custom_rules.items():
-                    if rule_name.endswith(" [default]"):
-                        default_rule = rule_content
-                        break
-                
-                if default_rule:
-                    custom_rule_content = default_rule
+                # 查找默认规则配置
+                default_rule_name = config_manager.get("default_code_rule", "")
+                if default_rule_name in custom_rules:
+                    custom_rule_content = custom_rules[default_rule_name]
                 else:
                     # 如果没有自定义规则，使用默认规则
                     return self.config['separator'].join([c[0] for c in char_codes])

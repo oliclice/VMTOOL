@@ -1531,19 +1531,35 @@ class VMTOOLPyQtApp(QMainWindow):
             rule_content_layout.addWidget(rule_content_edit)
             custom_rule_layout.addLayout(rule_content_layout)
             
-            rule_combo.addItems(rule_names)
+            # 为默认规则添加标识
+            default_rule = config_manager.get("default_code_rule", "")
+            for name in rule_names:
+                if name == default_rule:
+                    rule_combo.addItem(f"{name} [默认]")
+                else:
+                    rule_combo.addItem(name)
+            
             current_rule = config_manager.get("code_rule", rule_names[0] if rule_names else "")
             if current_rule in rule_names:
-                rule_combo.setCurrentText(current_rule)
+                # 检查是否为默认规则
+                if current_rule == default_rule:
+                    rule_combo.setCurrentText(f"{current_rule} [默认]")
+                else:
+                    rule_combo.setCurrentText(current_rule)
                 # 初始化显示当前规则内容
                 rule_name_edit.setText(current_rule)
                 rule_content_edit.setPlainText(rules.get(current_rule, ""))
             # 连接信号，自动保存
             def on_rule_changed(text):
-                config_manager.set("code_rule", text)
+                # 移除默认标识
+                if " [默认]" in text:
+                    rule_name = text.replace(" [默认]", "")
+                else:
+                    rule_name = text
+                config_manager.set("code_rule", rule_name)
                 # 切换规则时，自动填充规则名称和内容
-                rule_name_edit.setText(text)
-                rule_content_edit.setPlainText(rules.get(text, ""))
+                rule_name_edit.setText(rule_name)
+                rule_content_edit.setPlainText(rules.get(rule_name, ""))
             
             rule_combo.currentTextChanged.connect(on_rule_changed)
             self.settings_content_layout.addRow(rule_label, rule_combo)
@@ -1590,10 +1606,11 @@ v[2] = s[0][1] + s[-1][1]
             syntax_layout.addWidget(syntax_button)
             custom_rule_layout.addLayout(syntax_layout)
             
-            # 添加和删除按钮
+            # 添加、删除和设为默认按钮
             button_layout = QHBoxLayout()
             add_button = QPushButton("添加规则")
             delete_button = QPushButton("删除规则")
+            set_default_button = QPushButton("设为默认")
             
             def add_rule():
                 rule_name = rule_name_edit.text().strip()
@@ -1604,7 +1621,14 @@ v[2] = s[0][1] + s[-1][1]
                     config_manager.set("custom_rules", rules)
                     # 更新下拉框
                     rule_combo.clear()
-                    rule_combo.addItems(list(rules.keys()))
+                    rule_names = list(rules.keys())
+                    # 为默认规则添加标识
+                    default_rule = config_manager.get("default_code_rule", "")
+                    for name in rule_names:
+                        if name == default_rule:
+                            rule_combo.addItem(f"{name} [默认]")
+                        else:
+                            rule_combo.addItem(name)
                     rule_combo.setCurrentText(rule_name)
                     self.show_toast(f"规则 '{rule_name}' 添加成功")
                 else:
@@ -1612,15 +1636,29 @@ v[2] = s[0][1] + s[-1][1]
             
             def delete_rule():
                 current_rule = rule_combo.currentText()
+                # 移除默认标识
+                if " [默认]" in current_rule:
+                    current_rule = current_rule.replace(" [默认]", "")
+                
                 if current_rule:
                     rules = config_manager.get("custom_rules", {})
                     if current_rule in rules:
+                        # 如果删除的是默认规则，清除默认规则设置
+                        if current_rule == config_manager.get("default_code_rule", ""):
+                            config_manager.set("default_code_rule", "")
+                        
                         del rules[current_rule]
                         config_manager.set("custom_rules", rules)
                         # 更新下拉框
                         rule_combo.clear()
                         rule_names = list(rules.keys())
-                        rule_combo.addItems(rule_names)
+                        # 为默认规则添加标识
+                        default_rule = config_manager.get("default_code_rule", "")
+                        for name in rule_names:
+                            if name == default_rule:
+                                rule_combo.addItem(f"{name} [默认]")
+                            else:
+                                rule_combo.addItem(name)
                         if rule_names:
                             rule_combo.setCurrentIndex(0)
                             config_manager.set("code_rule", rule_names[0])
@@ -1634,10 +1672,33 @@ v[2] = s[0][1] + s[-1][1]
                             rule_content_edit.setPlainText("")
                         self.show_toast(f"规则 '{current_rule}' 删除成功")
             
+            def set_default():
+                current_rule = rule_combo.currentText()
+                # 移除默认标识
+                if " [默认]" in current_rule:
+                    current_rule = current_rule.replace(" [默认]", "")
+                
+                if current_rule:
+                    # 设置默认规则
+                    config_manager.set("default_code_rule", current_rule)
+                    # 更新下拉框，为默认规则添加标识
+                    rules = config_manager.get("custom_rules", {})
+                    rule_names = list(rules.keys())
+                    rule_combo.clear()
+                    for name in rule_names:
+                        if name == current_rule:
+                            rule_combo.addItem(f"{name} [默认]")
+                        else:
+                            rule_combo.addItem(name)
+                    rule_combo.setCurrentText(f"{current_rule} [默认]")
+                    self.show_toast(f"规则 '{current_rule}' 已设为默认")
+            
             add_button.clicked.connect(add_rule)
             delete_button.clicked.connect(delete_rule)
+            set_default_button.clicked.connect(set_default)
             button_layout.addWidget(add_button)
             button_layout.addWidget(delete_button)
+            button_layout.addWidget(set_default_button)
             custom_rule_layout.addLayout(button_layout)
             
             custom_rule_group.setLayout(custom_rule_layout)
