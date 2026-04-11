@@ -121,99 +121,140 @@ class CodeGenerator:
         """
         try:
             # 读取自定义规则配置
-            from app.core.config_manager import config_manager
+            from ..core.config_manager import config_manager
             current_rule = config_manager.get("code_rule", "默认规则")
             custom_rules = config_manager.get("custom_rules", {})
             
-            # 获取当前规则的内容
-            custom_rule_content = custom_rules.get(current_rule, "")
+            # 获取当前规则的内容和Python模式状态
+            rule_data = custom_rules.get(current_rule, {})
+            if isinstance(rule_data, str):
+                # 旧格式，转换为新格式
+                custom_rule_content = rule_data
+                python_mode = False
+            else:
+                # 新格式
+                custom_rule_content = rule_data.get("content", "")
+                python_mode = rule_data.get("python_mode", False)
             
             # 如果没有指定规则或规则不存在，查找默认规则
             if not custom_rule_content:
                 # 查找默认规则配置
                 default_rule_name = config_manager.get("default_code_rule", "")
                 if default_rule_name in custom_rules:
-                    custom_rule_content = custom_rules[default_rule_name]
+                    default_rule_data = custom_rules[default_rule_name]
+                    if isinstance(default_rule_data, str):
+                        custom_rule_content = default_rule_data
+                        python_mode = False
+                    else:
+                        custom_rule_content = default_rule_data.get("content", "")
+                        python_mode = default_rule_data.get("python_mode", False)
                 else:
                     # 如果没有自定义规则，使用默认规则
                     return self.config['separator'].join([c[0] for c in char_codes])
             
             word_length = len(word)
             
-            # 解析规则
-            rules = {}
-            plus_rules = {}
-            for line in custom_rule_content.strip().split('\n'):
-                line = line.strip()
-                if line and '=' in line:
-                    key, value = line.split('=', 1)
-                    key = key.strip()
-                    value = value.strip()
-                    # 提取长度
-                    if key.startswith('v[') and key.endswith(']'):
-                        length_str = key[2:-1]
-                        # 处理v[4+]格式的规则
-                        if length_str.endswith('+'):
-                            try:
-                                min_length = int(length_str[:-1])
-                                plus_rules[min_length] = value
-                            except:
-                                pass
-                        else:
-                            try:
-                                length = int(length_str)
-                                rules[length] = value
-                            except:
-                                pass
-            
-            # 找到匹配的规则
-            rule = None
-            if word_length in rules:
-                rule = rules[word_length]
+            # 检查是否启用Python模式
+            if python_mode:
+                # Python模式：执行Python代码生成编码
+                try:
+                    # 准备变量
+                    vac = word  # vac变量为单条词条
+                    code = {}
+                    for i, char in enumerate(word):
+                        code[char] = char_codes[i] if i < len(char_codes) else ''
+                    
+                    # 执行Python代码
+                    # 使用exec执行代码，结果存储在result变量中
+                    local_vars = {'vac': vac, 'code': code, 'result': ''}
+                    exec(custom_rule_content, {}, local_vars)
+                    result = local_vars.get('result', '')
+                    
+                    # 确保结果是字符串
+                    if not isinstance(result, str):
+                        result = str(result)
+                    
+                    return result
+                except Exception as e:
+                    logger.error(f"执行Python模式编码规则失败: {e}")
+                    # 失败时使用默认规则
+                    return self.config['separator'].join([c[0] for c in char_codes])
             else:
-                # 检查是否匹配v[4+]格式的规则
-                for min_length, rule_content in plus_rules.items():
-                    if word_length >= min_length:
-                        rule = rule_content
-                        break
-            
-            if rule:
-                # 替换s[i][j]为实际编码
-                result = rule
+                # 普通模式：使用原有规则解析逻辑
+                # 解析规则
+                rules = {}
+                plus_rules = {}
+                for line in custom_rule_content.strip().split('\n'):
+                    line = line.strip()
+                    if line and '=' in line:
+                        key, value = line.split('=', 1)
+                        key = key.strip()
+                        value = value.strip()
+                        # 提取长度
+                        if key.startswith('v[') and key.endswith(']'):
+                            length_str = key[2:-1]
+                            # 处理v[4+]格式的规则
+                            if length_str.endswith('+'):
+                                try:
+                                    min_length = int(length_str[:-1])
+                                    plus_rules[min_length] = value
+                                except:
+                                    pass
+                            else:
+                                try:
+                                    length = int(length_str)
+                                    rules[length] = value
+                                except:
+                                    pass
                 
-                # 处理s[i][j]表示第i个字的第j个编码字符（1-based索引）
-                for i in range(word_length):
-                    for j in range(len(char_codes[i])):
-                        # 1-based索引（从1开始）
-                        placeholder = f"s[{i+1}][{j+1}]"
-                        if placeholder in result:
-                            result = result.replace(placeholder, char_codes[i][j])
+                # 找到匹配的规则
+                rule = None
+                if word_length in rules:
+                    rule = rules[word_length]
+                else:
+                    # 检查是否匹配v[4+]格式的规则
+                    for min_length, rule_content in plus_rules.items():
+                        if word_length >= min_length:
+                            rule = rule_content
+                            break
                 
-                # 处理s[-1][j]表示最后一个字的编码
-                if word_length > 0:
-                    last_index = word_length - 1
-                    for j in range(len(char_codes[last_index])):
-                        placeholder = f"s[-1][{j+1}]"
-                        if placeholder in result:
-                            result = result.replace(placeholder, char_codes[last_index][j])
-                
-                # 处理连接符（移除+号）
-                result = result.replace('+', '')
-                # 移除所有空格
-                result = result.replace(' ', '')
-                
-                # 确保所有占位符都被替换
-                import re
-                # 查找所有未被替换的s[i][j]格式的占位符
-                placeholders = re.findall(r's\[\d+\]\[\d+\]|s\[-1\]\[\d+\]', result)
-                for placeholder in placeholders:
-                    # 移除未被替换的占位符
-                    result = result.replace(placeholder, '')
-                
-                return result
-            else:
-                # 如果没有匹配的规则，使用默认规则
-                return self.config['separator'].join([c[0] for c in char_codes])
+                if rule:
+                    # 替换s[i][j]为实际编码
+                    result = rule
+                    
+                    # 处理s[i][j]表示第i个字的第j个编码字符（1-based索引）
+                    for i in range(word_length):
+                        for j in range(len(char_codes[i])):
+                            # 1-based索引（从1开始）
+                            placeholder = f"s[{i+1}][{j+1}]"
+                            if placeholder in result:
+                                result = result.replace(placeholder, char_codes[i][j])
+                    
+                    # 处理s[-1][j]表示最后一个字的编码
+                    if word_length > 0:
+                        last_index = word_length - 1
+                        for j in range(len(char_codes[last_index])):
+                            placeholder = f"s[-1][{j+1}]"
+                            if placeholder in result:
+                                result = result.replace(placeholder, char_codes[last_index][j])
+                    
+                    # 处理连接符（移除+号）
+                    result = result.replace('+', '')
+                    # 移除所有空格
+                    result = result.replace(' ', '')
+                    
+                    # 确保所有占位符都被替换
+                    import re
+                    # 查找所有未被替换的s[i][j]格式的占位符
+                    placeholders = re.findall(r's\[\d+\]\[\d+\]|s\[-1\]\[\d+\]', result)
+                    for placeholder in placeholders:
+                        # 移除未被替换的占位符
+                        result = result.replace(placeholder, '')
+                    
+                    return result
+                else:
+                    # 如果没有匹配的规则，使用默认规则
+                    return self.config['separator'].join([c[0] for c in char_codes])
         except Exception as e:
             logger.error(f"执行自定义规则失败: {e}")
             # 失败时使用默认规则
