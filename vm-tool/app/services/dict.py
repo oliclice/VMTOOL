@@ -102,6 +102,42 @@ class DictService:
             logger.error(f"统计特殊字符数量失败: {e}")
             raise DictError(f"统计特殊字符数量失败: {e}")
     
+    def get_characters(self, skip: int = 0, limit: int = None) -> List[Dict[str, Any]]:
+        """获取所有字"""
+        try:
+            db_words = self.repo.get_characters(skip, limit)
+            return [{
+                "id": word.id,
+                "word": word.word,
+                "code": word.code,
+                "weight": word.weight,
+                "is_active": word.is_active,
+                "is_character": word.is_character,
+                "is_special": word.is_special,
+                "manual": word.manual
+            } for word in db_words]
+        except Exception as e:
+            logger.error(f"获取字失败: {e}")
+            raise DictError(f"获取字失败: {e}")
+    
+    def get_words(self, skip: int = 0, limit: int = None) -> List[Dict[str, Any]]:
+        """获取所有词"""
+        try:
+            db_words = self.repo.get_words(skip, limit)
+            return [{
+                "id": word.id,
+                "word": word.word,
+                "code": word.code,
+                "weight": word.weight,
+                "is_active": word.is_active,
+                "is_character": word.is_character,
+                "is_special": word.is_special,
+                "manual": word.manual
+            } for word in db_words]
+        except Exception as e:
+            logger.error(f"获取词失败: {e}")
+            raise DictError(f"获取词失败: {e}")
+    
 
     
     @performance_monitor

@@ -130,6 +130,20 @@ class WordRepository(BaseRepository):
     def count_special_chars(self) -> int:
         """统计特殊字符数量"""
         return self.db.query(Word).filter(Word.is_special == True).count()
+    
+    def get_characters(self, skip: int = 0, limit: int = None) -> List[Word]:
+        """获取所有字"""
+        query = self.db.query(Word).filter(Word.is_character == True).offset(skip)
+        if limit is not None:
+            query = query.limit(limit)
+        return query.all()
+    
+    def get_words(self, skip: int = 0, limit: int = None) -> List[Word]:
+        """获取所有词"""
+        query = self.db.query(Word).filter(Word.is_character == False).offset(skip)
+        if limit is not None:
+            query = query.limit(limit)
+        return query.all()
 
 
 class DictConfigRepository(BaseRepository):
