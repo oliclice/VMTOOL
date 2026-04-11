@@ -2408,7 +2408,6 @@ elif len(vac) >= 4:
             self.settings_content_layout.addRow(QLabel("Rime 配置自动导出:"))
             
             # 检查 ibus/rime 目录是否存在
-            import os
             ibus_rime_path = os.path.expanduser("~/.config/ibus/rime")
             if os.path.exists(ibus_rime_path):
                 ibus_rime_checkbox = QCheckBox(f"自动导出到 ibus/rime 目录 ({ibus_rime_path})")
