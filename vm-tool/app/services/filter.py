@@ -84,6 +84,9 @@ class FilterService:
     
     def import_from_txt(self, file_path: str, encoding: str = 'utf-8', progress_callback: Optional[Callable] = None) -> Dict[str, Any]:
         """从TXT文件导入"""
+        import time
+        start_time = time.time()
+        
         try:
             if not os.path.exists(file_path):
                 raise FileError(f"文件不存在: {file_path}")
@@ -139,8 +142,24 @@ class FilterService:
             
             result = dict_service.add_words(words, progress_callback=batch_progress_callback)
             
+            # 计算耗时和每千条平均耗时
+            end_time = time.time()
+            total_time = end_time - start_time
+            added_count = result.get('added', 0)
+            avg_time_per_1000 = (total_time / added_count * 1000) if added_count > 0 else 0
+            
+            # 添加耗时信息到结果
+            result['total_time'] = total_time
+            result['avg_time_per_1000'] = avg_time_per_1000
+            result['total_count'] = len(words)
+            
             if progress_callback:
                 progress_callback(100, f"导入完成: {os.path.basename(file_path)}")
+            
+            # 数据导入完成后创建索引并优化数据库
+            from app.dal.init_db import create_indexes, optimize_database
+            create_indexes()
+            optimize_database()
             
             return result
         except FileError:
@@ -151,6 +170,9 @@ class FilterService:
     
     def import_from_csv(self, file_path: str, encoding: str = 'utf-8', progress_callback: Optional[Callable] = None) -> Dict[str, Any]:
         """从CSV文件导入"""
+        import time
+        start_time = time.time()
+        
         try:
             if not os.path.exists(file_path):
                 raise FileError(f"文件不存在: {file_path}")
@@ -200,8 +222,24 @@ class FilterService:
             
             result = dict_service.add_words(words, progress_callback=batch_progress_callback)
             
+            # 计算耗时和每千条平均耗时
+            end_time = time.time()
+            total_time = end_time - start_time
+            added_count = result.get('added', 0)
+            avg_time_per_1000 = (total_time / added_count * 1000) if added_count > 0 else 0
+            
+            # 添加耗时信息到结果
+            result['total_time'] = total_time
+            result['avg_time_per_1000'] = avg_time_per_1000
+            result['total_count'] = len(words)
+            
             if progress_callback:
                 progress_callback(100, f"导入完成: {os.path.basename(file_path)}")
+            
+            # 数据导入完成后创建索引并优化数据库
+            from app.dal.init_db import create_indexes, optimize_database
+            create_indexes()
+            optimize_database()
             
             return result
         except FileError:
@@ -212,6 +250,9 @@ class FilterService:
     
     def import_from_json(self, file_path: str, encoding: str = 'utf-8', progress_callback: Optional[Callable] = None) -> Dict[str, Any]:
         """从JSON文件导入"""
+        import time
+        start_time = time.time()
+        
         try:
             if not os.path.exists(file_path):
                 raise FileError(f"文件不存在: {file_path}")
@@ -257,8 +298,24 @@ class FilterService:
             
             result = dict_service.add_words(words, progress_callback=batch_progress_callback)
             
+            # 计算耗时和每千条平均耗时
+            end_time = time.time()
+            total_time = end_time - start_time
+            added_count = result.get('added', 0)
+            avg_time_per_1000 = (total_time / added_count * 1000) if added_count > 0 else 0
+            
+            # 添加耗时信息到结果
+            result['total_time'] = total_time
+            result['avg_time_per_1000'] = avg_time_per_1000
+            result['total_count'] = len(words)
+            
             if progress_callback:
                 progress_callback(100, f"导入完成: {os.path.basename(file_path)}")
+            
+            # 数据导入完成后创建索引并优化数据库
+            from app.dal.init_db import create_indexes, optimize_database
+            create_indexes()
+            optimize_database()
             
             return result
         except FileError:

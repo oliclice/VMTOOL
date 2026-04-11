@@ -734,9 +734,25 @@ class VMTOOLPyQtApp(QMainWindow):
     
     def import_data(self):
         """导入数据"""
-        file_path, _ = QFileDialog.getOpenFileName(
-            self, "选择导入文件", "", "所有文件 (*.*);;文本文件 (*.txt);;CSV文件 (*.csv);;JSON文件 (*.json)"
-        )
+        # 尝试使用系统原生文件选择对话框
+        try:
+            # 创建文件对话框
+            file_dialog = QFileDialog(self)
+            file_dialog.setWindowTitle("选择导入文件")
+            file_dialog.setNameFilters(["所有文件 (*.*)", "文本文件 (*.txt)", "CSV文件 (*.csv)", "JSON文件 (*.json)"])
+            
+            # 尝试使用原生对话框
+            file_dialog.setOption(QFileDialog.Option.DontUseNativeDialog, False)
+            
+            if file_dialog.exec() == QFileDialog.DialogCode.Accepted:
+                file_path = file_dialog.selectedFiles()[0]
+            else:
+                file_path = ""
+        except Exception:
+            # 如果原生对话框失败，使用Qt内置对话框
+            file_path, _ = QFileDialog.getOpenFileName(
+                self, "选择导入文件", "", "所有文件 (*.*);;文本文件 (*.txt);;CSV文件 (*.csv);;JSON文件 (*.json)"
+            )
         
         if file_path:
             # 自动检测文件格式
@@ -791,8 +807,18 @@ class VMTOOLPyQtApp(QMainWindow):
     def on_import_finished(self, result, progress_dialog):
         """导入完成回调"""
         progress_dialog.accept()
+        # 显示导入数据条数和用时
+        total_time = result.get('total_time', 0)
+        avg_time_per_1000 = result.get('avg_time_per_1000', 0)
+        total_count = result.get('total_count', 0)
+        
+        message = f"导入成功: 添加了 {result['added']} 条，跳过了 {result['existing']} 条\n"
+        message += f"总数据量: {total_count} 条\n"
+        message += f"总耗时: {total_time:.2f} 秒\n"
+        message += f"每千条平均耗时: {avg_time_per_1000:.2f} 秒"
+        
         QMessageBox.information(
-            self, "成功", f"导入成功: 添加了 {result['added']} 条，跳过了 {result['existing']} 条"
+            self, "成功", message
         )
         self.refresh_words()
         self.status_bar.showMessage("导入完成")

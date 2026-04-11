@@ -59,12 +59,22 @@ class WordRepository(BaseRepository):
     
     def bulk_create(self, words: List[Dict[str, Any]]) -> List[Word]:
         """批量创建词条"""
-        db_words = [Word(**word) for word in words]
-        self.db.add_all(db_words)
-        self.db.commit()
-        for word in db_words:
-            self.db.refresh(word)
-        return db_words
+        # 使用bulk_insert_mappings进行更高效的批量插入
+        # 每批处理1000-5000条记录
+        batch_size = 1000
+        total = len(words)
+        
+        # 分批次处理
+        for i in range(0, total, batch_size):
+            batch = words[i:i+batch_size]
+            # 使用bulk_insert_mappings进行批量插入
+            self.db.bulk_insert_mappings(Word, batch)
+            # 每批次提交一次
+            self.db.commit()
+        
+        # 由于bulk_insert_mappings不返回对象，我们返回空列表
+        # 如果需要返回对象，需要在插入后查询
+        return []
     
     def search(self, keyword: str) -> List[Word]:
         """搜索词条"""
