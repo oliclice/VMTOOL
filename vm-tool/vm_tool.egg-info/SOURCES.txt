@@ -1,0 +1,12 @@
+pyproject.toml
+app/__init__.py
+plugins/example_plugin.py
+tests/test_dict_service.py
+tests/test_example.py
+ui/__init__.py
+vm_tool.egg-info/PKG-INFO
+vm_tool.egg-info/SOURCES.txt
+vm_tool.egg-info/dependency_links.txt
+vm_tool.egg-info/entry_points.txt
+vm_tool.egg-info/requires.txt
+vm_tool.egg-info/top_level.txt

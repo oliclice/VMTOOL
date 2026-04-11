@@ -1,0 +1,2 @@
+[console_scripts]
+vmtool = ui.cli.__main__:app
