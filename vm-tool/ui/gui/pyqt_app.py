@@ -249,6 +249,10 @@ class VMTOOLPyQtApp(QMainWindow):
         self.char_table.setColumnWidth(2, 100)
         self.char_table.setColumnWidth(3, 80)
         
+        # 添加右键菜单
+        self.char_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.char_table.customContextMenuRequested.connect(self.show_char_context_menu)
+        
         layout.addWidget(self.char_table)
         
         # 操作按钮
@@ -314,6 +318,10 @@ class VMTOOLPyQtApp(QMainWindow):
         self.word_table.setColumnWidth(2, 100)
         self.word_table.setColumnWidth(3, 80)
         
+        # 添加右键菜单
+        self.word_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.word_table.customContextMenuRequested.connect(self.show_word_context_menu)
+        
         layout.addWidget(self.word_table)
         
         # 操作按钮
@@ -374,7 +382,7 @@ class VMTOOLPyQtApp(QMainWindow):
         # 统计字段选择
         field_label = QLabel("统计字段:")
         self.stats_field_combo = QComboBox()
-        self.stats_field_combo.addItems(["词长", "编码出现频次", "权重值"])
+        self.stats_field_combo.addItems(["词长", "编码频次", "权重值"])
         self.stats_field_combo.setCurrentText("词长")
         
         # 显示条数设置
@@ -409,6 +417,10 @@ class VMTOOLPyQtApp(QMainWindow):
         self.high_freq_table.setColumnWidth(1, 150)
         self.high_freq_table.setColumnWidth(2, 120)
         self.high_freq_table.setColumnWidth(3, 80)
+        
+        # 添加右键菜单
+        self.high_freq_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.high_freq_table.customContextMenuRequested.connect(self.show_high_freq_context_menu)
         
         high_freq_layout.addWidget(self.high_freq_table)
         layout.addWidget(high_freq_frame)
@@ -891,12 +903,54 @@ class VMTOOLPyQtApp(QMainWindow):
                 sorted_words = sorted(words, key=lambda x: x.get('weight', 0), reverse=True)
             elif stats_field == "词长":
                 sorted_words = sorted(words, key=lambda x: len(x.get('word', '')), reverse=True)
-            elif stats_field == "编码出现频次":
+            elif stats_field == "编码频次":
                 # 获取编码统计信息
                 code_stats = report.get('code_stats', {})
                 code_frequency = code_stats.get('code_frequency', {})
-                # 根据编码出现频次排序
-                sorted_words = sorted(words, key=lambda x: code_frequency.get(x.get('code', ''), 0), reverse=True)
+                
+                # 按编码频次排序，合并同一编码的词条
+                code_groups = {}
+                for word in words:
+                    code = word.get('code', '')
+                    if code not in code_groups:
+                        code_groups[code] = {
+                            'code': code,
+                            'words': [],
+                            'frequency': code_frequency.get(code, 0)
+                        }
+                    code_groups[code]['words'].append(word)
+                
+                # 按频次排序
+                sorted_codes = sorted(code_groups.values(), key=lambda x: x['frequency'], reverse=True)
+                
+                # 准备显示数据
+                display_data = []
+                for code_info in sorted_codes[:stats_count]:
+                    # 将同一编码的词合并显示
+                    words_list = [w['word'] for w in code_info['words']]
+                    words_str = '、'.join(words_list[:5])  # 只显示前5个词，避免过长
+                    if len(words_list) > 5:
+                        words_str += f"...等{len(words_list)}个词"
+                    
+                    display_data.append({
+                        'word': words_str,
+                        'code': code_info['code'],
+                        'weight': code_info['frequency']  # 显示频次作为权重
+                    })
+                
+                # 更新表格
+                self.high_freq_table.setRowCount(0)
+                
+                for i, item in enumerate(display_data, 1):
+                    self.high_freq_table.insertRow(i-1)
+                    self.high_freq_table.setItem(i-1, 0, QTableWidgetItem(str(i)))
+                    self.high_freq_table.setItem(i-1, 1, QTableWidgetItem(item['word']))
+                    self.high_freq_table.setItem(i-1, 2, QTableWidgetItem(item['code']))
+                    self.high_freq_table.setItem(i-1, 3, QTableWidgetItem(str(item['weight'])))
+                
+                # 跳过后续的表格更新
+                self.status_bar.showMessage("统计信息加载完成")
+                return
             else:
                 sorted_words = sorted(words, key=lambda x: x.get('weight', 0), reverse=True)
             
@@ -1361,9 +1415,15 @@ class VMTOOLPyQtApp(QMainWindow):
             mode_combo = QComboBox()
             mode_combo.addItems(["跟随系统", "浅色", "深色"])
             
+            # 主题颜色设置（仅对Material3有效）
+            color_label = QLabel("主题颜色:")
+            color_combo = QComboBox()
+            color_combo.addItems(["蓝色", "绿色", "红色", "紫色", "橙色"])
+            
             # 加载当前设置
             current_theme = config_manager.get("theme_name", "经典")
             current_mode = config_manager.get("theme_mode", "auto")
+            current_color = config_manager.get("theme_color", "蓝色")
             
             theme_combo.setCurrentText(current_theme)
             
@@ -1376,10 +1436,13 @@ class VMTOOLPyQtApp(QMainWindow):
             display_mode = mode_map.get(current_mode, "跟随系统")
             mode_combo.setCurrentText(display_mode)
             
+            color_combo.setCurrentText(current_color)
+            
             # 连接信号
             def on_theme_changed():
                 theme = theme_combo.currentText()
                 mode = mode_combo.currentText()
+                color = color_combo.currentText()
                 
                 # 映射模式显示名称到内部值
                 mode_map_reverse = {
@@ -1392,16 +1455,19 @@ class VMTOOLPyQtApp(QMainWindow):
                 # 保存设置
                 config_manager.set("theme_name", theme)
                 config_manager.set("theme_mode", internal_mode)
+                config_manager.set("theme_color", color)
                 
                 # 应用主题
-                self.set_theme(internal_mode, theme)
-                self.show_toast(f"主题已更改为: {theme} - {mode}")
+                self.set_theme(internal_mode, theme, color)
+                self.show_toast(f"主题已更改为: {theme} - {mode} - {color}")
             
             theme_combo.currentTextChanged.connect(on_theme_changed)
             mode_combo.currentTextChanged.connect(on_theme_changed)
+            color_combo.currentTextChanged.connect(on_theme_changed)
             
             self.settings_content_layout.addRow(theme_label, theme_combo)
             self.settings_content_layout.addRow(mode_label, mode_combo)
+            self.settings_content_layout.addRow(color_label, color_combo)
         elif settings_type == "语言设置":
             # 语言设置
             language_label = QLabel("语言:")
@@ -2001,12 +2067,13 @@ v[2] = s[0][1] + s[-1][1]
         # 保存窗口位置
         config_manager.set("window_position", [self.x(), self.y()])
     
-    def set_theme(self, theme_mode, theme_name="经典"):
+    def set_theme(self, theme_mode, theme_name="经典", theme_color="蓝色"):
         """设置主题
         
         Args:
             theme_mode: 主题模式 (auto, light, dark)
             theme_name: 主题名称 (经典, Material3)
+            theme_color: 主题颜色 (蓝色, 绿色, 红色, 紫色, 橙色)
         """
         from PyQt6.QtCore import Qt
         
@@ -2018,24 +2085,24 @@ v[2] = s[0][1] + s[-1][1]
             is_dark = self._detect_system_theme()
             if is_dark:
                 if theme_name == "Material3":
-                    self._set_material3_dark_theme()
+                    self._set_material3_dark_theme(theme_color)
                 else:
                     self._set_dark_theme()
             else:
                 if theme_name == "Material3":
-                    self._set_material3_light_theme()
+                    self._set_material3_light_theme(theme_color)
                 else:
                     self._set_light_theme()
         elif theme_mode == "dark":
             # 深色主题
             if theme_name == "Material3":
-                self._set_material3_dark_theme()
+                self._set_material3_dark_theme(theme_color)
             else:
                 self._set_dark_theme()
         else:
             # 浅色主题
             if theme_name == "Material3":
-                self._set_material3_light_theme()
+                self._set_material3_light_theme(theme_color)
             else:
                 self._set_light_theme()
     
@@ -2133,10 +2200,22 @@ v[2] = s[0][1] + s[-1][1]
         
         app.setPalette(palette)
     
-    def _set_material3_light_theme(self):
+    def _set_material3_light_theme(self, theme_color="蓝色"):
         """设置Material3浅色主题"""
         app = QApplication.instance()
         app.setStyle("Fusion")
+        
+        # 主题颜色映射
+        color_map = {
+            "蓝色": QColor(37, 99, 235),  # Material3蓝
+            "绿色": QColor(16, 185, 129),  # Material3绿
+            "红色": QColor(239, 68, 68),   # Material3红
+            "紫色": QColor(139, 92, 246),  # Material3紫
+            "橙色": QColor(249, 115, 22)   # Material3橙
+        }
+        
+        # 获取主题颜色
+        accent_color = color_map.get(theme_color, QColor(37, 99, 235))
         
         # Material3浅色主题调色板
         palette = QPalette()
@@ -2150,14 +2229,26 @@ v[2] = s[0][1] + s[-1][1]
         palette.setColor(QPalette.ColorRole.Button, QColor(240, 240, 240))
         palette.setColor(QPalette.ColorRole.ButtonText, QColor(0, 0, 0))
         palette.setColor(QPalette.ColorRole.BrightText, QColor(255, 0, 0))
-        palette.setColor(QPalette.ColorRole.Link, QColor(37, 99, 235))  # Material3蓝
+        palette.setColor(QPalette.ColorRole.Link, accent_color)
         
         app.setPalette(palette)
     
-    def _set_material3_dark_theme(self):
+    def _set_material3_dark_theme(self, theme_color="蓝色"):
         """设置Material3深色主题"""
         app = QApplication.instance()
         app.setStyle("Fusion")
+        
+        # 主题颜色映射（深色模式下的浅色版本）
+        color_map = {
+            "蓝色": QColor(96, 165, 250),  # Material3蓝（浅色）
+            "绿色": QColor(52, 211, 153),  # Material3绿（浅色）
+            "红色": QColor(252, 165, 165),  # Material3红（浅色）
+            "紫色": QColor(186, 180, 254),  # Material3紫（浅色）
+            "橙色": QColor(251, 146, 60)   # Material3橙（浅色）
+        }
+        
+        # 获取主题颜色
+        accent_color = color_map.get(theme_color, QColor(96, 165, 250))
         
         # Material3深色主题调色板
         palette = QPalette()
@@ -2171,9 +2262,125 @@ v[2] = s[0][1] + s[-1][1]
         palette.setColor(QPalette.ColorRole.Button, QColor(55, 65, 81))
         palette.setColor(QPalette.ColorRole.ButtonText, QColor(255, 255, 255))
         palette.setColor(QPalette.ColorRole.BrightText, QColor(255, 0, 0))
-        palette.setColor(QPalette.ColorRole.Link, QColor(96, 165, 250))  # Material3浅蓝
+        palette.setColor(QPalette.ColorRole.Link, accent_color)
         
         app.setPalette(palette)
+    
+    def show_char_context_menu(self, position):
+        """显示字符表格的右键菜单"""
+        menu = QMenu()
+        edit_action = menu.addAction("编辑")
+        delete_action = menu.addAction("删除")
+        
+        action = menu.exec(self.char_table.mapToGlobal(position))
+        if action == edit_action:
+            self.edit_char()
+        elif action == delete_action:
+            self.delete_char()
+    
+    def show_word_context_menu(self, position):
+        """显示词表表格的右键菜单"""
+        menu = QMenu()
+        edit_action = menu.addAction("编辑")
+        delete_action = menu.addAction("删除")
+        
+        action = menu.exec(self.word_table.mapToGlobal(position))
+        if action == edit_action:
+            self.edit_word()
+        elif action == delete_action:
+            self.delete_word()
+    
+    def show_high_freq_context_menu(self, position):
+        """显示高频词表格的右键菜单"""
+        menu = QMenu()
+        edit_action = menu.addAction("编辑")
+        
+        action = menu.exec(self.high_freq_table.mapToGlobal(position))
+        if action == edit_action:
+            # 获取选中的行
+            selected_rows = self.high_freq_table.selectionModel().selectedRows()
+            if selected_rows:
+                row = selected_rows[0].row()
+                word = self.high_freq_table.item(row, 1).text()
+                # 查找并编辑该词
+                self.edit_word_by_text(word)
+    
+    def edit_word_by_text(self, word_text):
+        """根据词的文本查找并编辑该词"""
+        try:
+            # 在词表中查找该词
+            word = self.dict_service.get_word_by_text(word_text)
+            if word:
+                # 调用编辑方法
+                self.edit_word_by_id(word.id)
+            else:
+                QMessageBox.warning(self, "警告", f"未找到词: {word_text}")
+        except Exception as e:
+            QMessageBox.critical(self, "错误", f"编辑词失败: {e}")
+    
+    def edit_word_by_id(self, word_id):
+        """根据词的ID编辑该词"""
+        try:
+            # 根据ID获取词
+            word = self.dict_service.get_word_by_id(word_id)
+            if word:
+                # 显示编辑对话框
+                dialog = QDialog(self)
+                dialog.setWindowTitle("编辑词条")
+                dialog.setGeometry(200, 200, 400, 200)
+                
+                layout = QVBoxLayout(dialog)
+                
+                form_layout = QFormLayout()
+                
+                word_edit = QLineEdit(word.word)
+                word_edit.setReadOnly(True)
+                code_edit = QLineEdit(word.code)
+                weight_edit = QLineEdit(str(word.weight))
+                
+                form_layout.addRow("词:", word_edit)
+                form_layout.addRow("编码:", code_edit)
+                form_layout.addRow("权重:", weight_edit)
+                
+                button_layout = QHBoxLayout()
+                save_button = QPushButton("保存")
+                cancel_button = QPushButton("取消")
+                
+                def save_edit():
+                    try:
+                        new_code = code_edit.text()
+                        new_weight = float(weight_edit.text())
+                        
+                        update_data = {}
+                        if new_code != word.code:
+                            update_data["code"] = new_code
+                        if new_weight != word.weight:
+                            update_data["weight"] = new_weight
+                        
+                        if update_data:
+                            self.dict_service.update_word(word.word, **update_data)
+                            QMessageBox.information(self, "成功", "词条更新成功")
+                            dialog.accept()
+                            self.refresh_words()
+                        else:
+                            dialog.reject()
+                    except Exception as e:
+                        QMessageBox.critical(self, "错误", f"保存失败: {e}")
+                
+                save_button.clicked.connect(save_edit)
+                cancel_button.clicked.connect(dialog.reject)
+                
+                button_layout.addWidget(save_button)
+                button_layout.addWidget(cancel_button)
+                
+                layout.addLayout(form_layout)
+                layout.addLayout(button_layout)
+                
+                dialog.exec()
+            else:
+                QMessageBox.warning(self, "警告", f"未找到ID为 {word_id} 的词")
+        except Exception as e:
+            QMessageBox.critical(self, "错误", f"编辑词失败: {e}")
 
 
 if __name__ == "__main__":

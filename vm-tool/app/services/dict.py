@@ -44,6 +44,22 @@ class DictService:
             logger.error(f"获取词条失败: {e}")
             raise DictError(f"获取词条失败: {e}")
     
+    def get_word_by_text(self, word: str) -> Optional[Word]:
+        """根据词的文本获取词对象"""
+        try:
+            return self.repo.get_by_word(word)
+        except Exception as e:
+            logger.error(f"获取词条失败: {e}")
+            raise DictError(f"获取词条失败: {e}")
+    
+    def get_word_by_id(self, word_id: int) -> Optional[Word]:
+        """根据词的ID获取词对象"""
+        try:
+            return self.db.query(Word).filter(Word.id == word_id).first()
+        except Exception as e:
+            logger.error(f"获取词条失败: {e}")
+            raise DictError(f"获取词条失败: {e}")
+    
     @cache.decorator()
     def get_words_by_code(self, code: str) -> List[Dict[str, Any]]:
         """根据编码获取词条列表"""
