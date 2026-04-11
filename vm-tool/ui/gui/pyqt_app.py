@@ -722,6 +722,23 @@ class VMTOOLPyQtApp(QMainWindow):
                 # 保存当前选择的规则
                 config_manager.set("code_rule", rule)
                 
+                # 获取预览数据
+                preview_data = self.dict_service.get_code_preview()
+                
+                # 显示预览
+                preview_text = "编码变化预览:\n\n"
+                for item in preview_data:
+                    preview_text += f"{item['word']} {item['old_code']}-> {item['new_code']}\n"
+                
+                reply = QMessageBox.question(
+                    self, "编码变化预览", 
+                    preview_text + "\n是否继续计算编码？",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+                )
+                
+                if reply == QMessageBox.StandardButton.No:
+                    return
+                
                 # 批量计算编码
                 result = self.dict_service.calculate_all_codes()
                 
