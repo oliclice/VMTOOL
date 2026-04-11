@@ -1,5 +1,6 @@
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
+from sqlalchemy import or_, and_
 
 from app.dal.models import Word, DictConfig
 
@@ -29,6 +30,24 @@ class WordRepository(BaseRepository):
     def get_by_word_and_code(self, word: str, code: str) -> Optional[Word]:
         """根据词和编码获取词条"""
         return self.db.query(Word).filter(Word.word == word, Word.code == code).first()
+    
+    def get_by_word_code_pairs(self, word_code_pairs: List[tuple]) -> List[tuple]:
+        """批量根据词和编码获取词条"""
+        if not word_code_pairs:
+            return []
+        
+        existing_words = []
+        # 分批次查询，每批处理100个，避免SQL语句过长
+        batch_size = 100
+        for i in range(0, len(word_code_pairs), batch_size):
+            batch = word_code_pairs[i:i+batch_size]
+            # 使用 in_ 子句批量查询
+            batch_existing = self.db.query(Word.word, Word.code).filter(
+                or_(*[and_(Word.word == word, Word.code == code) for word, code in batch])
+            ).all()
+            existing_words.extend(batch_existing)
+        
+        return existing_words
     
     def get_by_code(self, code: str) -> List[Word]:
         """根据编码获取词条列表"""
@@ -63,8 +82,8 @@ class WordRepository(BaseRepository):
     def bulk_create(self, words: List[Dict[str, Any]]) -> List[Word]:
         """批量创建词条"""
         # 使用bulk_insert_mappings进行更高效的批量插入
-        # 每批处理1000-5000条记录
-        batch_size = 1000
+        # 每批处理5000条记录，减少数据库提交次数
+        batch_size = 5000
         total = len(words)
         
         # 分批次处理
