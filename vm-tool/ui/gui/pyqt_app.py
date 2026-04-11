@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
     QTabWidget, QTableWidget, QTableWidgetItem, QPushButton, QLineEdit,
     QLabel, QDialog, QFormLayout, QComboBox, QMessageBox, QFileDialog,
     QTreeWidget, QTreeWidgetItem, QSplitter, QStatusBar, QMenuBar, QMenu,
-    QProgressDialog, QTextEdit
+    QProgressDialog, QTextEdit, QGroupBox
 )
 from PyQt6.QtCore import Qt, QSortFilterProxyModel, QThread, pyqtSignal
 from PyQt6.QtGui import QAction, QIcon, QFont, QColor, QStandardItemModel, QStandardItem, QPalette
@@ -1322,7 +1322,45 @@ v[3] = s[1][1] + s[2][1] + s[3][1]
     def save_settings(self):
         """保存设置"""
         # 这里可以实现保存设置的逻辑
-        QMessageBox.information(self, "成功", "设置保存成功")
+        self.show_toast("设置保存成功")
+    
+    def show_toast(self, message, duration=2000):
+        """显示toast消息
+        
+        Args:
+            message: 消息内容
+            duration: 显示时长（毫秒）
+        """
+        toast = QWidget(self)
+        toast.setWindowFlags(Qt.WindowType.ToolTip | Qt.WindowType.FramelessWindowHint)
+        toast.setStyleSheet("""
+            QWidget {
+                background-color: rgba(0, 0, 0, 0.7);
+                color: white;
+                padding: 10px 20px;
+                border-radius: 4px;
+            }
+        """)
+        
+        label = QLabel(message, toast)
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        layout = QVBoxLayout(toast)
+        layout.addWidget(label)
+        
+        # 计算位置（屏幕中央）
+        screen = QApplication.primaryScreen()
+        screen_geometry = screen.geometry()
+        toast_geometry = toast.sizeHint()
+        x = (screen_geometry.width() - toast_geometry.width()) // 2
+        y = (screen_geometry.height() - toast_geometry.height()) // 2
+        toast.move(x, y)
+        
+        toast.show()
+        
+        # 设置定时器，自动关闭
+        from PyQt6.QtCore import QTimer
+        QTimer.singleShot(duration, toast.close)
     
     def on_theme_changed(self, theme):
         """主题变更事件"""
@@ -1335,7 +1373,7 @@ v[3] = s[1][1] + s[2][1] + s[3][1]
         internal_theme = theme_map.get(theme, "auto")
         config_manager.set("theme", internal_theme)
         self.set_theme(internal_theme)
-        QMessageBox.information(self, "成功", f"主题已更改为: {theme}")
+        self.show_toast(f"主题已更改为: {theme}")
     
     def delete_table(self, table_type):
         """删除表"""
