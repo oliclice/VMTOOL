@@ -1232,6 +1232,33 @@ class VMTOOLPyQtApp(QMainWindow):
             
             QMessageBox.information(self, "成功", f"导出成功: 共导出 {count} 条数据")
             self.status_bar.showMessage("导出完成")
+            
+            # 检查是否需要自动导出到 Rime 目录
+            import os
+            
+            # 自动导出到 ibus/rime 目录
+            if config_manager.get("auto_export_ibus_rime", False):
+                ibus_rime_path = os.path.expanduser("~/.config/ibus/rime")
+                if os.path.exists(ibus_rime_path):
+                    # 构造目标文件路径
+                    file_name = os.path.basename(file_path)
+                    target_path = os.path.join(ibus_rime_path, file_name)
+                    # 复制文件
+                    import shutil
+                    shutil.copy2(file_path, target_path)
+                    self.status_bar.showMessage(f"已自动导出到 ibus/rime 目录")
+            
+            # 自动导出到 fcitx5/rime 目录
+            if config_manager.get("auto_export_fcitx5_rime", False):
+                fcitx5_rime_path = os.path.expanduser("~/.local/share/fcitx5/rime")
+                if os.path.exists(fcitx5_rime_path):
+                    # 构造目标文件路径
+                    file_name = os.path.basename(file_path)
+                    target_path = os.path.join(fcitx5_rime_path, file_name)
+                    # 复制文件
+                    import shutil
+                    shutil.copy2(file_path, target_path)
+                    self.status_bar.showMessage(f"已自动导出到 fcitx5/rime 目录")
         except Exception as e:
             QMessageBox.critical(self, "错误", f"导出失败: {e}")
             self.status_bar.showMessage("导出失败")
@@ -2335,6 +2362,26 @@ elif len(vac) >= 4:
             import_browse_layout.addWidget(import_path_edit)
             import_browse_layout.addWidget(import_browse_button)
             self.settings_content_layout.addRow(import_path_label, import_browse_layout)
+            
+            # Rime 配置自动导出设置
+            self.settings_content_layout.addRow(QLabel("Rime 配置自动导出:"))
+            
+            # 检查 ibus/rime 目录是否存在
+            import os
+            ibus_rime_path = os.path.expanduser("~/.config/ibus/rime")
+            if os.path.exists(ibus_rime_path):
+                ibus_rime_checkbox = QCheckBox(f"自动导出到 ibus/rime 目录 ({ibus_rime_path})")
+                ibus_rime_checkbox.setChecked(config_manager.get("auto_export_ibus_rime", False))
+                ibus_rime_checkbox.stateChanged.connect(lambda state: config_manager.set("auto_export_ibus_rime", state == 2))
+                self.settings_content_layout.addRow(ibus_rime_checkbox)
+            
+            # 检查 fcitx5/rime 目录是否存在
+            fcitx5_rime_path = os.path.expanduser("~/.local/share/fcitx5/rime")
+            if os.path.exists(fcitx5_rime_path):
+                fcitx5_rime_checkbox = QCheckBox(f"自动导出到 fcitx5/rime 目录 ({fcitx5_rime_path})")
+                fcitx5_rime_checkbox.setChecked(config_manager.get("auto_export_fcitx5_rime", False))
+                fcitx5_rime_checkbox.stateChanged.connect(lambda state: config_manager.set("auto_export_fcitx5_rime", state == 2))
+                self.settings_content_layout.addRow(fcitx5_rime_checkbox)
         elif settings_type == "删除表":
             # 删除表设置
             delete_table_label = QLabel("删除表:")
