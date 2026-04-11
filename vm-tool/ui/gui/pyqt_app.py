@@ -1160,7 +1160,15 @@ class VMTOOLPyQtApp(QMainWindow):
             theme_label = QLabel("主题:")
             theme_combo = QComboBox()
             theme_combo.addItems(["跟随系统", "浅色", "深色"])
-            theme_combo.setCurrentText(config_manager.get("theme", "跟随系统"))
+            # 映射内部主题值到显示名称
+            theme_map = {
+                "auto": "跟随系统",
+                "light": "浅色",
+                "dark": "深色"
+            }
+            current_theme = config_manager.get("theme", "auto")
+            display_theme = theme_map.get(current_theme, "跟随系统")
+            theme_combo.setCurrentText(display_theme)
             # 连接信号
             theme_combo.currentTextChanged.connect(self.on_theme_changed)
             self.settings_content_layout.addRow(theme_label, theme_combo)
@@ -1170,6 +1178,8 @@ class VMTOOLPyQtApp(QMainWindow):
             language_combo = QComboBox()
             language_combo.addItems(["中文", "English"])
             language_combo.setCurrentText(config_manager.get("language", "中文"))
+            # 连接信号，自动保存
+            language_combo.currentTextChanged.connect(lambda text: config_manager.set("language", text))
             self.settings_content_layout.addRow(language_label, language_combo)
         elif settings_type == "编码规则":
             # 编码规则设置
@@ -1177,19 +1187,34 @@ class VMTOOLPyQtApp(QMainWindow):
             rule_combo = QComboBox()
             rule_combo.addItems(["first_letter", "all_letters", "custom"])
             rule_combo.setCurrentText(config_manager.get("code_rule", "first_letter"))
+            # 连接信号，自动保存
+            rule_combo.currentTextChanged.connect(lambda text: config_manager.set("code_rule", text))
             self.settings_content_layout.addRow(rule_label, rule_combo)
         elif settings_type == "编码长度":
             # 编码长度设置
             length_label = QLabel("最大编码长度:")
             length_spin = QLineEdit()
             length_spin.setText(config_manager.get("max_code_length", "10"))
+            # 连接信号，自动保存
+            length_spin.textChanged.connect(lambda text: config_manager.set("max_code_length", text))
             self.settings_content_layout.addRow(length_label, length_spin)
         elif settings_type == "数据库路径":
             # 数据库路径设置
             path_label = QLabel("数据库路径:")
             path_edit = QLineEdit()
             path_edit.setText(config_manager.get("database_path", "./vmtool.db"))
+            # 连接信号，自动保存
+            path_edit.textChanged.connect(lambda text: config_manager.set("database_path", text))
             browse_button = QPushButton("浏览")
+            # 连接浏览按钮点击事件
+            def browse_database_path():
+                file_path, _ = QFileDialog.getSaveFileName(
+                    self, "选择数据库文件", "", "SQLite数据库文件 (*.db)"
+                )
+                if file_path:
+                    path_edit.setText(file_path)
+                    config_manager.set("database_path", file_path)
+            browse_button.clicked.connect(browse_database_path)
             browse_layout = QHBoxLayout()
             browse_layout.addWidget(path_edit)
             browse_layout.addWidget(browse_button)
@@ -1199,6 +1224,8 @@ class VMTOOLPyQtApp(QMainWindow):
             cache_label = QLabel("缓存大小 (MB):")
             cache_spin = QLineEdit()
             cache_spin.setText(config_manager.get("cache_size", "100"))
+            # 连接信号，自动保存
+            cache_spin.textChanged.connect(lambda text: config_manager.set("cache_size", text))
             self.settings_content_layout.addRow(cache_label, cache_spin)
         elif settings_type == "导出格式":
             # 导出格式设置
@@ -1206,13 +1233,26 @@ class VMTOOLPyQtApp(QMainWindow):
             format_combo = QComboBox()
             format_combo.addItems(["txt", "csv", "json"])
             format_combo.setCurrentText(config_manager.get("default_export_format", "txt"))
+            # 连接信号，自动保存
+            format_combo.currentTextChanged.connect(lambda text: config_manager.set("default_export_format", text))
             self.settings_content_layout.addRow(format_label, format_combo)
         elif settings_type == "导出路径":
             # 导出路径设置
             export_path_label = QLabel("默认导出路径:")
             export_path_edit = QLineEdit()
             export_path_edit.setText(config_manager.get("default_export_path", "./"))
+            # 连接信号，自动保存
+            export_path_edit.textChanged.connect(lambda text: config_manager.set("default_export_path", text))
             export_browse_button = QPushButton("浏览")
+            # 连接浏览按钮点击事件
+            def browse_export_path():
+                directory = QFileDialog.getExistingDirectory(
+                    self, "选择导出目录", "./"
+                )
+                if directory:
+                    export_path_edit.setText(directory)
+                    config_manager.set("default_export_path", directory)
+            export_browse_button.clicked.connect(browse_export_path)
             export_browse_layout = QHBoxLayout()
             export_browse_layout.addWidget(export_path_edit)
             export_browse_layout.addWidget(export_browse_button)
@@ -1236,8 +1276,15 @@ class VMTOOLPyQtApp(QMainWindow):
     
     def on_theme_changed(self, theme):
         """主题变更事件"""
-        config_manager.set("theme", theme)
-        self.set_theme(theme)
+        # 映射主题名称到内部值
+        theme_map = {
+            "跟随系统": "auto",
+            "浅色": "light",
+            "深色": "dark"
+        }
+        internal_theme = theme_map.get(theme, "auto")
+        config_manager.set("theme", internal_theme)
+        self.set_theme(internal_theme)
         QMessageBox.information(self, "成功", f"主题已更改为: {theme}")
     
     def delete_table(self, table_type):
