@@ -2,11 +2,12 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-from app.core.config import settings
+from app.core.config_manager import config_manager
 
 # 创建数据库引擎
+database_path = config_manager.get("database_path")
 engine = create_engine(
-    settings.DATABASE_URL,
+    f"sqlite:///{database_path}",
     connect_args={"check_same_thread": False}  # SQLite 特定配置
 )
 

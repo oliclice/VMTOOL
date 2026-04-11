@@ -11,12 +11,21 @@ class ConfigManager:
     
     def __init__(self):
         """初始化配置管理器"""
-        # 配置文件保存在项目根目录
-        self.config_file = os.path.join(os.path.dirname(settings.BASE_DIR), "config.json")
+        # 配置文件保存在 ~/.config/vm-tool/ 目录下
+        try:
+            self.config_dir = os.path.expanduser("~/.config/vm-tool")
+            os.makedirs(self.config_dir, exist_ok=True)
+        except OSError:
+            # 如果无法创建目录，使用当前目录作为默认目录
+            self.config_dir = os.getcwd()
+        
+        self.config_file = os.path.join(self.config_dir, "config.json")
         self.default_config = {
             "theme": "auto",
             "window_size": [1000, 700],
-            "window_position": [100, 100]
+            "window_position": [100, 100],
+            "config_dir": self.config_dir,
+            "database_path": os.path.join(self.config_dir, "vm_tool.db")
         }
         self.config = self.load_config()
     

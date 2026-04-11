@@ -149,9 +149,6 @@ VM-TOOL 提供了丰富的命令行命令：
 # 添加词
 vmtool add --word 测试 --code ceshi --weight 100
 
-# 批量添加词
-vmtool add-batch --file path/to/file.txt
-
 # 删除词
 vmtool delete --word 测试
 
@@ -161,17 +158,17 @@ vmtool delete-batch --file path/to/file.txt
 # 查询词
 vmtool query --keyword 测试
 
-# 更新权重
-vmtool update-weight --word 测试 --weight 200
-
-# 直接设置权重
+# 设置权重
 vmtool set-weight --word 测试 --weight 200
 
 # 替换词条编码
 vmtool replace-code --word 测试 --old-code oldcode --new-code newcode
 
 # 导入数据
-vmtool import --format txt --path path/to/file.txt
+# 从文件导入（自动识别格式）
+vmtool import --file path/to/file.txt
+# 批量导入词条
+vmtool import 词一 词二 字一 词三
 
 # 导出数据
 vmtool export --format csv --path path/to/output.csv
@@ -179,14 +176,8 @@ vmtool export --format csv --path path/to/output.csv
 # 显示统计信息
 vmtool stats
 
-# 迁移旧数据
-vmtool migrate
-
 # 交互式模式
 vmtool interactive
-
-# 旧版本接口兼容
-vmtool old
 
 # 启动图形界面
 vmtool gui
@@ -208,7 +199,9 @@ vmtool gui
 
 2. **命令行批量添加文字**：
    ```bash
-   vmtool add-batch --file path/to/file.txt
+   vmtool import words 行 列 高
+   # 或从文件导入
+   vmtool import file --format txt path/to/file.txt
    ```
 
 3. **Web界面添加**：

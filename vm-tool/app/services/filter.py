@@ -91,6 +91,8 @@ class FilterService:
         """从TXT文件导入"""
         import time
         import pathlib
+        from app.core.config_manager import ConfigManager
+        
         start_time = time.time()
         
         try:
@@ -98,6 +100,10 @@ class FilterService:
             file_path = str(pathlib.Path(file_path).resolve())
             if not os.path.exists(file_path):
                 raise FileError(f"文件不存在: {file_path}")
+            
+            # 获取配置的分隔符，默认为 Tab
+            config_manager = ConfigManager()
+            separator = config_manager.get("separator", "\t")
             
             # 先计算文件总行数（包括空行和注释行），用于进度显示
             total_lines = 0
@@ -122,7 +128,7 @@ class FilterService:
                             progress_callback(progress, f"处理文件: {os.path.basename(file_path)}")
                         continue
                     
-                    parts = line.split('\t')
+                    parts = line.split(separator)
                     if len(parts) >= 2:
                         word = parts[0]
                         code = parts[1]
@@ -357,9 +363,14 @@ class FilterService:
     def export_to_txt(self, output_file: str, words: Optional[List[Dict[str, Any]]] = None, encoding: str = 'utf-8') -> int:
         """导出到TXT文件"""
         import pathlib
+        from app.core.config_manager import ConfigManager
         try:
             # 规范化路径，防止路径遍历攻击
             output_file = str(pathlib.Path(output_file).resolve())
+            
+            # 获取配置的分隔符，默认为 Tab
+            config_manager = ConfigManager()
+            separator = config_manager.get("separator", "\t")
             
             if not words:
                 # 使用自己的数据库会话
@@ -375,7 +386,7 @@ class FilterService:
             
             with open(output_file, 'w', encoding=encoding) as f:
                 for word in words:
-                    f.write(f"{word['word']}\t{word['code']}\t{word['weight']}\n")
+                    f.write(f"{word['word']}{separator}{word['code']}{separator}{word['weight']}\n")
             
             return len(words)
         except Exception as e:

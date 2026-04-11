@@ -79,64 +79,10 @@ def add_word(word: str, code: Optional[str] = None, weight: float = 1.0, is_char
         console.print(f"[red]添加失败:[/red] {e}")
 
 
-@app.command("add-batch")
-def add_batch(words: List[str]):
-    """批量添加词条"""
-    try:
-        from rich.progress import Progress, TextColumn, BarColumn, TimeRemainingColumn
-        
-        def progress_callback(progress, message):
-            task_id = progress_task_map.get("add-batch", None)
-            if task_id:
-                progress.update(task_id, completed=progress, description=message)
-        
-        word_data = []
-        for word in words:
-            # 简单处理，实际应用中可能需要更复杂的解析
-            word_data.append({"word": word, "code": None, "weight": 1.0})
-        
-        with Progress(
-            TextColumn("[bold cyan]{task.description}[/bold cyan]"),
-            BarColumn(),
-            "[green]{task.percentage:>3.0f}%[/green]",
-            TimeRemainingColumn(),
-        ) as progress:
-            progress_task_map = {"add-batch": progress.add_task("开始批量添加...", total=100)}
-            result = dict_service.add_words(word_data, progress_callback=progress_callback)
-        
-        console.print(f"[green]批量添加完成:[/green] 添加了 {result['added']} 条，跳过了 {result['existing']} 条")
-    except Exception as e:
-        console.print(f"[red]批量添加失败:[/red] {e}")
 
 
-@app.command("add-batch-chars")
-def add_batch_chars(characters: List[str]):
-    """批量添加字表"""
-    try:
-        from rich.progress import Progress, TextColumn, BarColumn, TimeRemainingColumn
-        
-        def progress_callback(progress, message):
-            task_id = progress_task_map.get("add-batch-chars", None)
-            if task_id:
-                progress.update(task_id, completed=progress, description=message)
-        
-        char_data = []
-        for char in characters:
-            # 简单处理，实际应用中可能需要更复杂的解析
-            char_data.append({"word": char, "code": None, "weight": 1.0})
-        
-        with Progress(
-            TextColumn("[bold cyan]{task.description}[/bold cyan]"),
-            BarColumn(),
-            "[green]{task.percentage:>3.0f}%[/green]",
-            TimeRemainingColumn(),
-        ) as progress:
-            progress_task_map = {"add-batch-chars": progress.add_task("开始批量添加字表...", total=100)}
-            result = dict_service.add_characters(char_data, progress_callback=progress_callback)
-        
-        console.print(f"[green]批量添加字表完成:[/green] 添加了 {result['added']} 个，跳过了 {result['existing']} 个")
-    except Exception as e:
-        console.print(f"[red]批量添加字表失败:[/red] {e}")
+
+
 
 
 @app.command("delete")
@@ -185,19 +131,9 @@ def query_word(keyword: str):
         console.print(f"[red]查询失败:[/red] {e}")
 
 
-@app.command("update-weight")
-def update_weight(word: str, increment: float = 0.1):
-    """更新词条权重"""
-    try:
-        result = weight_calc.update_word_weight(word, increment)
-        console.print(f"[green]更新权重成功:[/green] {result}")
-    except Exception as e:
-        console.print(f"[red]更新权重失败:[/red] {e}")
-
-
 @app.command("set-weight")
 def set_weight(word: str, weight: float):
-    """直接设置词条权重"""
+    """设置词条权重"""
     try:
         result = weight_calc.set_weight_directly(word, weight)
         console.print(f"[green]设置权重成功:[/green] {result}")
@@ -284,8 +220,16 @@ def show_stats():
 
 
 @app.command("import")
-def import_data(file_path: str, format: str = "txt"):
-    """导入数据"""
+def import_data(
+    file: Optional[str] = typer.Option(None, help="导入文件路径（当导入文件时使用）"),
+    words: Optional[List[str]] = typer.Argument(None)
+):
+    """导入数据
+    
+    Args:
+        file: 导入文件路径（当导入文件时使用）
+        words: 批量导入的词条列表（当直接导入词条时使用）
+    """
     try:
         from rich.progress import Progress, TextColumn, BarColumn, TimeRemainingColumn
         
@@ -294,35 +238,61 @@ def import_data(file_path: str, format: str = "txt"):
             if task_id:
                 progress.update(task_id, completed=progress, description=message)
         
-        with Progress(
-            TextColumn("[bold cyan]{task.description}[/bold cyan]"),
-            BarColumn(),
-            "[green]{task.percentage:>3.0f}%[/green]",
-            TimeRemainingColumn(),
-        ) as progress:
-            progress_task_map = {"import": progress.add_task("开始导入...", total=100)}
+        # 处理批量导入词条的情况
+        if words:
+            word_data = []
+            for word in words:
+                # 简单处理，实际应用中可能需要更复杂的解析
+                word_data.append({"word": word, "code": None, "weight": 1.0})
             
-            if format == "txt":
-                result = filter_service.import_from_txt(file_path, progress_callback=progress_callback)
-            elif format == "csv":
-                result = filter_service.import_from_csv(file_path, progress_callback=progress_callback)
-            elif format == "json":
-                result = filter_service.import_from_json(file_path, progress_callback=progress_callback)
-            else:
-                console.print(f"[red]不支持的格式:[/red] {format}")
-                return
-        
-        # 显示导入数据条数和用时
-        total_time = result.get('total_time', 0)
-        avg_time_per_1000 = result.get('avg_time_per_1000', 0)
-        total_count = result.get('total_count', 0)
-        
-        console.print(f"[green]导入成功:[/green]")
-        console.print(f"  添加了: {result['added']} 条")
-        console.print(f"  跳过了: {result['existing']} 条")
-        console.print(f"  总数据量: {total_count} 条")
-        console.print(f"  总耗时: {total_time:.2f} 秒")
-        console.print(f"  每千条平均耗时: {avg_time_per_1000:.2f} 秒")
+            with Progress(
+                TextColumn("[bold cyan]{task.description}[/bold cyan]"),
+                BarColumn(),
+                "[green]{task.percentage:>3.0f}%[/green]",
+                TimeRemainingColumn(),
+            ) as progress:
+                progress_task_map = {"import": progress.add_task("开始批量添加...", total=100)}
+                result = dict_service.add_words(word_data, progress_callback=progress_callback)
+            
+            console.print(f"[green]批量添加完成:[/green] 添加了 {result['added']} 条，跳过了 {result['existing']} 条")
+        # 处理从文件导入的情况
+        elif file:
+            import os
+            # 自动识别文件格式
+            _, ext = os.path.splitext(file)
+            format = ext[1:].lower() if ext else "txt"
+            
+            with Progress(
+                TextColumn("[bold cyan]{task.description}[/bold cyan]"),
+                BarColumn(),
+                "[green]{task.percentage:>3.0f}%[/green]",
+                TimeRemainingColumn(),
+            ) as progress:
+                progress_task_map = {"import": progress.add_task("开始导入...", total=100)}
+                
+                if format == "txt":
+                    result = filter_service.import_from_txt(file, progress_callback=progress_callback)
+                elif format == "csv":
+                    result = filter_service.import_from_csv(file, progress_callback=progress_callback)
+                elif format == "json":
+                    result = filter_service.import_from_json(file, progress_callback=progress_callback)
+                else:
+                    console.print(f"[red]不支持的格式:[/red] {format}")
+                    return
+            
+            # 显示导入数据条数和用时
+            total_time = result.get('total_time', 0)
+            avg_time_per_1000 = result.get('avg_time_per_1000', 0)
+            total_count = result.get('total_count', 0)
+            
+            console.print(f"[green]导入成功:[/green]")
+            console.print(f"  添加了: {result['added']} 条")
+            console.print(f"  跳过了: {result['existing']} 条")
+            console.print(f"  总数据量: {total_count} 条")
+            console.print(f"  总耗时: {total_time:.2f} 秒")
+            console.print(f"  每千条平均耗时: {avg_time_per_1000:.2f} 秒")
+        else:
+            console.print(f"[red]错误: 请提供文件路径或词条列表[/red]")
     except Exception as e:
         console.print(f"[red]导入失败:[/red] {e}")
 
@@ -346,19 +316,7 @@ def export_data(output_file: str, format: str = "txt"):
         console.print(f"[red]导出失败:[/red] {e}")
 
 
-@app.command("migrate")
-def migrate_data(old_file: Optional[str] = None):
-    """迁移旧数据"""
-    try:
-        from app.dal.migration import full_migration
-        result = full_migration()
-        console.print("[green]数据迁移完成[/green]")
-        console.print(f"数据迁移: {result['data_migration']}")
-        console.print(f"配置迁移: {result['config_migration']}")
-        console.print(f"数据验证: {result['validation']}")
-        console.print(f"数据修复: {result['fix']}")
-    except Exception as e:
-        console.print(f"[red]迁移失败:[/red] {e}")
+
 
 
 def show_typer_help():
@@ -377,10 +335,7 @@ def show_typer_help():
 
 
 
-@app.command("old")
-def old_interface(args: List[str]):
-    """旧版本接口兼容"""
-    compatibility.handle_old_command_line(args)
+
 
 
 @app.command("gui")
