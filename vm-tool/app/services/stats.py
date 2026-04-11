@@ -190,13 +190,24 @@ class StatsService:
     def generate_report(self) -> Dict[str, Any]:
         """生成综合报告"""
         try:
+            # 获取所有词条
+            all_words_data = []
+            all_words = self.repo.get_all()
+            for word in all_words:
+                all_words_data.append({
+                    "word": word.word,
+                    "code": word.code,
+                    "weight": word.weight
+                })
+            
             report = {
                 "word_length_stats": self.get_word_length_stats(),
                 "code_stats": self.get_code_stats(),
                 "weight_stats": self.get_weight_stats(),
                 "high_frequency_words": self.get_high_frequency_words(20),
                 "code_conflicts": self.detect_code_conflicts(),
-                "usage_patterns": self.analyze_usage_patterns()
+                "usage_patterns": self.analyze_usage_patterns(),
+                "all_words": all_words_data
             }
             
             return report

@@ -122,7 +122,11 @@ class CodeGenerator:
         try:
             # 读取自定义规则配置
             from app.core.config_manager import config_manager
-            custom_rule_content = config_manager.get("custom_rule_content", "")
+            current_rule = config_manager.get("code_rule", "默认规则")
+            custom_rules = config_manager.get("custom_rules", {})
+            
+            # 获取当前规则的内容
+            custom_rule_content = custom_rules.get(current_rule, "")
             
             if not custom_rule_content:
                 # 如果没有自定义规则，使用默认规则
