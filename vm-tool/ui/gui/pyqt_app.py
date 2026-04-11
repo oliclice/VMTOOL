@@ -566,14 +566,18 @@ class VMTOOLPyQtApp(QMainWindow):
         import_browse_button = QPushButton("浏览")
         import_browse_button.clicked.connect(lambda: self.browse_file(self.import_path_edit))
         
+        # 创建水平布局放置路径框和浏览按钮
+        import_path_layout = QHBoxLayout()
+        import_path_layout.addWidget(self.import_path_edit)
+        import_path_layout.addWidget(import_browse_button)
+        
         self.import_format_combo = QComboBox()
         self.import_format_combo.addItems(["txt", "csv", "json"])
         
         import_button = QPushButton("导入")
         import_button.clicked.connect(self.import_file)
         
-        import_layout.addRow("文件路径:", self.import_path_edit)
-        import_layout.addRow("", import_browse_button)
+        import_layout.addRow("文件路径:", import_path_layout)
         import_layout.addRow("格式:", self.import_format_combo)
         import_layout.addRow("", import_button)
         
@@ -590,18 +594,55 @@ class VMTOOLPyQtApp(QMainWindow):
         export_browse_button = QPushButton("浏览")
         export_browse_button.clicked.connect(lambda: self.browse_save_file(self.export_path_edit))
         
+        # 创建水平布局放置路径框和浏览按钮
+        export_path_layout = QHBoxLayout()
+        export_path_layout.addWidget(self.export_path_edit)
+        export_path_layout.addWidget(export_browse_button)
+        
         self.export_format_combo = QComboBox()
         self.export_format_combo.addItems(["txt", "csv", "json"])
+        
+        # 添加完整导出路径显示
+        self.export_full_path_label = QLabel("完整导出路径:")
+        self.export_full_path_value = QLabel("")
+        self.export_full_path_value.setWordWrap(True)
         
         export_button = QPushButton("导出")
         export_button.clicked.connect(self.export_file)
         
-        export_layout.addRow("文件路径:", self.export_path_edit)
-        export_layout.addRow("", export_browse_button)
+        export_layout.addRow("文件路径:", export_path_layout)
         export_layout.addRow("格式:", self.export_format_combo)
+        export_layout.addRow(self.export_full_path_label, self.export_full_path_value)
         export_layout.addRow("", export_button)
         
+        # 初始化完整导出路径
+        self.update_export_full_path()
+        
+        # 连接信号，当路径或格式变化时更新完整导出路径
+        self.export_path_edit.textChanged.connect(self.update_export_full_path)
+        self.export_format_combo.currentTextChanged.connect(self.update_export_full_path)
+        
         layout.addWidget(export_frame)
+    
+    def update_export_full_path(self):
+        """更新完整导出路径"""
+        # 获取导出路径和格式
+        export_path = self.export_path_edit.text()
+        export_format = self.export_format_combo.currentText()
+        
+        # 获取默认导出名称
+        default_export_name = config_manager.get("default_export_name", "vmtool_export")
+        
+        # 构造完整导出路径
+        if export_path and default_export_name:
+            # 确保路径以斜杠结尾
+            if not export_path.endswith("/"):
+                export_path += "/"
+            # 构造完整路径
+            full_path = f"{export_path}{default_export_name}.{export_format}"
+            self.export_full_path_value.setText(full_path)
+        else:
+            self.export_full_path_value.setText("")
     
     def refresh_words(self):
         """刷新词表"""
@@ -1728,7 +1769,7 @@ class VMTOOLPyQtApp(QMainWindow):
         QTreeWidgetItem(settings_types, ["数据库路径"])
         QTreeWidgetItem(settings_types, ["缓存设置"])
         QTreeWidgetItem(settings_types, ["删除表"])
-        QTreeWidgetItem(settings_types, ["导入导出设置"])
+        QTreeWidgetItem(settings_types, ["文件配置"])
         
         left_layout.addWidget(settings_types)
         splitter.addWidget(left_widget)
@@ -2299,7 +2340,7 @@ elif len(vac) >= 4:
             # 连接信号，自动保存
             cache_spin.textChanged.connect(lambda text: config_manager.set("cache_size", text))
             self.settings_content_layout.addRow(cache_label, cache_spin)
-        elif settings_type == "导入导出设置":
+        elif settings_type == "文件配置":
             # 导出格式设置
             format_label = QLabel("默认导出格式:")
             format_combo = QComboBox()
