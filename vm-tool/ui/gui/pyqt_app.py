@@ -2451,10 +2451,12 @@ elif len(vac) >= 4:
         palette.setColor(QPalette.ColorRole.ToolTipBase, QColor(255, 255, 220))
         palette.setColor(QPalette.ColorRole.ToolTipText, QColor(0, 0, 0))
         palette.setColor(QPalette.ColorRole.Text, QColor(0, 0, 0))
-        palette.setColor(QPalette.ColorRole.Button, QColor(240, 240, 240))
+        palette.setColor(QPalette.ColorRole.Button, accent_color.lighter(190))
         palette.setColor(QPalette.ColorRole.ButtonText, QColor(0, 0, 0))
         palette.setColor(QPalette.ColorRole.BrightText, QColor(255, 0, 0))
         palette.setColor(QPalette.ColorRole.Link, accent_color)
+        palette.setColor(QPalette.ColorRole.Highlight, accent_color)
+        palette.setColor(QPalette.ColorRole.HighlightedText, QColor(255, 255, 255))
         
         app.setPalette(palette)
     
@@ -2484,10 +2486,12 @@ elif len(vac) >= 4:
         palette.setColor(QPalette.ColorRole.ToolTipBase, QColor(255, 255, 220))
         palette.setColor(QPalette.ColorRole.ToolTipText, QColor(0, 0, 0))
         palette.setColor(QPalette.ColorRole.Text, QColor(255, 255, 255))
-        palette.setColor(QPalette.ColorRole.Button, QColor(55, 65, 81))
+        palette.setColor(QPalette.ColorRole.Button, accent_color.darker(150))
         palette.setColor(QPalette.ColorRole.ButtonText, QColor(255, 255, 255))
         palette.setColor(QPalette.ColorRole.BrightText, QColor(255, 0, 0))
         palette.setColor(QPalette.ColorRole.Link, accent_color)
+        palette.setColor(QPalette.ColorRole.Highlight, accent_color)
+        palette.setColor(QPalette.ColorRole.HighlightedText, QColor(255, 255, 255))
         
         app.setPalette(palette)
     
