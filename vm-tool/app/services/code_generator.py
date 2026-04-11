@@ -156,7 +156,7 @@ class CodeGenerator:
                 # 替换s[i][j]为实际编码
                 result = rule
                 
-                # 处理s[0][j]表示第一个字的第一个编码（Python风格索引）
+                # 处理s[i][j]表示第i+1个字的第j个编码字符（Python风格索引）
                 for i in range(word_length):
                     for j in range(len(char_codes[i])):
                         # Python风格索引（从0开始）
@@ -176,6 +176,15 @@ class CodeGenerator:
                 result = result.replace('+', '')
                 # 移除所有空格
                 result = result.replace(' ', '')
+                
+                # 确保所有占位符都被替换
+                import re
+                # 查找所有未被替换的s[i][j]格式的占位符
+                placeholders = re.findall(r's\[\d+\]\[\d+\]|s\[-1\]\[\d+\]', result)
+                for placeholder in placeholders:
+                    # 移除未被替换的占位符
+                    result = result.replace(placeholder, '')
+                
                 return result
             else:
                 # 如果没有匹配的规则，使用默认规则
