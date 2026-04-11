@@ -25,7 +25,7 @@ class StatsService:
     def get_word_length_stats(self) -> Dict[str, Any]:
         """获取词长统计"""
         try:
-            all_words = self.repo.get_all(limit=10000)
+            all_words = self.repo.get_all()
             length_counter: Counter[int] = Counter()
             
             for word in all_words:
@@ -44,7 +44,7 @@ class StatsService:
     def get_code_stats(self) -> Dict[str, Any]:
         """获取编码统计"""
         try:
-            all_words = self.repo.get_all(limit=10000)
+            all_words = self.repo.get_all()
             code_length_counter: Counter[int] = Counter()
             code_counter: Counter[str] = Counter()
             
@@ -70,7 +70,7 @@ class StatsService:
     def detect_code_conflicts(self) -> List[Dict[str, Any]]:
         """检测编码冲突"""
         try:
-            all_words = self.repo.get_all(limit=10000)
+            all_words = self.repo.get_all()
             code_to_words = defaultdict(list)
             
             for word in all_words:
@@ -98,7 +98,7 @@ class StatsService:
     def get_weight_stats(self) -> Dict[str, Any]:
         """获取权重统计"""
         try:
-            all_words = self.repo.get_all(limit=10000)
+            all_words = self.repo.get_all()
             if not all_words:
                 return {
                     "total_words": 0,
