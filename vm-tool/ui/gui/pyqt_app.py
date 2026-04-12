@@ -13,14 +13,22 @@ from PyQt6.QtWidgets import (
     QTreeWidget, QTreeWidgetItem, QSplitter, QStatusBar, QMenuBar, QMenu,
     QProgressDialog, QTextEdit, QGroupBox, QProgressBar, QCheckBox
 )
-from PyQt6.QtCore import Qt, QSortFilterProxyModel, QThread, pyqtSignal
+from PyQt6.QtCore import Qt, QSortFilterProxyModel, QThread, pyqtSignal, QEvent
 from PyQt6.QtGui import QAction, QIcon, QFont, QColor, QStandardItemModel, QStandardItem, QPalette, QFontDatabase
+from PyQt6.QtWidgets import QStyle
 
 from app.services.dict import DictService
 from app.services.weight import WeightCalculator
 from app.services.filter import FilterService
 from app.services.stats import StatsService
 from app.core.config_manager import config_manager
+from app.core.theme_constants import (
+    THEME_MODE_DARK, THEME_MODE_LIGHT, THEME_MODE_AUTO,
+    THEME_NAME_CLASSIC, THEME_COLOR_BLUE, THEME_COLOR_GREEN,
+    THEME_COLOR_RED, THEME_COLOR_PURPLE, THEME_COLOR_ORANGE,
+    COLOR_RGB_MAP
+)
+from .theme_utils import create_palette_from_theme, apply_theme_to_widget
 from .settings_tab import SettingsTab
 from .code_rules_tab import CodeRulesTab
 from .threads import ImportThread, AddBatchThread, CalculateThread
@@ -75,9 +83,9 @@ class VMTOOLPyQtApp(QMainWindow):
         self.stats_service = StatsService()
         
         # 设置主题
-        theme_mode = config_manager.get("theme_mode", "auto")
-        theme_name = config_manager.get("theme_name", "经典")
-        theme_color = config_manager.get("theme_color", "蓝色")
+        theme_mode = config_manager.get("theme_mode", THEME_MODE_AUTO)
+        theme_name = config_manager.get("theme_name", THEME_NAME_CLASSIC)
+        theme_color = config_manager.get("theme_color", THEME_COLOR_BLUE)
         self.set_theme(theme_mode, theme_name, theme_color)
         
         # 创建标签页
@@ -90,78 +98,26 @@ class VMTOOLPyQtApp(QMainWindow):
     
     def set_theme(self, theme_mode, theme_name, theme_color):
         """设置主题"""
-        # 实现主题设置逻辑
-        from PyQt6.QtGui import QPalette, QColor
-        
         # 获取应用程序实例
         app = QApplication.instance()
         if not app:
             return
-        
-        # 获取当前窗口的调色板
-        palette = self.palette()
-        
-        # 根据主题模式设置颜色
-        if theme_mode == "dark":
-            # 深色模式
-            background_color = QColor(30, 30, 30)
-            text_color = QColor(240, 240, 240)
-            widget_color = QColor(40, 40, 40)
-            accent_color = QColor(50, 150, 250)  # 默认蓝色
-        else:
-            # 浅色模式
-            background_color = QColor(240, 240, 240)
-            text_color = QColor(30, 30, 30)
-            widget_color = QColor(250, 250, 250)
-            accent_color = QColor(50, 150, 250)  # 默认蓝色
-        
-        # 根据主题颜色调整强调色
-        if theme_color == "绿色":
-            accent_color = QColor(50, 150, 100)
-        elif theme_color == "红色":
-            accent_color = QColor(200, 50, 50)
-        elif theme_color == "紫色":
-            accent_color = QColor(150, 50, 200)
-        elif theme_color == "橙色":
-            accent_color = QColor(200, 100, 50)
-        
-        # 设置调色板颜色
-        palette.setColor(QPalette.ColorRole.Window, background_color)
-        palette.setColor(QPalette.ColorRole.WindowText, text_color)
-        palette.setColor(QPalette.ColorRole.Base, widget_color)
-        palette.setColor(QPalette.ColorRole.AlternateBase, background_color)
-        palette.setColor(QPalette.ColorRole.ToolTipBase, text_color)
-        palette.setColor(QPalette.ColorRole.ToolTipText, background_color)
-        palette.setColor(QPalette.ColorRole.Text, text_color)
-        palette.setColor(QPalette.ColorRole.Button, widget_color)
-        palette.setColor(QPalette.ColorRole.ButtonText, text_color)
-        palette.setColor(QPalette.ColorRole.BrightText, QColor(255, 0, 0))
-        palette.setColor(QPalette.ColorRole.Link, accent_color)
-        palette.setColor(QPalette.ColorRole.Highlight, accent_color)
-        palette.setColor(QPalette.ColorRole.HighlightedText, QColor(255, 255, 255))
-        
+
+        # 使用工具函数创建调色板
+        palette = create_palette_from_theme(theme_mode, theme_color)
+
         # 应用调色板到应用程序
         app.setPalette(palette)
-        
+
         # 应用调色板到当前窗口
         self.setPalette(palette)
-        
-        # 递归应用调色板到所有子窗口和控件
-        def apply_palette(widget):
-            if widget:
-                # 只对具有 setPalette 方法的对象应用调色板
-                if hasattr(widget, 'setPalette'):
-                    widget.setPalette(palette)
-                # 递归处理所有子对象
-                for child in widget.children():
-                    apply_palette(child)
-        
-        apply_palette(self)
-        
-        # 保存主题设置
-        config_manager.set("theme_mode", theme_mode)
-        config_manager.set("theme_name", theme_name)
-        config_manager.set("theme_color", theme_color)
+
+        # 使用工具函数递归应用调色板到所有控件
+        apply_theme_to_widget(self, palette)
+
+        # 强制刷新界面
+        self.update()
+        self.repaint()
     
     def import_data(self):
         """导入数据"""

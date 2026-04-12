@@ -4,6 +4,11 @@ import os
 from typing import Dict, Any
 
 from app.core.config import settings
+from app.core.theme_constants import (
+    DEFAULT_THEME_MODE, DEFAULT_THEME_NAME, DEFAULT_THEME_COLOR,
+    THEME_MODE_DARK, THEME_MODE_LIGHT, THEME_MODE_AUTO,
+    THEME_NAME_CLASSIC, THEME_COLOR_BLUE
+)
 
 
 class ConfigManager:
@@ -21,20 +26,47 @@ class ConfigManager:
         
         self.config_file = os.path.join(self.config_dir, "config.json")
         self.default_config = {
-            "theme": "auto",
+            "theme": THEME_MODE_AUTO,  # 向后兼容旧版本
+            "theme_mode": DEFAULT_THEME_MODE,
+            "theme_name": DEFAULT_THEME_NAME,
+            "theme_color": DEFAULT_THEME_COLOR,
             "window_size": [1000, 700],
             "window_position": [100, 100],
             "config_dir": self.config_dir,
             "database_path": os.path.join(self.config_dir, "vm_tool.db")
         }
         self.config = self.load_config()
-    
+
+    def _migrate_theme_config(self, config: Dict[str, Any]) -> None:
+        """迁移旧版主题配置到新版"""
+        if "theme" in config and "theme_mode" not in config:
+            old_theme = config["theme"]
+            if old_theme == THEME_MODE_DARK:
+                config["theme_mode"] = THEME_MODE_DARK
+            elif old_theme == THEME_MODE_LIGHT:
+                config["theme_mode"] = THEME_MODE_LIGHT
+            else:
+                config["theme_mode"] = THEME_MODE_AUTO
+
+            # 设置默认主题名称和颜色
+            if "theme_name" not in config:
+                config["theme_name"] = DEFAULT_THEME_NAME
+            if "theme_color" not in config:
+                config["theme_color"] = DEFAULT_THEME_COLOR
+
+            # 可以保留旧键以保持兼容性，也可以删除
+            # del config["theme"]
+
     def load_config(self) -> Dict[str, Any]:
         """加载配置"""
         try:
             if os.path.exists(self.config_file):
                 with open(self.config_file, "r", encoding="utf-8") as f:
                     config = json.load(f)
+
+                # 迁移旧版主题配置
+                self._migrate_theme_config(config)
+
                 # 合并默认配置
                 for key, value in self.default_config.items():
                     if key not in config:

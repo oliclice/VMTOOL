@@ -6,6 +6,12 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QFontDatabase
 import os
 from app.core.config_manager import config_manager
+from app.core.theme_constants import (
+    THEME_MODE_AUTO, THEME_MODE_LIGHT, THEME_MODE_DARK,
+    THEME_NAME_CLASSIC, THEME_NAME_MATERIAL3, THEME_COLOR_BLUE, THEME_COLOR_GREEN,
+    THEME_COLOR_RED, THEME_COLOR_PURPLE, THEME_COLOR_ORANGE,
+    MODE_DISPLAY_MAP, MODE_DISPLAY_REVERSE_MAP
+)
 from app.services.dict import DictService
 
 class SettingsTab(QWidget):
@@ -111,32 +117,36 @@ class SettingsTab(QWidget):
         
         theme_label = QLabel("主题:")
         theme_combo = QComboBox()
-        theme_combo.addItems(["经典", "Material3"])
-        
+        theme_combo.addItems([THEME_NAME_CLASSIC, THEME_NAME_MATERIAL3])
+
         # 模式设置
         mode_label = QLabel("模式:")
         mode_combo = QComboBox()
-        mode_combo.addItems(["跟随系统", "浅色", "深色"])
-        
+        # 按顺序添加模式显示名称
+        mode_display_names = [
+            MODE_DISPLAY_MAP[THEME_MODE_AUTO],
+            MODE_DISPLAY_MAP[THEME_MODE_LIGHT],
+            MODE_DISPLAY_MAP[THEME_MODE_DARK]
+        ]
+        mode_combo.addItems(mode_display_names)
+
         # 主题颜色设置（仅对Material3有效）
         color_label = QLabel("主题颜色:")
         color_combo = QComboBox()
-        color_combo.addItems(["蓝色", "绿色", "红色", "紫色", "橙色"])
+        color_combo.addItems([
+            THEME_COLOR_BLUE, THEME_COLOR_GREEN, THEME_COLOR_RED,
+            THEME_COLOR_PURPLE, THEME_COLOR_ORANGE
+        ])
         
         # 加载当前设置
-        current_theme = config_manager.get("theme_name", "经典")
-        current_mode = config_manager.get("theme_mode", "auto")
-        current_color = config_manager.get("theme_color", "蓝色")
+        current_theme = config_manager.get("theme_name", THEME_NAME_CLASSIC)
+        current_mode = config_manager.get("theme_mode", THEME_MODE_AUTO)
+        current_color = config_manager.get("theme_color", THEME_COLOR_BLUE)
         
         theme_combo.setCurrentText(current_theme)
         
-        # 映射内部模式值到显示名称
-        mode_map = {
-            "auto": "跟随系统",
-            "light": "浅色",
-            "dark": "深色"
-        }
-        display_mode = mode_map.get(current_mode, "跟随系统")
+        # 映射内部模式值到显示名称（使用常量映射）
+        display_mode = MODE_DISPLAY_MAP.get(current_mode, MODE_DISPLAY_MAP[THEME_MODE_AUTO])
         mode_combo.setCurrentText(display_mode)
         
         color_combo.setCurrentText(current_color)
@@ -147,13 +157,8 @@ class SettingsTab(QWidget):
             mode = mode_combo.currentText()
             color = color_combo.currentText()
             
-            # 映射模式显示名称到内部值
-            mode_map_reverse = {
-                "跟随系统": "auto",
-                "浅色": "light",
-                "深色": "dark"
-            }
-            internal_mode = mode_map_reverse.get(mode, "auto")
+            # 映射模式显示名称到内部值（使用常量映射）
+            internal_mode = MODE_DISPLAY_REVERSE_MAP.get(mode, THEME_MODE_AUTO)
             
             # 保存设置
             config_manager.set("theme_name", theme)
