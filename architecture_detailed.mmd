@@ -173,7 +173,10 @@ flowchart TD
         get_code_preview --> generate_code
         
         DictService --> calculate_all_codes["calculate_all_codes()"]
+        calculate_all_codes --> save_original_config["save original config"]
+        calculate_all_codes --> set_codegen_custom["set CodeGenerator to custom mode"]
         calculate_all_codes --> generate_code
+        calculate_all_codes --> restore_original_config["restore original config"]
         
         WeightCalculator["WeightCalculator"] --> WordRepository
         FilterService["FilterService"] --> WordRepository
@@ -212,6 +215,7 @@ flowchart TD
         config_manager --> CodeRulesTab
         config_manager --> ImportExportTab.update_export_full_path
         config_manager --> SettingsTab
+        config_manager --> CodeGenerator._execute_custom_rule
         theme_manager["theme_manager"] --> VMTOOLPyQtApp
     end
 
