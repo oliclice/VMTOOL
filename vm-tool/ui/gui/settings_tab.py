@@ -36,12 +36,22 @@ class SettingsTab(QWidget):
         
         settings_types = QTreeWidget()
         settings_types.setHeaderLabel("设置类型")
+        # 允许拖动排序
+        settings_types.setDragEnabled(True)
+        settings_types.setDropIndicatorShown(True)
+        settings_types.setDragDropMode(QTreeWidget.DragDropMode.InternalMove)
+        
+        # 从配置中加载设置类型顺序，如果没有则使用默认顺序
+        default_sections = ["主题设置", "字体设置", "语言设置", 
+                          "配置目录", "数据库路径", "缓存设置", "统计设置", "删除表", "文件配置"]
+        sections = config_manager.get("settings_order", default_sections)
         
         # 添加设置类型
-        sections = ["主题设置", "字体设置", "语言设置", 
-                   "配置目录", "数据库路径", "缓存设置", "统计设置", "删除表", "文件配置"]
         for section in sections:
             QTreeWidgetItem(settings_types, [section])
+        
+        # 连接拖动结束信号
+        settings_types.model().rowsInserted.connect(self.on_settings_order_changed)
         
         left_layout.addWidget(settings_types)
         splitter.addWidget(left_widget)
@@ -1172,6 +1182,55 @@ elif len(vac) >= 4:
                     QMessageBox.warning(self, "警告", "词典服务未初始化")
             except Exception as e:
                 QMessageBox.critical(self, "错误", f"删除失败: {e}")
+    
+    def on_settings_order_changed(self):
+        """设置类型顺序改变事件"""
+        # 获取当前的设置类型顺序
+        settings_types = self.findChild(QTreeWidget)
+        if settings_types:
+            sections = []
+            for i in range(settings_types.topLevelItemCount()):
+                item = settings_types.topLevelItem(i)
+                sections.append(item.text(0))
+            
+            # 保存到配置文件
+            config_manager.set("settings_order", sections)
+            
+            # 重新加载设置内容，按照新的顺序
+            self.reload_settings_content()
+    
+    def reload_settings_content(self):
+        """重新加载设置内容"""
+        # 清除当前的设置内容
+        for widget in self.section_widgets.values():
+            widget.deleteLater()
+        self.section_widgets.clear()
+        
+        # 从配置中加载设置类型顺序
+        default_sections = ["主题设置", "字体设置", "语言设置", 
+                          "配置目录", "数据库路径", "缓存设置", "统计设置", "删除表", "文件配置"]
+        sections = config_manager.get("settings_order", default_sections)
+        
+        # 按照新的顺序加载设置
+        for section in sections:
+            if section == "主题设置":
+                self.load_theme_settings()
+            elif section == "字体设置":
+                self.load_font_settings()
+            elif section == "语言设置":
+                self.load_language_settings()
+            elif section == "配置目录":
+                self.load_config_dir_settings()
+            elif section == "数据库路径":
+                self.load_db_path_settings()
+            elif section == "缓存设置":
+                self.load_cache_settings()
+            elif section == "统计设置":
+                self.load_stats_settings()
+            elif section == "删除表":
+                self.load_delete_table_settings()
+            elif section == "文件配置":
+                self.load_file_config_settings()
     
     def on_settings_type_clicked(self, tree_item, column):
         """设置类型点击事件"""

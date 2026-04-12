@@ -27,11 +27,13 @@ class StatsService:
         """获取词长统计"""
         try:
             all_words = self.repo.get_all()
+            # 只统计词表数据，不包括字符和特殊字符
+            word_list = [word for word in all_words if not word.is_character and not word.is_special]
             length_counter: Counter[int] = Counter()
             total_chars = 0
             total_special = 0
             
-            for word in all_words:
+            for word in word_list:
                 length = len(word.word)
                 length_counter[length] += 1
                 total_chars += length
@@ -39,11 +41,11 @@ class StatsService:
                     total_special += 1
             
             return {
-                "total_words": len(all_words),
+                "total_words": len(word_list),
                 "total_chars": total_chars,
                 "total_special": total_special,
                 "length_distribution": dict(length_counter),
-                "average_length": sum(len(word.word) for word in all_words) / len(all_words) if all_words else 0
+                "average_length": sum(len(word.word) for word in word_list) / len(word_list) if word_list else 0
             }
         except Exception as e:
             logger.error(f"获取词长统计失败: {e}")
@@ -53,11 +55,13 @@ class StatsService:
         """获取编码统计"""
         try:
             all_words = self.repo.get_all()
+            # 只统计词表数据，不包括字符和特殊字符
+            word_list = [word for word in all_words if not word.is_character and not word.is_special]
             code_length_counter: Counter[int] = Counter()
             code_counter: Counter[str] = Counter()
             code_to_words: Dict[str, List[str]] = {}
             
-            for word in all_words:
+            for word in word_list:
                 code_length = len(word.code)
                 code_length_counter[code_length] += 1
                 code_counter[word.code] += 1
@@ -129,7 +133,9 @@ class StatsService:
         """获取权重统计"""
         try:
             all_words = self.repo.get_all()
-            if not all_words:
+            # 只统计词表数据，不包括字符和特殊字符
+            word_list = [word for word in all_words if not word.is_character and not word.is_special]
+            if not word_list:
                 return {
                     "total_words": 0,
                     "average_weight": 0.0,
@@ -138,7 +144,7 @@ class StatsService:
                     "weight_distribution": {}
                 }
             
-            weights = [word.weight for word in all_words]
+            weights = [word.weight for word in word_list]
             weight_ranges = {
                 "0-10": 0,
                 "10-20": 0,
@@ -163,10 +169,10 @@ class StatsService:
                     weight_ranges["50+"] += 1
             
             return {
-                "total_words": len(all_words),
+                "total_words": len(word_list),
                 "average_weight": sum(weights) / len(weights),
-                "max_weight": float(max(weights)),
-                "min_weight": float(min(weights)),
+                "max_weight": max(weights),
+                "min_weight": min(weights),
                 "weight_distribution": weight_ranges
             }
         except Exception as e:
