@@ -65,22 +65,46 @@ def apply_theme_to_widget(widget, palette: QPalette, processed_widgets: Set[int]
 
     processed_widgets.add(id(widget))
 
-    # 应用调色板到支持它的控件
     if hasattr(widget, 'setPalette'):
         widget.setPalette(palette)
-        # 只在顶级窗口或特定类型控件上刷新样式，避免性能开销
-        if widget.isWindow() or isinstance(widget, (QMainWindow, QDialog)):
-            try:
-                style = widget.style()
-                if style:
-                    style.unpolish(widget)
-                    style.polish(widget)
-            except Exception:
-                pass  # 样式刷新失败不影响主题应用
+        try:
+            style = widget.style()
+            if style:
+                style.unpolish(widget)
+                style.polish(widget)
+        except Exception:
+            pass
 
-    # 递归处理所有子控件
+    if hasattr(widget, 'styleSheet') and widget.styleSheet():
+        if not hasattr(widget, '_original_styleSheet'):
+            widget._original_styleSheet = widget.styleSheet()
+        widget.setStyleSheet("")
+
     for child in widget.children():
         apply_theme_to_widget(child, palette, processed_widgets)
+
+    return processed_widgets
+
+
+def clear_hardcoded_stylesheets(widget, processed_widgets: Set[int] = None) -> Set[int]:
+    """清理硬编码的样式表，这些可能覆盖主题设置"""
+    if processed_widgets is None:
+        processed_widgets = set()
+
+    if not widget or id(widget) in processed_widgets:
+        return processed_widgets
+
+    processed_widgets.add(id(widget))
+
+    if hasattr(widget, 'styleSheet') and widget.styleSheet():
+        stylesheet = widget.styleSheet()
+        if any(color_def in stylesheet for color_def in ['#4CAF50', '#FF0000', '#0000FF', '#1976D2', '#FF5722']):
+            if not hasattr(widget, '_original_styleSheet'):
+                widget._original_styleSheet = stylesheet
+            widget.setStyleSheet("")
+
+    for child in widget.children():
+        clear_hardcoded_stylesheets(child, processed_widgets)
 
     return processed_widgets
 

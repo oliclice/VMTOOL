@@ -95,7 +95,6 @@ class CodeRulesTab(QWidget):
         syntax_label = QLabel("语法说明:")
         syntax_button = QPushButton("?")
         syntax_button.setFixedSize(20, 20)
-        syntax_button.setStyleSheet("QPushButton { border-radius: 10px; background-color: #4CAF50; color: white; }")
         syntax_button.setToolTip("查看编码规则语法说明")
         syntax_button.clicked.connect(self.show_syntax_help)
         syntax_layout.addWidget(syntax_label)
@@ -155,7 +154,7 @@ class CodeRulesTab(QWidget):
         
         # 规则验证
         self.validation_result = QLabel()
-        self.validation_result.setStyleSheet("color: green")
+        self.validation_result.setObjectName("validation_result")
         preview_group_layout.addWidget(QLabel("规则验证:"))
         preview_group_layout.addWidget(self.validation_result)
         
@@ -409,18 +408,15 @@ else:
         
         if not rule_content:
             self.validation_result.setText("规则内容为空")
-            self.validation_result.setStyleSheet("color: orange")
             return
         
         if python_mode:
-            # Python模式，简单检查语法
+            # Python 模式，简单检查语法
             try:
                 compile(rule_content, '<string>', 'exec')
-                self.validation_result.setText("Python语法正确")
-                self.validation_result.setStyleSheet("color: green")
+                self.validation_result.setText("Python 语法正确")
             except SyntaxError as e:
-                self.validation_result.setText(f"Python语法错误: {e}")
-                self.validation_result.setStyleSheet("color: red")
+                self.validation_result.setText(f"Python 语法错误：{e}")
         else:
             # 普通模式，检查语法
             lines = rule_content.split('\n')
@@ -448,10 +444,8 @@ else:
             
             if valid:
                 self.validation_result.setText("规则语法正确")
-                self.validation_result.setStyleSheet("color: green")
             else:
                 self.validation_result.setText(error_message)
-                self.validation_result.setStyleSheet("color: red")
     
     def test_rule(self):
         """测试规则"""

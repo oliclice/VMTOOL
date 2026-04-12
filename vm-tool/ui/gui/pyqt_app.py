@@ -28,7 +28,8 @@ from app.core.theme_constants import (
     THEME_COLOR_RED, THEME_COLOR_PURPLE, THEME_COLOR_ORANGE,
     COLOR_RGB_MAP
 )
-from .theme_utils import create_palette_from_theme, apply_theme_to_widget
+from .theme_utils import create_palette_from_theme, apply_theme_to_widget, clear_hardcoded_stylesheets
+from .theme_manager import theme_manager
 from .settings_tab import SettingsTab
 from .code_rules_tab import CodeRulesTab
 from .threads import ImportThread, AddBatchThread, CalculateThread
@@ -86,7 +87,15 @@ class VMTOOLPyQtApp(QMainWindow):
         theme_mode = config_manager.get("theme_mode", THEME_MODE_AUTO)
         theme_name = config_manager.get("theme_name", THEME_NAME_CLASSIC)
         theme_color = config_manager.get("theme_color", THEME_COLOR_BLUE)
+        
+        # 注册到主题管理器
+        theme_manager.register_widget(self)
+        
+        # 初始主题设置
         self.set_theme(theme_mode, theme_name, theme_color)
+        
+        # 连接主题变更信号
+        theme_manager.theme_changed.connect(self.on_theme_changed)
         
         # 创建标签页
         self.create_tab_widget()
@@ -98,26 +107,29 @@ class VMTOOLPyQtApp(QMainWindow):
     
     def set_theme(self, theme_mode, theme_name, theme_color):
         """设置主题"""
-        # 获取应用程序实例
-        app = QApplication.instance()
-        if not app:
-            return
-
-        # 使用工具函数创建调色板
+        clear_hardcoded_stylesheets(self)
+        
         palette = create_palette_from_theme(theme_mode, theme_color)
 
-        # 应用调色板到应用程序
-        app.setPalette(palette)
-
-        # 应用调色板到当前窗口
+        app = QApplication.instance()
+        if app:
+            app.setPalette(palette)
+            
+            for window in app.topLevelWidgets():
+                if hasattr(window, 'setPalette'):
+                    apply_theme_to_widget(window, palette)
+        
         self.setPalette(palette)
-
-        # 使用工具函数递归应用调色板到所有控件
         apply_theme_to_widget(self, palette)
-
-        # 强制刷新界面
+        
         self.update()
         self.repaint()
+        
+        theme_manager.set_theme(theme_mode, theme_name, theme_color)
+    
+    def on_theme_changed(self, theme_mode, theme_name, theme_color):
+        """处理主题变更信号"""
+        self.set_theme(theme_mode, theme_name, theme_color)
     
     def import_data(self):
         """导入数据"""
