@@ -17,32 +17,34 @@ class StatsTab(QWidget):
         
         # 统计数据展示
         stats_group = QGroupBox("统计数据")
-        stats_layout = QVBoxLayout()
+        stats_layout = QHBoxLayout()
         
+        # 左侧列
+        left_layout = QVBoxLayout()
         # 总词条数
         self.total_words_label = QLabel("总词条数: 0")
-        stats_layout.addWidget(self.total_words_label)
-        
+        left_layout.addWidget(self.total_words_label)
         # 总字符数
         self.total_chars_label = QLabel("总字符数: 0")
-        stats_layout.addWidget(self.total_chars_label)
-        
+        left_layout.addWidget(self.total_chars_label)
         # 总特殊字符数
         self.total_special_label = QLabel("总特殊字符数: 0")
-        stats_layout.addWidget(self.total_special_label)
+        left_layout.addWidget(self.total_special_label)
         
+        # 右侧列
+        right_layout = QVBoxLayout()
         # 编码冲突数
         self.conflicts_label = QLabel("编码冲突数: 0")
-        stats_layout.addWidget(self.conflicts_label)
-        
+        right_layout.addWidget(self.conflicts_label)
         # 平均词长
         self.avg_word_length_label = QLabel("平均词长: 0")
-        stats_layout.addWidget(self.avg_word_length_label)
-        
+        right_layout.addWidget(self.avg_word_length_label)
         # 平均编码长度
         self.avg_code_length_label = QLabel("平均编码长度: 0")
-        stats_layout.addWidget(self.avg_code_length_label)
+        right_layout.addWidget(self.avg_code_length_label)
         
+        stats_layout.addLayout(left_layout)
+        stats_layout.addLayout(right_layout)
         stats_group.setLayout(stats_layout)
         layout.addWidget(stats_group)
         
@@ -120,8 +122,8 @@ class StatsTab(QWidget):
                 # 获取使用该编码的词条示例
                 example_words = code_to_words.get(code, [])
                 if example_words:
-                    # 显示前 3 个词条，用逗号分隔
-                    example_text = ", ".join(example_words[:3])
+                    # 显示前 20 个词条，用逗号分隔
+                    example_text = ", ".join(example_words[:20])
                     self.code_frequency_table.setItem(i, 2, QTableWidgetItem(example_text))
                 else:
                     self.code_frequency_table.setItem(i, 2, QTableWidgetItem("-"))
