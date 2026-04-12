@@ -1110,6 +1110,60 @@ elif len(vac) >= 4:
         section_layout.addLayout(delimiter_layout)
         section_layout.addLayout(import_path_layout)
         section_layout.addWidget(export_path_enabled_checkbox)
+        
+        # 分表导出设置
+        split_export_layout = QVBoxLayout()
+        split_export_layout.addWidget(QLabel("分表导出设置:"))
+        
+        # 分表导出勾选框
+        split_export_checkbox = QCheckBox("启用分表导出")
+        split_export_checkbox.setChecked(config_manager.get("split_export_enabled", False))
+        
+        def on_split_export_changed(state):
+            config_manager.set("split_export_enabled", state == 2)
+        
+        split_export_checkbox.stateChanged.connect(on_split_export_changed)
+        split_export_layout.addWidget(split_export_checkbox)
+        
+        # 不同表的导出名称设置
+        table_names_layout = QFormLayout()
+        
+        # 词表导出名称
+        words_export_name_label = QLabel("词表导出名称:")
+        words_export_name_edit = QLineEdit()
+        words_export_name_edit.setText(config_manager.get("words_export_name", "vmtool_words"))
+        
+        def on_words_export_name_changed(text):
+            config_manager.set("words_export_name", text)
+        
+        words_export_name_edit.textChanged.connect(on_words_export_name_changed)
+        table_names_layout.addRow(words_export_name_label, words_export_name_edit)
+        
+        # 字表导出名称
+        chars_export_name_label = QLabel("字表导出名称:")
+        chars_export_name_edit = QLineEdit()
+        chars_export_name_edit.setText(config_manager.get("chars_export_name", "vmtool_chars"))
+        
+        def on_chars_export_name_changed(text):
+            config_manager.set("chars_export_name", text)
+        
+        chars_export_name_edit.textChanged.connect(on_chars_export_name_changed)
+        table_names_layout.addRow(chars_export_name_label, chars_export_name_edit)
+        
+        # 特殊字符表导出名称
+        special_export_name_label = QLabel("特殊字符表导出名称:")
+        special_export_name_edit = QLineEdit()
+        special_export_name_edit.setText(config_manager.get("special_export_name", "vmtool_special"))
+        
+        def on_special_export_name_changed(text):
+            config_manager.set("special_export_name", text)
+        
+        special_export_name_edit.textChanged.connect(on_special_export_name_changed)
+        table_names_layout.addRow(special_export_name_label, special_export_name_edit)
+        
+        split_export_layout.addLayout(table_names_layout)
+        section_layout.addLayout(split_export_layout)
+        
         section_layout.addLayout(rime_layout)
         
         section_widget.setLayout(section_layout)
