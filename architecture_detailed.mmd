@@ -38,6 +38,11 @@ flowchart TD
         create_tab_widget --> create_settings_tab["create_settings_tab()"]
         create_settings_tab --> SettingsTab["SettingsTab"]
         
+        SettingsTab --> on_settings_order_changed["on_settings_order_changed()"]
+        SettingsTab --> reload_settings_content["reload_settings_content()"]
+        on_settings_order_changed --> config_manager
+        on_settings_order_changed --> reload_settings_content
+        
         CharsTab --> search_characters_gui["search_characters()"]
         search_characters_gui --> DictService.search_characters
         
@@ -232,7 +237,15 @@ flowchart TD
         FilterService --> export_to_json["export_to_json()"]
         export_to_json --> WordRepository.get_all
         
-        StatsService["StatsService"] --> generate_report["generate_report()"]
+        StatsService["StatsService"] --> get_stats["get_stats()"]
+        StatsService --> get_word_length_stats["get_word_length_stats() - 只统计词表数据"]
+        StatsService --> get_code_stats["get_code_stats() - 只统计词表数据"]
+        StatsService --> get_weight_stats["get_weight_stats() - 只统计词表数据"]
+        StatsService --> detect_code_conflicts["detect_code_conflicts()"]
+        StatsService --> generate_report["generate_report()"]
+        get_stats --> get_word_length_stats
+        get_stats --> get_code_stats
+        get_stats --> get_weight_stats
         generate_report --> WordRepository.get_all
         
         CodeGenerator["CodeGenerator"] --> set_config["set_config()"]
