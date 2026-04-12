@@ -224,7 +224,8 @@ class CharsTab(QWidget):
                     if progress_bar:
                         progress_bar.finish_progress(f"添加成功，共添加 {result.get('added', 0)} 个汉字", success=True)
                     else:
-                        QMessageBox.information(self, "成功", f"添加成功，共添加 {result.get('added', 0)} 个汉字")
+                        if hasattr(self.parent, 'show_toast'):
+                            self.parent.show_toast(f"添加成功，共添加 {result.get('added', 0)} 个汉字")
                     self.refresh_chars()
                     dialog.accept()
                 
@@ -232,7 +233,8 @@ class CharsTab(QWidget):
                     if progress_bar:
                         progress_bar.error_progress(f"添加失败：{error}")
                     else:
-                        QMessageBox.critical(self, "错误", f"添加失败：{error}")
+                        if hasattr(self.parent, 'show_toast'):
+                            self.parent.show_toast(f"添加失败：{error}")
                 
                 self.add_batch_thread.progress.connect(update_progress)
                 self.add_batch_thread.finished.connect(on_finished)

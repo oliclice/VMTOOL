@@ -228,7 +228,8 @@ class WordsTab(QWidget):
                     if progress_bar:
                         progress_bar.finish_progress(f"添加成功，共添加 {result.get('added', 0)} 个词", success=True)
                     else:
-                        QMessageBox.information(self, "成功", f"添加成功，共添加 {result.get('added', 0)} 个词")
+                        if hasattr(self.parent, 'show_toast'):
+                            self.parent.show_toast(f"添加成功，共添加 {result.get('added', 0)} 个词")
                     self.refresh_words()
                     dialog.accept()
                 
@@ -236,7 +237,8 @@ class WordsTab(QWidget):
                     if progress_bar:
                         progress_bar.error_progress(f"添加失败：{error}")
                     else:
-                        QMessageBox.critical(self, "错误", f"添加失败：{error}")
+                        if hasattr(self.parent, 'show_toast'):
+                            self.parent.show_toast(f"添加失败：{error}")
                 
                 self.add_batch_thread.progress.connect(update_progress)
                 self.add_batch_thread.finished.connect(on_finished)
@@ -384,13 +386,13 @@ class WordsTab(QWidget):
                     progress_bar.finish_progress(f"批量重新计算编码完成！共处理 {result.get('total', 0)} 个词条", success=True)
                 
                 # 显示结果
-                QMessageBox.information(
-                    self, "成功", 
-                    f"批量重新计算编码完成！\n\n" 
-                    f"总词条数: {result.get('total', 0)}\n" 
-                    f"成功更新: {result.get('updated', 0)}\n" 
-                    f"更新失败: {result.get('failed', 0)}"
-                )
+                if hasattr(self.parent, 'show_toast'):
+                    self.parent.show_toast(
+                        f"批量重新计算编码完成！\n" 
+                        f"总词条数: {result.get('total', 0)}\n" 
+                        f"成功更新: {result.get('updated', 0)}\n" 
+                        f"更新失败: {result.get('failed', 0)}"
+                    )
                 
                 # 刷新词表
                 self.refresh_words()
@@ -398,7 +400,8 @@ class WordsTab(QWidget):
             def on_error(error):
                 if progress_bar:
                     progress_bar.error_progress(f"批量重新计算编码失败: {error}")
-                QMessageBox.critical(self, "错误", f"批量重新计算编码失败: {error}")
+                if hasattr(self.parent, 'show_toast'):
+                    self.parent.show_toast(f"批量重新计算编码失败: {error}")
             
             # 创建并启动线程
             from ..threads import CalculateThread
