@@ -72,7 +72,20 @@ class ProgressBarWidget(QWidget):
         self.set_visible(True)
         self.progress_bar.setValue(0)
         self.status_label.setText(message)
-        self.status_label.setStyleSheet("QLabel { color: #1976D2; font-weight: bold; }")
+        
+        # 使用主题色
+        from app.core.theme_manager import theme_manager
+        theme_color = theme_manager.get_theme_color()
+        color_map = {
+            "blue": "#1976D2",
+            "green": "#4CAF50",
+            "red": "#F44336",
+            "purple": "#9C27B0",
+            "orange": "#FF9800"
+        }
+        color = color_map.get(theme_color, "#1976D2")
+        
+        self.status_label.setStyleSheet(f"QLabel {{ color: {color}; font-weight: bold; }}")
         self.cancel_button.setEnabled(True)
         
     def update_progress(self, value, message=None):
@@ -93,6 +106,7 @@ class ProgressBarWidget(QWidget):
             message: 完成消息
             success: 是否成功
         """
+        self.set_visible(True)
         self.progress_bar.setValue(100)
         if success:
             self.status_label.setText(message)
@@ -112,6 +126,7 @@ class ProgressBarWidget(QWidget):
         Args:
             message: 错误消息
         """
+        self.set_visible(True)
         self.progress_bar.setValue(0)
         self.status_label.setText(message)
         self.status_label.setStyleSheet("QLabel { color: #F44336; font-weight: bold; }")
