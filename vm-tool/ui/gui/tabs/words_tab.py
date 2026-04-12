@@ -368,25 +368,24 @@ class WordsTab(QWidget):
         )
         
         if reply == QMessageBox.StandardButton.Yes:
-            from PyQt6.QtWidgets import QProgressDialog
-            from PyQt6.QtCore import Qt
-            
-            # 创建进度对话框
-            progress_dialog = QProgressDialog("正在重新计算编码...", "取消", 0, 100, self)
-            progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
-            progress_dialog.setMinimumDuration(0)
-            progress_dialog.show()
+            # 使用统一的进度条
+            if self.parent and hasattr(self.parent, 'progress_bar'):
+                progress_bar = self.parent.progress_bar
+                progress_bar.start_progress("正在重新计算编码...")
+            else:
+                progress_bar = None
             
             def progress_callback(progress, message):
-                progress_dialog.setValue(progress)
-                progress_dialog.setLabelText(message)
-                # 处理取消操作
-                if progress_dialog.wasCanceled():
-                    raise Exception("操作被用户取消")
+                if progress_bar:
+                    progress_bar.update_progress(progress, message)
             
             try:
                 # 调用现有的calculate_all_codes方法
                 result = self.dict_service.calculate_all_codes(progress_callback)
+                
+                # 完成进度
+                if progress_bar:
+                    progress_bar.finish_progress(f"批量重新计算编码完成！共处理 {result.get('total', 0)} 个词条", success=True)
                 
                 # 显示结果
                 QMessageBox.information(
@@ -400,7 +399,7 @@ class WordsTab(QWidget):
                 # 刷新词表
                 self.refresh_words()
             except Exception as e:
+                if progress_bar:
+                    progress_bar.error_progress(f"批量重新计算编码失败: {e}")
                 if "操作被用户取消" not in str(e):
                     QMessageBox.critical(self, "错误", f"批量重新计算编码失败: {e}")
-            finally:
-                progress_dialog.close()

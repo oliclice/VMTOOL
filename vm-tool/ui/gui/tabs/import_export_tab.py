@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, 
-                             QLabel, QComboBox, QProgressDialog, QMessageBox, QFileDialog,
+                             QLabel, QComboBox, QMessageBox, QFileDialog,
                              QGroupBox, QFormLayout, QRadioButton, QButtonGroup, QFrame)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
