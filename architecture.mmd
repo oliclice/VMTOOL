@@ -1,0 +1,66 @@
+flowchart TD
+    subgraph 主入口
+        main["main.py"] --> run_mode["run_mode_manager"]
+        main --> service_registry["service_registry"]
+        main --> init_db["init_database"]
+    end
+
+    subgraph GUI
+        VMTOOLPyQtApp["VMTOOLPyQtApp"] --> CharsTab["CharsTab"]
+        VMTOOLPyQtApp --> SpecialTab["SpecialTab"]
+        VMTOOLPyQtApp --> WordsTab["WordsTab"]
+        VMTOOLPyQtApp --> StatsTab["StatsTab"]
+        VMTOOLPyQtApp --> ImportExportTab["ImportExportTab"]
+        VMTOOLPyQtApp --> CodeRulesTab["CodeRulesTab"]
+        VMTOOLPyQtApp --> SettingsTab["SettingsTab"]
+        VMTOOLPyQtApp --> DictService_GUI["DictService"]
+        VMTOOLPyQtApp --> WeightCalculator_GUI["WeightCalculator"]
+        VMTOOLPyQtApp --> FilterService_GUI["FilterService"]
+        VMTOOLPyQtApp --> StatsService_GUI["StatsService"]
+    end
+
+    subgraph CLI
+        CLI_Main["cli/__main__.py"] --> DictService_CLI["DictService"]
+        CLI_Main --> WeightCalculator_CLI["WeightCalculator"]
+        CLI_Main --> FilterService_CLI["FilterService"]
+        CLI_Main --> StatsService_CLI["StatsService"]
+        CLI_Main --> start_gui["start_gui()"]
+        start_gui --> VMTOOLPyQtApp
+    end
+
+    subgraph 服务层
+        DictService["DictService"] --> WordRepository["WordRepository"]
+        DictService --> CodeGenerator["CodeGenerator"]
+        WeightCalculator["WeightCalculator"] --> WordRepository
+        FilterService["FilterService"] --> WordRepository
+        StatsService["StatsService"] --> WordRepository
+    end
+
+    subgraph 数据访问层
+        WordRepository --> Word["Word模型"]
+        WordRepository --> get_db["get_db()"]
+        init_db --> Word
+    end
+
+    subgraph 核心
+        config_manager["config_manager"] --> VMTOOLPyQtApp
+        config_manager --> CodeRulesTab
+        theme_manager["theme_manager"] --> VMTOOLPyQtApp
+    end
+
+    main --> CLI_Main
+    main --> VMTOOLPyQtApp
+
+    classDef main fill:#f9f,stroke:#333,stroke-width:2px;
+    classDef gui fill:#bbf,stroke:#333,stroke-width:2px;
+    classDef cli fill:#bfb,stroke:#333,stroke-width:2px;
+    classDef service fill:#ffb,stroke:#333,stroke-width:2px;
+    classDef dal fill:#fbb,stroke:#333,stroke-width:2px;
+    classDef core fill:#bff,stroke:#333,stroke-width:2px;
+
+    class main main;
+    class VMTOOLPyQtApp,CharsTab,SpecialTab,WordsTab,StatsTab,ImportExportTab,CodeRulesTab,SettingsTab gui;
+    class CLI_Main,start_gui cli;
+    class DictService,WeightCalculator,FilterService,StatsService,CodeGenerator service;
+    class WordRepository,Word,get_db,dal dal;
+    class config_manager,theme_manager core;
