@@ -72,11 +72,15 @@ class WordsTab(QWidget):
         refresh_button = QPushButton("刷新")
         refresh_button.clicked.connect(self.refresh_words)
         
+        recalculate_button = QPushButton("批量重新计算编码")
+        recalculate_button.clicked.connect(self.recalculate_all_codes)
+        
         button_layout.addWidget(add_button)
         button_layout.addWidget(add_batch_button)
         button_layout.addWidget(delete_button)
         button_layout.addWidget(update_button)
         button_layout.addWidget(refresh_button)
+        button_layout.addWidget(recalculate_button)
         layout.addLayout(button_layout)
     
     def refresh_words(self):
@@ -347,3 +351,56 @@ class WordsTab(QWidget):
             self.delete_word()
         elif action == update_action:
             self.update_word()
+    
+    def recalculate_all_codes(self):
+        """批量重新计算编码"""
+        if not self.dict_service:
+            QMessageBox.warning(self, "警告", "词典服务未初始化")
+            return
+        
+        # 确认操作
+        reply = QMessageBox.question(
+            self, "确认", 
+            "是否批量重新计算所有未手动修改过编码的词条的编码？\n\n" 
+            "注意：这会使用当前设置的编码规则重新计算所有自动编码的词条。",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            from PyQt6.QtWidgets import QProgressDialog
+            from PyQt6.QtCore import Qt
+            
+            # 创建进度对话框
+            progress_dialog = QProgressDialog("正在重新计算编码...", "取消", 0, 100, self)
+            progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+            progress_dialog.setMinimumDuration(0)
+            progress_dialog.show()
+            
+            def progress_callback(progress, message):
+                progress_dialog.setValue(progress)
+                progress_dialog.setLabelText(message)
+                # 处理取消操作
+                if progress_dialog.wasCanceled():
+                    raise Exception("操作被用户取消")
+            
+            try:
+                # 调用现有的calculate_all_codes方法
+                result = self.dict_service.calculate_all_codes(progress_callback)
+                
+                # 显示结果
+                QMessageBox.information(
+                    self, "成功", 
+                    f"批量重新计算编码完成！\n\n" 
+                    f"总词条数: {result.get('total', 0)}\n" 
+                    f"成功更新: {result.get('updated', 0)}\n" 
+                    f"更新失败: {result.get('failed', 0)}"
+                )
+                
+                # 刷新词表
+                self.refresh_words()
+            except Exception as e:
+                if "操作被用户取消" not in str(e):
+                    QMessageBox.critical(self, "错误", f"批量重新计算编码失败: {e}")
+            finally:
+                progress_dialog.close()

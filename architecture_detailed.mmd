@@ -43,6 +43,9 @@ flowchart TD
         CharsTab --> delete_character_gui["delete_character()"]
         delete_character_gui --> DictService.delete_character
         
+        WordsTab --> recalculate_all_codes_gui["recalculate_all_codes()"]
+        recalculate_all_codes_gui --> DictService.calculate_all_codes
+        
         ImportExportTab --> showEvent["showEvent()"]
         showEvent --> update_export_full_path["update_export_full_path()"]
         
