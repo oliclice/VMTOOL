@@ -1,25 +1,25 @@
 # VM-TOOL 码表处理工具
 
-VM-TOOL 是一个现代化、模块化的中文输入法码表管理工具，支持命令行、Web和GUI界面，提供高效的码表处理功能。
+VM-TOOL 是一个现代化、模块化的中文输入法码表管理工具，支持命令行和 GUI 界面，提供高效的码表处理功能。
 
 ## 功能特性
 
 - **核心功能**:
-  - 过滤码表: 批量过滤不需要的词条
-  - 计算权重: 自动计算和调整词频权重
-  - 码表补充: 批量添加新词并自动生成编码
-  - 写入码表: 生成输出文件并复制到目标位置
-  - 字表去重: 刷新和优化字库
-  - 查字补码: 自动补全缺失的编码
-  - 高频统计: 统计高频编码
+  - 过滤码表：批量过滤不需要的词条
+  - 计算权重：自动计算和调整词频权重
+  - 码表补充：批量添加新词并自动生成编码
+  - 写入码表：生成输出文件并复制到目标位置
+  - 字表去重：刷新和优化字库
+  - 查字补码：自动补全缺失的编码
+  - 高频统计：统计高频编码
 
 - **现代化特性**:
-  - 模块化架构: 清晰的代码组织和职责分离
-  - 多界面支持: 命令行(CLI)、Web界面和GUI界面
-  - 性能优化: 缓存机制、批处理优化和数据库索引
-  - 类型安全: 使用Pydantic进行配置管理
-  - 插件系统: 支持扩展功能
-  - 多平台打包: 支持Windows、Linux和macOS
+  - 模块化架构：清晰的代码组织和职责分离
+  - 多界面支持：命令行 (CLI) 和 GUI 界面
+  - 性能优化：缓存机制、批处理优化和数据库索引
+  - 类型安全：使用 Pydantic 进行配置管理
+  - 插件系统：支持扩展功能
+  - 多平台打包：支持 Windows、Linux 和 macOS
 
 ## 项目结构
 
@@ -33,8 +33,7 @@ VMtool/
 │   │   └── plugins/     # 插件系统
 │   ├── ui/              # 用户界面
 │   │   ├── cli/         # 命令行界面
-│   │   ├── web/         # Web界面
-│   │   └── gui/         # GUI界面 (Tkinter和PyQt6)
+│   │   └── gui/         # GUI 界面 (Tkinter 和 PyQt6)
 │   ├── tests/           # 测试代码
 │   ├── main.py          # 主程序入口
 │   ├── vmtool.py        # 命令行工具入口
@@ -43,7 +42,7 @@ VMtool/
 ├── build.py             # 多平台打包脚本
 ├── install.py           # 安装脚本
 ├── README.md            # 项目文档
-└── pyinstaller.spec     # PyInstaller配置
+└── pyinstaller.spec     # PyInstaller 配置
 ```
 
 ## 安装和运行
@@ -64,7 +63,7 @@ VMtool/
 ./dist/linux/vmtool/vmtool --help
 ```
 
-#### GUI界面
+#### GUI 界面
 
 ```bash
 # 运行图形界面工具
@@ -93,10 +92,7 @@ pip install -r vm-tool/requirements.txt
 # 运行命令行工具
 python vm-tool/vmtool.py
 
-# 运行Web服务器
-python vm-tool/ui/web/main.py
-
-# 运行PyQt6 GUI
+# 运行 PyQt6 GUI
 python vm-tool/ui/gui/pyqt_app.py
 ```
 
@@ -109,9 +105,9 @@ VM-TOOL 支持自定义编码规则，用户可以根据词长度定义不同的
 #### 编码规则语法
 
 ```
-v[n] = 表达式 表示词长度为n时的编码规则
-s[i][j] 表示第i+1个字的第j个编码字符（Python风格索引，从0开始）
-s[-1][j] 表示词的最后一个字的第j个编码字符
+v[n] = 表达式 表示词长度为 n 时的编码规则
+s[i][j] 表示第 i+1 个字的第 j 个编码字符（Python 风格索引，从 0 开始）
+s[-1][j] 表示词的最后一个字的第 j 个编码字符
 + 表示连接字符串
 ```
 
@@ -119,19 +115,19 @@ s[-1][j] 表示词的最后一个字的第j个编码字符
 
 ```
 v[2] = s[0][1] + s[0][2] + s[1][1] + s[1][2]
-表示词长度为2时，取前两个字的前两个编码
+表示词长度为 2 时，取前两个字的前两个编码
 
 v[3] = s[0][1] + s[1][1] + s[2][1]
-表示词长度为3时，取前三个字的每个字第一个编码
+表示词长度为 3 时，取前三个字的每个字第一个编码
 
 v[2] = s[0][1] + s[-1][1]
-表示词长度为2时，取第一个字和最后一个字的第一个编码
+表示词长度为 2 时，取第一个字和最后一个字的第一个编码
 ```
 
 #### 配置方法
 
-1. **GUI界面配置**：
-   - 打开GUI界面
+1. **GUI 界面配置**：
+   - 打开 GUI 界面
    - 进入"设置"标签页
    - 选择"编码规则"
    - 在"自定义编码规则"区域输入规则名称和规则内容
@@ -210,14 +206,8 @@ vmtool --install-completion
    vmtool import file --format txt path/to/file.txt
    ```
 
-3. **Web界面添加**：
-   - 打开Web界面，进入"词表管理"页面
-   - 点击"添加词条"按钮
-   - 输入单个文字、编码和权重，点击"保存"
-   - 可以为同一文字多次添加不同编码
-
-4. **GUI界面添加**：
-   - 打开GUI界面（Tkinter或PyQt6版本）
+3. **GUI 界面添加**：
+   - 打开 GUI 界面（Tkinter 或 PyQt6 版本）
    - 点击"添加"按钮
    - 输入单个文字、编码和权重，点击"保存"
    - 可以为同一文字多次添加不同编码
@@ -235,53 +225,45 @@ vmtool --install-completion
      系统会自动为"测试"生成编码
 
 2. **词典编码的自动导出**：
-   - 导出为TXT格式：
+   - 导出为 TXT 格式：
      ```bash
      vmtool export --format txt --path path/to/output.txt
      ```
-   - 导出为CSV格式：
+   - 导出为 CSV 格式：
      ```bash
      vmtool export --format csv --path path/to/output.csv
      ```
-   - 导出为JSON格式：
+   - 导出为 JSON 格式：
      ```bash
      vmtool export --format json --path path/to/output.json
      ```
 
 3. **词典的导入**：
-   - 从TXT文件导入：
+   - 从 TXT 文件导入：
      ```bash
      vmtool import --format txt --path path/to/file.txt
      ```
-   - 从CSV文件导入：
+   - 从 CSV 文件导入：
      ```bash
      vmtool import --format csv --path path/to/file.csv
      ```
-   - 从JSON文件导入：
+   - 从 JSON 文件导入：
      ```bash
      vmtool import --format json --path path/to/file.json
      ```
 
-### Web界面
+### GUI 界面
 
-Web界面提供了直观的图形化操作：
-- **首页**: 显示应用信息和快捷操作
-- **词表管理**: 查看、添加、编辑、删除词条
-- **统计分析**: 查看码表统计信息
-- **数据导入**: 批量导入词条
-
-### GUI界面
-
-GUI界面提供了更友好的桌面应用体验：
-- **Tkinter版本**: 轻量级界面，兼容性好
-- **PyQt6版本**: 功能更丰富，界面更美观
+GUI 界面提供了更友好的桌面应用体验：
+- **Tkinter 版本**：轻量级界面，兼容性好
+- **PyQt6 版本**：功能更丰富，界面更美观
 
 #### 主题切换功能
 
-PyQt6版本的GUI界面支持主题切换功能：
-- **跟随系统**: 自动跟随系统主题设置
-- **浅色模式**: 明亮的界面风格
-- **深色模式**: 暗色的界面风格
+PyQt6 版本的 GUI 界面支持主题切换功能：
+- **跟随系统**：自动跟随系统主题设置
+- **浅色模式**：明亮的界面风格
+- **深色模式**：暗色的界面风格
 
 通过菜单栏的"设置" -> "主题"选项可以切换主题模式。
 
@@ -299,22 +281,22 @@ PyQt6版本的GUI界面支持主题切换功能：
 ### 核心模块
 
 - **Core**: 核心功能模块，包括配置管理、缓存机制、兼容性层等
-- **DAL**: 数据访问层，使用SQLAlchemy ORM进行数据库操作
+- **DAL**: 数据访问层，使用 SQLAlchemy ORM 进行数据库操作
 - **Services**: 业务逻辑服务，包括字典服务、权重计算服务、过滤服务等
 - **Plugins**: 插件系统，支持扩展功能
-- **UI**: 用户界面，包括CLI、Web和GUI三种界面
+- **UI**: 用户界面，包括 CLI 和 GUI 两种界面
 
 ### 服务架构
 
 ```
 ┌─────────────────┐
-│     UI层        │
-│ (CLI/Web/GUI)   │
+│     UI 层        │
+│   (CLI/GUI)     │
 └────────┬────────┘
          │
 ┌────────▼────────┐
 │   服务层        │
-│ (DictService等)  │
+│ (DictService 等)  │
 └────────┬────────┘
          │
 ┌────────▼────────┐
@@ -342,27 +324,24 @@ PyQt6版本的GUI界面支持主题切换功能：
   - sqlalchemy>=2.0.49
   - typer==0.24.1
   - rich==13.7.0
-  - fastapi==0.104.1
-  - uvicorn==0.24.0.post1
-  - jinja2==3.1.2
   - tkinter (标准库)
   - PyQt6 (可选)
 
 ## 构建和打包
 
-### 构建Linux版本
+### 构建 Linux 版本
 
 ```bash
 python build.py --linux
 ```
 
-### 构建Windows版本
+### 构建 Windows 版本
 
 ```bash
 python build.py --windows
 ```
 
-### 构建macOS版本
+### 构建 macOS 版本
 
 ```bash
 python build.py --macos

@@ -7,8 +7,8 @@ import argparse
 
 
 def build_linux():
-    """构建Linux版本"""
-    print("构建Linux版本...")
+    """构建 Linux 版本"""
+    print("构建 Linux 版本...")
     # 构建命令行工具
     subprocess.run([
         "pyinstaller",
@@ -17,11 +17,9 @@ def build_linux():
         "--distpath", "dist/linux",
         "--workpath", "build/linux",
         "--noconfirm",
-        "--console",
-        "--add-data", "vm-tool/ui/web/templates:ui/web/templates",
-        "--add-data", "vm-tool/ui/web/static:ui/web/static"
+        "--console"
     ], check=True)
-    # 构建GUI工具
+    # 构建 GUI 工具
     subprocess.run([
         "pyinstaller",
         "vm-tool/vmtool.py",
@@ -29,16 +27,14 @@ def build_linux():
         "--distpath", "dist/linux",
         "--workpath", "build/linux",
         "--noconfirm",
-        "--windowed",
-        "--add-data", "vm-tool/ui/web/templates:ui/web/templates",
-        "--add-data", "vm-tool/ui/web/static:ui/web/static"
+        "--windowed"
     ], check=True)
-    print("Linux版本构建完成")
+    print("Linux 版本构建完成")
 
 
 def build_windows():
-    """构建Windows版本"""
-    print("构建Windows版本...")
+    """构建 Windows 版本"""
+    print("构建 Windows 版本...")
     # 构建命令行工具
     subprocess.run([
         "pyinstaller",
@@ -47,11 +43,9 @@ def build_windows():
         "--distpath", "dist/windows",
         "--workpath", "build/windows",
         "--noconfirm",
-        "--console",
-        "--add-data", "vm-tool/ui/web/templates;ui/web/templates",
-        "--add-data", "vm-tool/ui/web/static;ui/web/static"
+        "--console"
     ], check=True)
-    # 构建GUI工具
+    # 构建 GUI 工具
     subprocess.run([
         "pyinstaller",
         "vm-tool/vmtool.py",
@@ -59,16 +53,14 @@ def build_windows():
         "--distpath", "dist/windows",
         "--workpath", "build/windows",
         "--noconfirm",
-        "--windowed",
-        "--add-data", "vm-tool/ui/web/templates;ui/web/templates",
-        "--add-data", "vm-tool/ui/web/static;ui/web/static"
+        "--windowed"
     ], check=True)
-    print("Windows版本构建完成")
+    print("Windows 版本构建完成")
 
 
 def build_macos():
-    """构建macOS版本"""
-    print("构建macOS版本...")
+    """构建 macOS 版本"""
+    print("构建 macOS 版本...")
     # 构建命令行工具
     subprocess.run([
         "pyinstaller",
@@ -77,11 +69,9 @@ def build_macos():
         "--distpath", "dist/macos",
         "--workpath", "build/macos",
         "--noconfirm",
-        "--console",
-        "--add-data", "vm-tool/ui/web/templates:ui/web/templates",
-        "--add-data", "vm-tool/ui/web/static:ui/web/static"
+        "--console"
     ], check=True)
-    # 构建GUI工具
+    # 构建 GUI 工具
     subprocess.run([
         "pyinstaller",
         "vm-tool/vmtool.py",
@@ -89,11 +79,9 @@ def build_macos():
         "--distpath", "dist/macos",
         "--workpath", "build/macos",
         "--noconfirm",
-        "--windowed",
-        "--add-data", "vm-tool/ui/web/templates:ui/web/templates",
-        "--add-data", "vm-tool/ui/web/static:ui/web/static"
+        "--windowed"
     ], check=True)
-    print("macOS版本构建完成")
+    print("macOS 版本构建完成")
 
 
 def build_all():
