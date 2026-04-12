@@ -327,7 +327,7 @@ class ImportExportTab(QWidget):
                     import shutil
                     shutil.copy(file_path, fcitx5_rime_path)
             
-            QMessageBox.information(self, "成功", f"导出成功，共导出 {result.get('exported', 0)} 条数据")
+            QMessageBox.information(self, "成功", f"导出成功，共导出 {result} 条数据")
         except Exception as e:
             QMessageBox.critical(self, "错误", f"导出失败: {e}")
     
