@@ -1121,6 +1121,9 @@ elif len(vac) >= 4:
         
         def on_split_export_changed(state):
             config_manager.set("split_export_enabled", state == 2)
+            # 更新导出界面中的完整路径
+            if hasattr(self.parent(), 'update_export_full_path'):
+                self.parent().update_export_full_path()
         
         split_export_checkbox.stateChanged.connect(on_split_export_changed)
         split_export_layout.addWidget(split_export_checkbox)
@@ -1135,6 +1138,9 @@ elif len(vac) >= 4:
         
         def on_words_export_name_changed(text):
             config_manager.set("words_export_name", text)
+            # 更新导出界面中的完整路径
+            if hasattr(self.parent(), 'update_export_full_path'):
+                self.parent().update_export_full_path()
         
         words_export_name_edit.textChanged.connect(on_words_export_name_changed)
         table_names_layout.addRow(words_export_name_label, words_export_name_edit)
@@ -1146,6 +1152,9 @@ elif len(vac) >= 4:
         
         def on_chars_export_name_changed(text):
             config_manager.set("chars_export_name", text)
+            # 更新导出界面中的完整路径
+            if hasattr(self.parent(), 'update_export_full_path'):
+                self.parent().update_export_full_path()
         
         chars_export_name_edit.textChanged.connect(on_chars_export_name_changed)
         table_names_layout.addRow(chars_export_name_label, chars_export_name_edit)
@@ -1157,6 +1166,9 @@ elif len(vac) >= 4:
         
         def on_special_export_name_changed(text):
             config_manager.set("special_export_name", text)
+            # 更新导出界面中的完整路径
+            if hasattr(self.parent(), 'update_export_full_path'):
+                self.parent().update_export_full_path()
         
         special_export_name_edit.textChanged.connect(on_special_export_name_changed)
         table_names_layout.addRow(special_export_name_label, special_export_name_edit)
