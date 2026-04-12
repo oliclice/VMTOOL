@@ -43,6 +43,9 @@ flowchart TD
         CharsTab --> delete_character_gui["delete_character()"]
         delete_character_gui --> DictService.delete_character
         
+        ImportExportTab --> showEvent["showEvent()"]
+        showEvent --> update_export_full_path["update_export_full_path()"]
+        
         CodeRulesTab --> test_rule["test_rule()"]
         test_rule --> get_rule_content["get rule content"]
         test_rule --> get_python_mode["get python mode"]
@@ -204,6 +207,8 @@ flowchart TD
     subgraph 核心
         config_manager["config_manager"] --> VMTOOLPyQtApp
         config_manager --> CodeRulesTab
+        config_manager --> ImportExportTab.update_export_full_path
+        config_manager --> SettingsTab
         theme_manager["theme_manager"] --> VMTOOLPyQtApp
     end
 
@@ -215,6 +220,8 @@ flowchart TD
     restore_codegen_config --> CodeGenerator.set_config
     generate_code_from_chars --> WordRepository.get_by_word
     _execute_custom_rule --> config_manager
+    ImportExportTab.export_data --> DictService.export_data
+    ImportExportTab.import_data --> FilterService
 
     classDef main fill:#f9f,stroke:#333,stroke-width:2px;
     classDef gui fill:#bbf,stroke:#333,stroke-width:2px;

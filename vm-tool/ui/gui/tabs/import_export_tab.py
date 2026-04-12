@@ -389,3 +389,8 @@ class ImportExportTab(QWidget):
         # 显示所有导出路径
         paths_text = "\n".join(all_paths)
         self.full_export_path_value.setText(paths_text)
+    
+    def showEvent(self, event):
+        """当标签页显示时自动更新导出路径"""
+        super().showEvent(event)
+        self.update_export_full_path()
