@@ -66,9 +66,6 @@ class WordsTab(QWidget):
         delete_button = QPushButton("删除")
         delete_button.clicked.connect(self.delete_word)
         
-        update_button = QPushButton("更新")
-        update_button.clicked.connect(self.update_word)
-        
         refresh_button = QPushButton("刷新")
         refresh_button.clicked.connect(self.refresh_words)
         
@@ -78,7 +75,6 @@ class WordsTab(QWidget):
         button_layout.addWidget(add_button)
         button_layout.addWidget(add_batch_button)
         button_layout.addWidget(delete_button)
-        button_layout.addWidget(update_button)
         button_layout.addWidget(refresh_button)
         button_layout.addWidget(recalculate_button)
         layout.addLayout(button_layout)
@@ -343,7 +339,7 @@ class WordsTab(QWidget):
         
         add_action = menu.addAction("添加")
         delete_action = menu.addAction("删除")
-        update_action = menu.addAction("更新")
+        update_action = menu.addAction("编辑")
         
         action = menu.exec(self.word_table.mapToGlobal(position))
         
