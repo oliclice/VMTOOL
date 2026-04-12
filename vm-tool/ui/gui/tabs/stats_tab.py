@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem, 
-                             QPushButton, QLabel, QComboBox, QMessageBox, QGroupBox)
+                             QPushButton, QLabel, QComboBox, QMessageBox, QGroupBox, QHeaderView)
 from PyQt6.QtCore import Qt
 from app.services.stats import StatsService
 from app.core.config_manager import config_manager
@@ -130,6 +130,15 @@ class StatsTab(QWidget):
                     self.code_frequency_table.setItem(i, 2, QTableWidgetItem(example_text))
                 else:
                     self.code_frequency_table.setItem(i, 2, QTableWidgetItem("-"))
+            
+            # 设置编码频次分布表的列宽度
+            header = self.code_frequency_table.horizontalHeader()
+            # 编码列固定宽度
+            header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+            # 频次列固定宽度
+            header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+            # 词条示例列占据剩余所有空间
+            header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
             
             # 更新词长分布
             word_length_dist = word_length_stats.get('length_distribution', {})
