@@ -182,68 +182,42 @@ class ImportExportTab(QWidget):
     
     def browse_import_path(self):
         """浏览导入路径"""
-        # 尝试使用 zenity 打开文件选择对话框
-        try:
-            import subprocess
-            
-            # 使用 zenity 打开文件选择对话框，为每个文件类型单独指定过滤器
-            result = subprocess.run(
-                ["zenity", "--file-selection", "--title=选择导入文件", 
-                 "--file-filter=文本文件 (*.txt) | *.txt", 
-                 "--file-filter=CSV文件 (*.csv) | *.csv", 
-                 "--file-filter=JSON文件 (*.json) | *.json"],
-                capture_output=True,
-                text=True,
-                timeout=30
-            )
-            
-            # 如果 zenity 成功执行（无论是否选择了文件），都不再使用Qt内置对话框
-            # 即使用户取消选择，也不再打开内置对话框
-            file_path = result.stdout.strip()
-            if file_path:
-                self.import_path_edit.setText(file_path)
-                config_manager.set("import_path", file_path)
-            return
-        except Exception:
-            pass
+        # 使用Qt内置对话框
+        dialog = QFileDialog(self, "选择导入文件", "./")
+        dialog.setNameFilter("文本文件 (*.txt);;CSV文件 (*.csv);;JSON文件 (*.json)")
         
-        # 如果 zenity 失败，使用Qt内置对话框
-        file_path, _ = QFileDialog.getOpenFileName(
-            self, "选择导入文件", "./", "文本文件 (*.txt);;CSV文件 (*.csv);;JSON文件 (*.json)"
+        # 调整对话框大小为 1/2 屏幕高，3/5 屏幕宽
+        screen = self.screen().geometry()
+        dialog.setGeometry(
+            screen.width() // 2 - (screen.width() * 3 // 10),
+            screen.height() // 2 - (screen.height() // 4),
+            screen.width() * 3 // 5,
+            screen.height() // 2
         )
-        if file_path:
+        
+        if dialog.exec() == QFileDialog.DialogCode.Accepted:
+            file_path = dialog.selectedFiles()[0]
             self.import_path_edit.setText(file_path)
             config_manager.set("import_path", file_path)
     
     def browse_export_path(self):
         """浏览导出路径"""
-        # 尝试使用 zenity 打开目录选择对话框
-        try:
-            import subprocess
-            
-            # 使用 zenity 打开目录选择对话框
-            result = subprocess.run(
-                ["zenity", "--file-selection", "--directory", "--title=选择导出目录", "--filename=./"],
-                capture_output=True,
-                text=True,
-                timeout=30
-            )
-            
-            # 如果 zenity 成功执行（无论是否选择了目录），都不再使用Qt内置对话框
-            # 即使用户取消选择，也不再打开内置对话框
-            directory = result.stdout.strip()
-            if directory:
-                self.export_path_edit.setText(directory)
-                config_manager.set("default_export_path", directory)
-            return
-        except Exception:
-            pass
+        # 使用Qt内置对话框
+        dialog = QFileDialog(self, "选择导出目录", "./")
+        dialog.setFileMode(QFileDialog.FileMode.Directory)
+        dialog.setOption(QFileDialog.Option.ShowDirsOnly, True)
         
-        # 如果 zenity 失败，使用Qt内置对话框
-        directory = QFileDialog.getExistingDirectory(
-            self, "选择导出目录", "./"
+        # 调整对话框大小为 1/2 屏幕高，3/5 屏幕宽
+        screen = self.screen().geometry()
+        dialog.setGeometry(
+            screen.width() // 2 - (screen.width() * 3 // 10),
+            screen.height() // 2 - (screen.height() // 4),
+            screen.width() * 3 // 5,
+            screen.height() // 2
         )
-        if directory:
+        
+        if dialog.exec() == QFileDialog.DialogCode.Accepted:
+            directory = dialog.selectedFiles()[0]
             self.export_path_edit.setText(directory)
             config_manager.set("default_export_path", directory)
     
