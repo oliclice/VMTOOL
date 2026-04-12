@@ -73,6 +73,8 @@ flowchart TD
         
         ImportExportTab --> showEvent["showEvent()"]
         showEvent --> update_export_full_path["update_export_full_path()"]
+        update_export_full_path --> split_export_paths["分表导出路径显示"]
+        update_export_full_path --> normal_export_paths["普通导出路径显示"]
         
         ImportExportTab --> import_data_gui["import_data()"]
         import_data_gui --> ImportThread["ImportThread"]
@@ -82,7 +84,12 @@ flowchart TD
         import_data_gui --> ProgressBarWidget
         
         ImportExportTab --> export_data_gui["export_data()"]
-        export_data_gui --> DictService.export_data
+        export_data_gui --> split_export["分表导出逻辑"]
+        split_export --> DictService.export_data["export_data(table=words)"]
+        split_export --> DictService.export_data["export_data(table=chars)"]
+        split_export --> DictService.export_data["export_data(table=special)"]
+        export_data_gui --> normal_export["普通导出逻辑"]
+        normal_export --> DictService.export_data
         
         CodeRulesTab --> test_rule["test_rule()"]
         test_rule --> DictService.generate_code
@@ -205,8 +212,11 @@ flowchart TD
         DictService --> calculate_all_codes["calculate_all_codes()"]
         calculate_all_codes --> generate_code
         
-        DictService --> export_data["export_data()"]
+        DictService --> export_data["export_data(table=None)"]
         export_data --> WordRepository.get_all
+        export_data --> WordRepository.get_words
+        export_data --> WordRepository.get_characters
+        export_data --> WordRepository.get_special_chars
         
         WeightCalculator["WeightCalculator"] --> set_weight_directly["set_weight_directly()"]
         set_weight_directly --> WordRepository.get_by_word
