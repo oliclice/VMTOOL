@@ -64,7 +64,7 @@ class StatsService:
                 # 记录编码到词条的映射
                 if word.code not in code_to_words:
                     code_to_words[word.code] = []
-                if len(code_to_words[word.code]) < 3:  # 只保存前 3 个示例
+                if len(code_to_words[word.code]) < 20:  # 只保存前 20 个示例
                     code_to_words[word.code].append(word.word)
             
             # 计算编码冲突
