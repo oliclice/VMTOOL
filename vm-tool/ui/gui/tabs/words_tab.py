@@ -206,33 +206,38 @@ class WordsTab(QWidget):
             )
             
             if reply == QMessageBox.StandardButton.Yes:
-                # 显示进度对话框
-                from PyQt6.QtWidgets import QProgressDialog
-                progress_dialog = QProgressDialog("正在添加词...", "取消", 0, 100, self)
-                progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
-                progress_dialog.show()
+                # 使用统一的进度条
+                if self.parent and hasattr(self.parent, 'progress_bar'):
+                    progress_bar = self.parent.progress_bar
+                    progress_bar.start_progress("正在添加词...")
+                else:
+                    progress_bar = None
                 
-                # 创建并启动线程
-                thread = AddBatchThread(self.dict_service, words, is_character=False)
+                # 创建并启动线程（保存为实例变量，防止被垃圾回收）
+                self.add_batch_thread = AddBatchThread(self.dict_service, words, is_character=False)
                 
                 def update_progress(progress, message):
-                    progress_dialog.setValue(progress)
-                    progress_dialog.setLabelText(message)
+                    if progress_bar:
+                        progress_bar.update_progress(progress, message)
                 
                 def on_finished(result):
-                    progress_dialog.close()
-                    QMessageBox.information(self, "成功", f"添加成功，共添加 {result.get('added', 0)} 个词")
+                    if progress_bar:
+                        progress_bar.finish_progress(f"添加成功，共添加 {result.get('added', 0)} 个词", success=True)
+                    else:
+                        QMessageBox.information(self, "成功", f"添加成功，共添加 {result.get('added', 0)} 个词")
                     self.refresh_words()
                     dialog.accept()
                 
                 def on_error(error):
-                    progress_dialog.close()
-                    QMessageBox.critical(self, "错误", f"添加失败: {error}")
+                    if progress_bar:
+                        progress_bar.error_progress(f"添加失败：{error}")
+                    else:
+                        QMessageBox.critical(self, "错误", f"添加失败：{error}")
                 
-                thread.progress.connect(update_progress)
-                thread.finished.connect(on_finished)
-                thread.error.connect(on_error)
-                thread.start()
+                self.add_batch_thread.progress.connect(update_progress)
+                self.add_batch_thread.finished.connect(on_finished)
+                self.add_batch_thread.error.connect(on_error)
+                self.add_batch_thread.start()
         
         add_button.clicked.connect(add_words)
         cancel_button.clicked.connect(dialog.reject)

@@ -38,6 +38,7 @@ from .tabs.special_tab import SpecialTab
 from .tabs.words_tab import WordsTab
 from .tabs.stats_tab import StatsTab
 from .tabs.import_export_tab import ImportExportTab
+from .progress_bar import ProgressBarWidget
 
 
 class VMTOOLPyQtApp(QMainWindow):
@@ -61,10 +62,13 @@ class VMTOOLPyQtApp(QMainWindow):
         # 创建菜单栏
         self.create_menu_bar()
         
-        # 创建状态栏
+        # 创建状态栏（集成进度条）
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
-        self.status_bar.showMessage("就绪")
+        
+        # 创建统一进度条组件
+        self.progress_bar = ProgressBarWidget()
+        self.status_bar.addPermanentWidget(self.progress_bar, stretch=1)
         
         # 线程对象
         self.calculate_thread = None
@@ -73,9 +77,9 @@ class VMTOOLPyQtApp(QMainWindow):
         try:
             from app.dal.init_db import init_database
             init_database()
-            self.status_bar.showMessage("数据库初始化成功")
+            self.progress_bar.finish_progress("数据库初始化成功", success=True)
         except Exception as e:
-            self.status_bar.showMessage(f"数据库初始化失败: {e}")
+            self.progress_bar.error_progress(f"数据库初始化失败：{e}")
         
         # 初始化服务
         self.dict_service = DictService()
