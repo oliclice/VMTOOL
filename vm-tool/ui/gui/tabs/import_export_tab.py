@@ -282,7 +282,8 @@ class ImportExportTab(QWidget):
             if progress_bar:
                 progress_bar.finish_progress(f"导入成功，共导入 {result.get('imported', 0)} 条数据", success=True)
             else:
-                QMessageBox.information(self, "成功", f"导入成功，共导入 {result.get('imported', 0)} 条数据")
+                if hasattr(self.parent, 'show_toast'):
+                    self.parent.show_toast(f"导入成功，共导入 {result.get('imported', 0)} 条数据")
             # 刷新所有表视图
             if self.parent and hasattr(self.parent, 'refresh_chars'):
                 self.parent.refresh_chars()
@@ -293,7 +294,8 @@ class ImportExportTab(QWidget):
             if progress_bar:
                 progress_bar.error_progress(f"导入失败：{error}")
             else:
-                QMessageBox.critical(self, "错误", f"导入失败：{error}")
+                if hasattr(self.parent, 'show_toast'):
+                    self.parent.show_toast(f"导入失败：{error}")
         
         self.import_thread.progress.connect(update_progress)
         self.import_thread.finished.connect(on_finished)
