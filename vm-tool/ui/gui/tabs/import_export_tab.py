@@ -1,6 +1,8 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, 
-                             QLabel, QComboBox, QProgressDialog, QMessageBox, QFileDialog)
+                             QLabel, QComboBox, QProgressDialog, QMessageBox, QFileDialog,
+                             QGroupBox, QFormLayout, QRadioButton, QButtonGroup, QFrame)
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QFont
 from app.services.filter import FilterService
 from app.core.config_manager import config_manager
 import os
@@ -16,126 +18,167 @@ class ImportExportTab(QWidget):
         self.init_ui()
     
     def init_ui(self):
-        """初始化UI"""
-        layout = QVBoxLayout(self)
-        # 设置布局间距，减少空白
-        layout.setSpacing(10)
-        layout.setContentsMargins(10, 10, 10, 10)
+        """初始化 UI"""
+        main_layout = QVBoxLayout(self)
+        main_layout.setSpacing(15)
+        main_layout.setContentsMargins(15, 15, 15, 15)
+        
+        # 创建标题
+        title_label = QLabel("导入导出管理")
+        title_font = QFont()
+        title_font.setPointSize(16)
+        title_font.setBold(True)
+        title_label.setFont(title_font)
+        main_layout.addWidget(title_label)
+        
+        # 创建分割线
+        line = QFrame()
+        line.setFrameShape(QFrame.Shape.HLine)
+        line.setFrameShadow(QFrame.Shadow.Sunken)
+        main_layout.addWidget(line)
         
         # 导出部分（上侧）
-        export_group = QWidget()
+        export_group = QGroupBox("📤 数据导出")
         export_layout = QVBoxLayout(export_group)
-        # 设置内部布局间距，确保标题与配置和按钮之间的距离不超过400px
-        export_layout.setSpacing(10)
-        
-        export_title = QLabel("导出")
-        export_title.setFont(self.parent.font() if self.parent else None)
-        export_layout.addWidget(export_title)
+        export_layout.setSpacing(12)
         
         # 导出路径
-        export_path_layout = QHBoxLayout()
-        export_path_label = QLabel("导出路径:")
+        export_path_form = QFormLayout()
+        export_path_form.setSpacing(8)
+        
         self.export_path_edit = QLineEdit()
         self.export_path_edit.setText(config_manager.get("default_export_path", "./"))
-        # 设置输入框的最小宽度
-        self.export_path_edit.setMinimumWidth(300)
+        self.export_path_edit.setPlaceholderText("选择导出目录")
+        self.export_path_edit.setMinimumWidth(350)
         
-        # 连接信号，自动保存
         def on_export_path_changed(text):
             config_manager.set("default_export_path", text)
-            # 更新导出界面中的完整路径
-            if hasattr(self, 'update_export_full_path'):
-                self.update_export_full_path()
+            self.update_export_full_path()
         
         self.export_path_edit.textChanged.connect(on_export_path_changed)
         
-        export_browse_button = QPushButton("浏览")
+        export_browse_button = QPushButton("📁 浏览")
         export_browse_button.clicked.connect(self.browse_export_path)
+        export_browse_button.setMaximumWidth(100)
         
-        export_path_layout.addWidget(export_path_label)
-        export_path_layout.addWidget(self.export_path_edit)
-        export_path_layout.addWidget(export_browse_button)
-        export_layout.addLayout(export_path_layout)
+        export_path_widget = QHBoxLayout()
+        export_path_widget.addWidget(self.export_path_edit)
+        export_path_widget.addWidget(export_browse_button)
+        export_path_form.addRow(QLabel("导出目录:"), export_path_widget)
         
         # 导出格式
-        export_format_layout = QHBoxLayout()
-        export_format_label = QLabel("导出格式:")
         self.export_format_combo = QComboBox()
-        self.export_format_combo.addItems(["txt", "csv", "json"])
-        self.export_format_combo.setCurrentText(config_manager.get("default_export_format", "txt"))
-        export_format_layout.addWidget(export_format_label)
-        export_format_layout.addWidget(self.export_format_combo)
-        export_layout.addLayout(export_format_layout)
+        self.export_format_combo.addItems(["TXT 文本文件", "CSV 表格文件", "JSON 数据文件"])
+        current_format = config_manager.get("default_export_format", "txt")
+        format_map = {"txt": "TXT 文本文件", "csv": "CSV 表格文件", "json": "JSON 数据文件"}
+        self.export_format_combo.setCurrentText(format_map.get(current_format, "TXT 文本文件"))
+        self.export_format_combo.setMinimumWidth(200)
+        
+        def on_export_format_changed():
+            format_text = self.export_format_combo.currentText()
+            reverse_map = {"TXT 文本文件": "txt", "CSV 表格文件": "csv", "JSON 数据文件": "json"}
+            config_manager.set("default_export_format", reverse_map.get(format_text, "txt"))
+            self.update_export_full_path()
+        
+        self.export_format_combo.currentTextChanged.connect(on_export_format_changed)
+        export_path_form.addRow(QLabel("导出格式:"), self.export_format_combo)
+        
+        export_layout.addLayout(export_path_form)
         
         # 完整导出路径显示
-        self.full_export_path_label = QLabel("完整导出路径:")
+        path_display_group = QGroupBox("📍 完整导出路径")
+        path_display_layout = QVBoxLayout(path_display_group)
+        
         self.full_export_path_value = QLabel("")
-        # 设置标签的最小宽度，确保文本能够完整显示
-        self.full_export_path_value.setMinimumWidth(300)
-        export_layout.addWidget(self.full_export_path_label)
-        export_layout.addWidget(self.full_export_path_value)
+        self.full_export_path_value.setWordWrap(True)
+        self.full_export_path_value.setStyleSheet("QLabel { color: #1976D2; padding: 8px; background-color: #E3F2FD; border-radius: 4px; }")
+        self.full_export_path_value.setMinimumHeight(40)
+        path_display_layout.addWidget(self.full_export_path_value)
+        
+        export_layout.addWidget(path_display_group)
         
         # 导出按钮
-        export_button = QPushButton("导出")
+        export_button = QPushButton("🚀 开始导出")
+        export_button.setStyleSheet("QPushButton { background-color: #4CAF50; color: white; font-weight: bold; padding: 10px; border-radius: 5px; } QPushButton:hover { background-color: #45a049; }")
+        export_button.setMinimumHeight(40)
         export_button.clicked.connect(self.export_data)
         export_layout.addWidget(export_button)
         
-        layout.addWidget(export_group)
+        export_layout.addStretch()
+        
+        main_layout.addWidget(export_group)
         
         # 导入部分（下侧）
-        import_group = QWidget()
+        import_group = QGroupBox("📥 数据导入")
         import_layout = QVBoxLayout(import_group)
-        # 设置内部布局间距，确保标题与配置和按钮之间的距离不超过400px
-        import_layout.setSpacing(10)
-        
-        import_title = QLabel("导入")
-        import_title.setFont(self.parent.font() if self.parent else None)
-        import_layout.addWidget(import_title)
+        import_layout.setSpacing(12)
         
         # 导入路径
-        import_path_layout = QHBoxLayout()
-        import_path_label = QLabel("导入路径:")
+        import_path_form = QFormLayout()
+        import_path_form.setSpacing(8)
+        
         self.import_path_edit = QLineEdit()
         self.import_path_edit.setText(config_manager.get("import_path", "./"))
-        # 设置输入框的最小宽度
-        self.import_path_edit.setMinimumWidth(300)
+        self.import_path_edit.setPlaceholderText("选择导入文件")
+        self.import_path_edit.setMinimumWidth(350)
         
-        # 连接信号，自动保存
         def on_import_path_changed(text):
             config_manager.set("import_path", text)
         
         self.import_path_edit.textChanged.connect(on_import_path_changed)
         
-        import_browse_button = QPushButton("浏览")
+        import_browse_button = QPushButton("📁 浏览")
         import_browse_button.clicked.connect(self.browse_import_path)
+        import_browse_button.setMaximumWidth(100)
         
-        import_path_layout.addWidget(import_path_label)
-        import_path_layout.addWidget(self.import_path_edit)
-        import_path_layout.addWidget(import_browse_button)
-        import_layout.addLayout(import_path_layout)
+        import_path_widget = QHBoxLayout()
+        import_path_widget.addWidget(self.import_path_edit)
+        import_path_widget.addWidget(import_browse_button)
+        import_path_form.addRow(QLabel("导入文件:"), import_path_widget)
         
         # 导入格式
-        import_format_layout = QHBoxLayout()
-        import_format_label = QLabel("导入格式:")
         self.import_format_combo = QComboBox()
-        self.import_format_combo.addItems(["txt", "csv", "json"])
-        self.import_format_combo.setCurrentText(config_manager.get("default_import_format", "txt"))
-        import_format_layout.addWidget(import_format_label)
-        import_format_layout.addWidget(self.import_format_combo)
-        import_layout.addLayout(import_format_layout)
+        self.import_format_combo.addItems(["TXT 文本文件", "CSV 表格文件", "JSON 数据文件"])
+        current_import_format = config_manager.get("default_import_format", "txt")
+        import_format_map = {"txt": "TXT 文本文件", "csv": "CSV 表格文件", "json": "JSON 数据文件"}
+        self.import_format_combo.setCurrentText(import_format_map.get(current_import_format, "TXT 文本文件"))
+        self.import_format_combo.setMinimumWidth(200)
+        
+        def on_import_format_changed():
+            format_text = self.import_format_combo.currentText()
+            reverse_map = {"TXT 文本文件": "txt", "CSV 表格文件": "csv", "JSON 数据文件": "json"}
+            config_manager.set("default_import_format", reverse_map.get(format_text, "txt"))
+        
+        self.import_format_combo.currentTextChanged.connect(on_import_format_changed)
+        import_path_form.addRow(QLabel("导入格式:"), self.import_format_combo)
+        
+        import_layout.addLayout(import_path_form)
+        
+        # 导入选项
+        import_options_group = QGroupBox("导入选项")
+        import_options_layout = QVBoxLayout(import_options_group)
+        
+        self.overwrite_radio = QRadioButton("覆盖现有数据")
+        self.merge_radio = QRadioButton("合并现有数据")
+        self.overwrite_radio.setChecked(True)
+        
+        import_options_layout.addWidget(self.overwrite_radio)
+        import_options_layout.addWidget(self.merge_radio)
+        import_layout.addWidget(import_options_group)
         
         # 导入按钮
-        import_button = QPushButton("导入")
+        import_button = QPushButton("🚀 开始导入")
+        import_button.setStyleSheet("QPushButton { background-color: #2196F3; color: white; font-weight: bold; padding: 10px; border-radius: 5px; } QPushButton:hover { background-color: #0b7dda; }")
+        import_button.setMinimumHeight(40)
         import_button.clicked.connect(self.import_data)
         import_layout.addWidget(import_button)
         
-        layout.addWidget(import_group)
+        import_layout.addStretch()
+        
+        main_layout.addWidget(import_group)
         
         # 初始更新完整导出路径
         self.update_export_full_path()
-        
-        # 连接信号，当导出格式改变时更新完整导出路径
-        self.export_format_combo.currentTextChanged.connect(self.update_export_full_path)
     
     def browse_import_path(self):
         """浏览导入路径"""
@@ -301,30 +344,39 @@ class ImportExportTab(QWidget):
         """更新导出界面中的完整路径"""
         # 构造完整导出路径
         export_path = self.export_path_edit.text().strip()
-        export_format = self.export_format_combo.currentText()
+        format_text = self.export_format_combo.currentText()
+        format_map = {"TXT 文本文件": "txt", "CSV 表格文件": "csv", "JSON 数据文件": "json"}
+        export_format = format_map.get(format_text, "txt")
         default_export_name = config_manager.get("default_export_name", "vmtool_export")
-        full_path = os.path.join(export_path, f"{default_export_name}.{export_format}")
         
-        # 显示完整导出路径
-        self.full_export_path_value.setText(full_path)
+        # 收集所有导出路径
+        all_paths = []
         
-        # 检查是否启用了默认导出路径
-        if not config_manager.get("export_path_enabled", True):
-            self.full_export_path_value.setText("默认导出路径已禁用")
+        # 添加默认导出路径（如果启用）
+        if config_manager.get("export_path_enabled", True):
+            full_path = os.path.join(export_path, f"{default_export_name}.{export_format}")
+            all_paths.append(f"📁 默认导出：{full_path}")
+        else:
+            all_paths.append("⚠️ 默认导出路径已禁用")
         
-        # 检查是否启用了 Rime 自动导出
-        rime_paths = []
+        # 添加 ibus/rime 导出路径
         if config_manager.get("auto_export_ibus_rime", False):
             ibus_rime_path = os.path.expanduser("~/.config/ibus/rime")
             if os.path.exists(ibus_rime_path):
-                rime_paths.append(f"ibus/rime: {os.path.join(ibus_rime_path, f'{default_export_name}.{export_format}')}")
+                ibus_full_path = os.path.join(ibus_rime_path, f"{default_export_name}.{export_format}")
+                all_paths.append(f"☁️ ibus/rime: {ibus_full_path}")
+            else:
+                all_paths.append(f"⚠️ ibus/rime 目录不存在：{ibus_rime_path}")
         
+        # 添加 fcitx5/rime 导出路径
         if config_manager.get("auto_export_fcitx5_rime", False):
             fcitx5_rime_path = os.path.expanduser("~/.local/share/fcitx5/rime")
             if os.path.exists(fcitx5_rime_path):
-                rime_paths.append(f"fcitx5/rime: {os.path.join(fcitx5_rime_path, f'{default_export_name}.{export_format}')}")
+                fcitx5_full_path = os.path.join(fcitx5_rime_path, f"{default_export_name}.{export_format}")
+                all_paths.append(f"☁️ fcitx5/rime: {fcitx5_full_path}")
+            else:
+                all_paths.append(f"⚠️ fcitx5/rime 目录不存在：{fcitx5_rime_path}")
         
-        # 如果有 Rime 导出路径，添加到显示中
-        if rime_paths:
-            rime_paths_text = "\n".join(rime_paths)
-            self.full_export_path_value.setText(f"{full_path}\n\nRime 自动导出路径:\n{rime_paths_text}")
+        # 显示所有导出路径
+        paths_text = "\n".join(all_paths)
+        self.full_export_path_value.setText(paths_text)
