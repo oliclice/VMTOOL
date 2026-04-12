@@ -175,6 +175,9 @@ flowchart TD
         
         CodeGenerator["CodeGenerator"] --> set_config["set_config()"]
         CodeGenerator --> get_config["get_config()"]
+        CodeGenerator --> generate_code_from_chars["generate_code_from_chars()"]
+        CodeGenerator --> _execute_custom_rule["_execute_custom_rule()"]
+        CodeGenerator --> validate_code["validate_code()"]
     end
 
     subgraph 数据访问层
@@ -210,6 +213,8 @@ flowchart TD
     set_codegen_custom --> CodeGenerator.set_config
     save_codegen_config --> CodeGenerator.get_config
     restore_codegen_config --> CodeGenerator.set_config
+    generate_code_from_chars --> WordRepository.get_by_word
+    _execute_custom_rule --> config_manager
 
     classDef main fill:#f9f,stroke:#333,stroke-width:2px;
     classDef gui fill:#bbf,stroke:#333,stroke-width:2px;
