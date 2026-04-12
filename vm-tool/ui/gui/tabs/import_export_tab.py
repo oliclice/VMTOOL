@@ -299,7 +299,10 @@ class ImportExportTab(QWidget):
                 QMessageBox.critical(self, "错误", f"创建导出目录失败: {e}")
                 return
         
-        export_format = self.export_format_combo.currentText()
+        format_text = self.export_format_combo.currentText()
+        # 映射显示文本到实际格式代码
+        format_map = {"TXT 文本文件": "txt", "CSV 表格文件": "csv", "JSON 数据文件": "json"}
+        export_format = format_map.get(format_text, "txt")
         
         # 构造默认导出文件名
         default_export_name = config_manager.get("default_export_name", "vmtool_export")
