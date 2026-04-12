@@ -66,7 +66,7 @@ class AddBatchThread(QThread):
 
 class CalculateThread(QThread):
     """批量计算编码线程"""
-    progress_updated = pyqtSignal(int, str)
+    progress = pyqtSignal(int, str)
     finished = pyqtSignal(dict)
     error = pyqtSignal(str)
     
@@ -76,11 +76,11 @@ class CalculateThread(QThread):
     
     def run(self):
         try:
-            self.progress_updated.emit(0, "准备计算编码...")
+            self.progress.emit(0, "准备计算编码...")
             
             # 定义进度回调函数
             def progress_callback(progress, message):
-                self.progress_updated.emit(progress, message)
+                self.progress.emit(progress, message)
             
             # 调用计算方法，传递进度回调
             result = self.dict_service.calculate_all_codes(progress_callback)

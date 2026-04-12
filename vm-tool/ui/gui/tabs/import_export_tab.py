@@ -256,26 +256,33 @@ class ImportExportTab(QWidget):
             return
         
         if not os.path.exists(file_path):
-            QMessageBox.warning(self, "警告", f"文件不存在: {file_path}")
+            QMessageBox.warning(self, "警告", f"文件不存在：{file_path}")
             return
         
-        format = self.import_format_combo.currentText()
+        # 将用户界面选择的格式转换为实际格式（txt/csv/json）
+        format_text = self.import_format_combo.currentText()
+        format_map = {"TXT 文本文件": "txt", "CSV 表格文件": "csv", "JSON 数据文件": "json"}
+        format = format_map.get(format_text, "txt")
         
-        # 显示进度对话框
-        progress_dialog = QProgressDialog("正在导入数据...", "取消", 0, 100, self)
-        progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
-        progress_dialog.show()
+        # 使用统一的进度条
+        if self.parent and hasattr(self.parent, 'progress_bar'):
+            progress_bar = self.parent.progress_bar
+            progress_bar.start_progress("正在导入数据...")
+        else:
+            progress_bar = None
         
-        # 创建并启动线程
-        thread = ImportThread(self.filter_service, file_path, format)
+        # 创建并启动线程（保存为实例变量，防止被垃圾回收）
+        self.import_thread = ImportThread(self.filter_service, file_path, format)
         
         def update_progress(progress, message):
-            progress_dialog.setValue(progress)
-            progress_dialog.setLabelText(message)
+            if progress_bar:
+                progress_bar.update_progress(progress, message)
         
         def on_finished(result):
-            progress_dialog.close()
-            QMessageBox.information(self, "成功", f"导入成功，共导入 {result.get('imported', 0)} 条数据")
+            if progress_bar:
+                progress_bar.finish_progress(f"导入成功，共导入 {result.get('imported', 0)} 条数据", success=True)
+            else:
+                QMessageBox.information(self, "成功", f"导入成功，共导入 {result.get('imported', 0)} 条数据")
             # 刷新所有表视图
             if self.parent and hasattr(self.parent, 'refresh_chars'):
                 self.parent.refresh_chars()
@@ -283,13 +290,15 @@ class ImportExportTab(QWidget):
                 self.parent.refresh_words()
         
         def on_error(error):
-            progress_dialog.close()
-            QMessageBox.critical(self, "错误", f"导入失败: {error}")
+            if progress_bar:
+                progress_bar.error_progress(f"导入失败：{error}")
+            else:
+                QMessageBox.critical(self, "错误", f"导入失败：{error}")
         
-        thread.progress.connect(update_progress)
-        thread.finished.connect(on_finished)
-        thread.error.connect(on_error)
-        thread.start()
+        self.import_thread.progress.connect(update_progress)
+        self.import_thread.finished.connect(on_finished)
+        self.import_thread.error.connect(on_error)
+        self.import_thread.start()
     
     def export_data(self):
         """导出数据"""
