@@ -375,15 +375,11 @@ class WordsTab(QWidget):
             else:
                 progress_bar = None
             
-            def progress_callback(progress, message):
+            def update_progress(progress, message):
                 if progress_bar:
                     progress_bar.update_progress(progress, message)
             
-            try:
-                # 调用现有的calculate_all_codes方法
-                result = self.dict_service.calculate_all_codes(progress_callback)
-                
-                # 完成进度
+            def on_finished(result):
                 if progress_bar:
                     progress_bar.finish_progress(f"批量重新计算编码完成！共处理 {result.get('total', 0)} 个词条", success=True)
                 
@@ -398,8 +394,16 @@ class WordsTab(QWidget):
                 
                 # 刷新词表
                 self.refresh_words()
-            except Exception as e:
+            
+            def on_error(error):
                 if progress_bar:
-                    progress_bar.error_progress(f"批量重新计算编码失败: {e}")
-                if "操作被用户取消" not in str(e):
-                    QMessageBox.critical(self, "错误", f"批量重新计算编码失败: {e}")
+                    progress_bar.error_progress(f"批量重新计算编码失败: {error}")
+                QMessageBox.critical(self, "错误", f"批量重新计算编码失败: {error}")
+            
+            # 创建并启动线程
+            from ..threads import CalculateThread
+            self.calculate_thread = CalculateThread(self.dict_service)
+            self.calculate_thread.progress.connect(update_progress)
+            self.calculate_thread.finished.connect(on_finished)
+            self.calculate_thread.error.connect(on_error)
+            self.calculate_thread.start()
