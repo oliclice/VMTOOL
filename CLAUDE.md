@@ -41,7 +41,6 @@
 
 用户界面层 (ui/)
 ├── CLI (Typer + Rich)
-├── Web (FastAPI + Jinja2 + HTMX)
 └── GUI (Tkinter/PyQt)
 
 数据存储层
@@ -77,7 +76,6 @@ vm-tool/
 │   └── config.py         # 应用配置
 ├── ui/                    # 用户界面
 │   ├── cli/              # 命令行界面
-│   ├── web/              # Web界面
 │   └── gui/              # 图形界面
 ├── tests/                 # 测试代码
 ├── docs/                  # 文档
@@ -110,7 +108,6 @@ vm-tool/
 
 ### 阶段三: 用户界面
 - ⏳ CLI界面实现
-- ⏳ Web界面开发
 - ⏳ 打包部署
 
 ## 性能目标

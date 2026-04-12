@@ -165,11 +165,13 @@ class SettingsTab(QWidget):
             config_manager.set("theme_mode", internal_mode)
             config_manager.set("theme_color", color)
             
-            # 应用主题
-            # 注意：这里需要通过父窗口应用主题
-            if hasattr(self.parent(), 'set_theme'):
-                self.parent().set_theme(internal_mode, theme, color)
-                self.parent().show_toast(f"主题已更改为: {theme} - {mode} - {color}")
+            # 使用主题管理器应用主题
+            from .theme_manager import theme_manager
+            theme_manager.set_theme(internal_mode, theme, color)
+            
+            # 显示提示
+            if hasattr(self.parent(), 'show_toast'):
+                self.parent().show_toast(f"主题已更改为：{theme} - {mode} - {color}")
         
         theme_combo.currentTextChanged.connect(on_theme_changed)
         mode_combo.currentTextChanged.connect(on_theme_changed)
