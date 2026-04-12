@@ -7,6 +7,7 @@ import logging
 from app.dal.repositories import WordRepository
 from app.dal.database import get_db
 from app.core.errors import DictError
+from app.core.config_manager import config_manager
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -64,7 +65,9 @@ class StatsService:
                 # 记录编码到词条的映射
                 if word.code not in code_to_words:
                     code_to_words[word.code] = []
-                if len(code_to_words[word.code]) < 20:  # 只保存前 20 个示例
+                # 从配置中获取词条示例上限，默认为20
+                example_limit = config_manager.get("stats_example_limit", 20)
+                if len(code_to_words[word.code]) < example_limit:  # 只保存前 N 个示例
                     code_to_words[word.code].append(word.word)
             
             # 计算编码冲突

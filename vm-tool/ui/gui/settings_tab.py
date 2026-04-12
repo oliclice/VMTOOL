@@ -106,6 +106,9 @@ class SettingsTab(QWidget):
         
         # 文件配置
         self.load_file_config_settings()
+        
+        # 统计设置
+        self.load_stats_settings()
     
     def load_theme_settings(self):
         """加载主题设置"""
@@ -1188,3 +1191,26 @@ elif len(vac) >= 4:
         # 配置会在修改时自动保存，这里只是显示一个提示
         if hasattr(self.parent(), 'show_toast'):
             self.parent().show_toast("设置已保存")
+    
+    def load_stats_settings(self):
+        """加载统计设置"""
+        section_widget = QGroupBox("统计设置")
+        section_layout = QVBoxLayout()
+        
+        # 统计设置
+        stats_layout = QFormLayout()
+        
+        # 词条示例上限
+        example_limit_label = QLabel("词条示例上限:")
+        example_limit_combo = QComboBox()
+        example_limit_combo.addItems(["3", "5", "10", "15", "20", "30", "50"])
+        example_limit_combo.setCurrentText(str(config_manager.get("stats_example_limit", 20)))
+        # 连接信号，自动保存
+        example_limit_combo.currentTextChanged.connect(lambda text: config_manager.set("stats_example_limit", int(text)))
+        
+        stats_layout.addRow(example_limit_label, example_limit_combo)
+        section_layout.addLayout(stats_layout)
+        section_widget.setLayout(section_layout)
+        
+        self.settings_content_layout.addWidget(section_widget)
+        self.section_widgets["统计设置"] = section_widget
