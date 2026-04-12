@@ -534,18 +534,44 @@ class DictService:
             logger.error(f"批量计算编码失败: {e}")
             raise DictError(f"批量计算编码失败: {e}")
     
-    def export_data(self, output_file: str, format: str = "txt", encoding: str = "utf-8") -> int:
+    def export_data(self, output_file: str, format: str = "txt", encoding: str = "utf-8", table: str = None) -> int:
         """导出数据"""
         try:
             from app.services.filter import FilterService
             filter_service = FilterService(self.db)
             
+            # 获取指定表的数据
+            if table:
+                if table == "words":
+                    # 只获取词表数据
+                    words = self.get_words()
+                elif table == "chars":
+                    # 只获取字表数据
+                    chars = self.get_characters()
+                    words = [{
+                        "word": char["word"],
+                        "code": char["code"],
+                        "weight": char["weight"]
+                    } for char in chars]
+                elif table == "special":
+                    # 只获取特殊字符表数据
+                    special_chars = self.get_special_chars()
+                    words = [{
+                        "word": char["word"],
+                        "code": char["code"],
+                        "weight": char["weight"]
+                    } for char in special_chars]
+                else:
+                    raise DictError(f"不支持的表名: {table}")
+            else:
+                words = None
+            
             if format == "txt":
-                return filter_service.export_to_txt(output_file, encoding=encoding)
+                return filter_service.export_to_txt(output_file, words=words, encoding=encoding)
             elif format == "csv":
-                return filter_service.export_to_csv(output_file, encoding=encoding)
+                return filter_service.export_to_csv(output_file, words=words, encoding=encoding)
             elif format == "json":
-                return filter_service.export_to_json(output_file, encoding=encoding)
+                return filter_service.export_to_json(output_file, words=words, encoding=encoding)
             else:
                 raise DictError(f"不支持的导出格式: {format}")
         except Exception as e:
