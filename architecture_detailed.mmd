@@ -17,6 +17,7 @@ flowchart TD
         __init__ --> StatsService
         __init__ --> set_theme["set_theme()"]
         __init__ --> create_tab_widget["create_tab_widget()"]
+        __init__ --> ProgressBarWidget["ProgressBarWidget"]
         
         create_menu_bar --> import_data["import_data()"]
         create_menu_bar --> export_data["export_data()"]
@@ -43,26 +44,47 @@ flowchart TD
         CharsTab --> delete_character_gui["delete_character()"]
         delete_character_gui --> DictService.delete_character
         
+        CharsTab --> add_batch_gui["add_batch()"]
+        add_batch_gui --> AddBatchThread["AddBatchThread"]
+        AddBatchThread --> DictService.add_characters
+        add_batch_gui --> ProgressBarWidget
+        
+        SpecialTab --> add_special_batch_gui["add_batch()"]
+        add_special_batch_gui --> AddBatchThread
+        AddBatchThread --> DictService.add_words
+        add_special_batch_gui --> ProgressBarWidget
+        
+        WordsTab --> add_batch_words_gui["add_batch()"]
+        add_batch_words_gui --> AddBatchThread
+        AddBatchThread --> DictService.add_words
+        add_batch_words_gui --> ProgressBarWidget
+        
         WordsTab --> recalculate_all_codes_gui["recalculate_all_codes()"]
         recalculate_all_codes_gui --> CalculateThread["CalculateThread"]
         CalculateThread --> DictService.calculate_all_codes
+        recalculate_all_codes_gui --> ProgressBarWidget
         
         ImportExportTab --> showEvent["showEvent()"]
         showEvent --> update_export_full_path["update_export_full_path()"]
         
+        ImportExportTab --> import_data_gui["import_data()"]
+        import_data_gui --> ImportThread["ImportThread"]
+        ImportThread --> FilterService.import_from_txt
+        ImportThread --> FilterService.import_from_csv
+        ImportThread --> FilterService.import_from_json
+        import_data_gui --> ProgressBarWidget
+        
+        ImportExportTab --> export_data_gui["export_data()"]
+        export_data_gui --> DictService.export_data
+        
         CodeRulesTab --> test_rule["test_rule()"]
-        test_rule --> get_rule_content["get rule content"]
-        test_rule --> get_python_mode["get python mode"]
-        test_rule --> save_original_config["save original config"]
-        test_rule --> save_codegen_config["save CodeGenerator config"]
-        test_rule --> set_temp_rule["set temp rule"]
-        test_rule --> set_codegen_custom["set CodeGenerator to custom mode"]
-        test_rule --> generate_code["generate_code()"]
-        test_rule --> get_rule_name["get rule name from UI"]
-        test_rule --> get_ui_python_mode["get python mode from UI"]
-        test_rule --> restore_original_config["restore original config"]
-        test_rule --> restore_codegen_config["restore CodeGenerator config"]
-        test_rule --> cleanup_temp_rule["cleanup temp rule"]
+        test_rule --> DictService.generate_code
+        test_rule --> ProgressBarWidget
+        
+        ProgressBarWidget --> start_progress["start_progress()"]
+        ProgressBarWidget --> update_progress["update_progress()"]
+        ProgressBarWidget --> finish_progress["finish_progress()"]
+        ProgressBarWidget --> error_progress["error_progress()"]
     end
 
     subgraph CLI
@@ -174,19 +196,51 @@ flowchart TD
         get_code_preview --> generate_code
         
         DictService --> calculate_all_codes["calculate_all_codes()"]
-        calculate_all_codes --> save_original_config["save original config"]
-        calculate_all_codes --> set_codegen_custom["set CodeGenerator to custom mode"]
         calculate_all_codes --> generate_code
-        calculate_all_codes --> restore_original_config["restore original config"]
         
-        WeightCalculator["WeightCalculator"] --> WordRepository
-        FilterService["FilterService"] --> WordRepository
-        StatsService["StatsService"] --> WordRepository
+        DictService --> export_data["export_data()"]
+        export_data --> WordRepository.get_all
+        
+        WeightCalculator["WeightCalculator"] --> set_weight_directly["set_weight_directly()"]
+        set_weight_directly --> WordRepository.get_by_word
+        set_weight_directly --> WordRepository.update
+        
+        FilterService["FilterService"] --> filter_by_length["filter_by_length()"]
+        filter_by_length --> WordRepository.get_all
+        
+        FilterService --> filter_by_weight["filter_by_weight()"]
+        filter_by_weight --> WordRepository.get_all
+        
+        FilterService --> filter_by_pattern["filter_by_pattern()"]
+        filter_by_pattern --> WordRepository.search
+        
+        FilterService --> import_from_txt["import_from_txt()"]
+        import_from_txt --> DictService.add_words
+        
+        FilterService --> import_from_csv["import_from_csv()"]
+        import_from_csv --> DictService.add_words
+        
+        FilterService --> import_from_json["import_from_json()"]
+        import_from_json --> DictService.add_words
+        
+        FilterService --> export_to_txt["export_to_txt()"]
+        export_to_txt --> WordRepository.get_all
+        
+        FilterService --> export_to_csv["export_to_csv()"]
+        export_to_csv --> WordRepository.get_all
+        
+        FilterService --> export_to_json["export_to_json()"]
+        export_to_json --> WordRepository.get_all
+        
+        StatsService["StatsService"] --> generate_report["generate_report()"]
+        generate_report --> WordRepository.get_all
         
         CodeGenerator["CodeGenerator"] --> set_config["set_config()"]
         CodeGenerator --> get_config["get_config()"]
         CodeGenerator --> generate_code_from_chars["generate_code_from_chars()"]
+        generate_code_from_chars --> WordRepository.get_by_word
         CodeGenerator --> _execute_custom_rule["_execute_custom_rule()"]
+        _execute_custom_rule --> config_manager
         CodeGenerator --> validate_code["validate_code()"]
     end
 
