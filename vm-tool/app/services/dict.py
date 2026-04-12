@@ -485,41 +485,51 @@ class DictService:
     def calculate_all_codes(self, progress_callback: Optional[Callable[[int, str], None]] = None) -> Dict[str, Any]:
         """计算所有未手动修改过编码的词条的编码"""
         try:
-            # 获取所有未手动修改过编码的词条，排除字表（is_character=True）
-            db_words = self.db.query(Word).filter(Word.manual == False, Word.is_character == False).all()
+            # 保存原始配置
+            original_config = self.code_generator.get_config().copy()
             
-            total = len(db_words)
-            updated = 0
-            failed = 0
+            # 设置为使用自定义规则，这样会使用默认规则
+            self.code_generator.set_config({'rule': 'custom'})
             
-            for i, db_word in enumerate(db_words):
-                try:
-                    # 生成新编码
-                    new_code = self.generate_code(db_word.word)
-                    if new_code:
-                        # 更新编码，不设置manual为True，因为这是自动计算的
-                        db_word.code = new_code
-                        updated += 1
-                except Exception as e:
-                    logger.error(f"计算词条 '{db_word.word}' 的编码失败: {e}")
-                    failed += 1
+            try:
+                # 获取所有未手动修改过编码的词条，排除字表（is_character=True）
+                db_words = self.db.query(Word).filter(Word.manual == False, Word.is_character == False).all()
                 
-                # 每处理100个词条更新一次进度
-                if progress_callback and (i + 1) % 100 == 0:
-                    progress = int((i + 1) / total * 100)
-                    progress_callback(progress, f"已处理 {i + 1}/{total} 词条")
-            
-            # 提交更改
-            self.db.commit()
-            
-            if progress_callback:
-                progress_callback(100, "计算完成")
-            
-            return {
-                "total": total,
-                "updated": updated,
-                "failed": failed
-            }
+                total = len(db_words)
+                updated = 0
+                failed = 0
+                
+                for i, db_word in enumerate(db_words):
+                    try:
+                        # 生成新编码
+                        new_code = self.generate_code(db_word.word)
+                        if new_code:
+                            # 更新编码，不设置manual为True，因为这是自动计算的
+                            db_word.code = new_code
+                            updated += 1
+                    except Exception as e:
+                        logger.error(f"计算词条 '{db_word.word}' 的编码失败: {e}")
+                        failed += 1
+                    
+                    # 每处理100个词条更新一次进度
+                    if progress_callback and (i + 1) % 100 == 0:
+                        progress = int((i + 1) / total * 100)
+                        progress_callback(progress, f"已处理 {i + 1}/{total} 词条")
+                
+                # 提交更改
+                self.db.commit()
+                
+                if progress_callback:
+                    progress_callback(100, "计算完成")
+                
+                return {
+                    "total": total,
+                    "updated": updated,
+                    "failed": failed
+                }
+            finally:
+                # 恢复原始配置
+                self.code_generator.set_config(original_config)
         except Exception as e:
             logger.error(f"批量计算编码失败: {e}")
             raise DictError(f"批量计算编码失败: {e}")
