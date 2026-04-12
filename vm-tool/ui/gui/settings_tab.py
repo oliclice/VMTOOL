@@ -1222,7 +1222,7 @@ elif len(vac) >= 4:
             elif section == "配置目录":
                 self.load_config_dir_settings()
             elif section == "数据库路径":
-                self.load_db_path_settings()
+                self.load_database_path_settings()
             elif section == "缓存设置":
                 self.load_cache_settings()
             elif section == "统计设置":
