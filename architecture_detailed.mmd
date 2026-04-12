@@ -37,6 +37,9 @@ flowchart TD
         create_tab_widget --> create_settings_tab["create_settings_tab()"]
         create_settings_tab --> SettingsTab["SettingsTab"]
         
+        CharsTab --> search_characters_gui["search_characters()"]
+        search_characters_gui --> DictService.search_characters
+        
         CodeRulesTab --> test_rule["test_rule()"]
         test_rule --> get_rule_content["get rule content"]
         test_rule --> get_python_mode["get python mode"]
@@ -97,6 +100,8 @@ flowchart TD
         DictService --> get_word_by_text["get_word_by_text()"]
         get_word_by_text --> WordRepository.get_by_word
         
+        DictService --> get_word_by_id["get_word_by_id()"]
+        
         DictService --> get_words_by_code["get_words_by_code()"]
         get_words_by_code --> WordRepository.get_by_code
         
@@ -148,6 +153,9 @@ flowchart TD
         
         DictService --> search_words["search_words()"]
         search_words --> WordRepository.search
+        
+        DictService --> search_characters["search_characters()"]
+        search_characters --> WordRepository.search
         
         DictService --> get_code_preview["get_code_preview()"]
         get_code_preview --> generate_code

@@ -424,6 +424,25 @@ class DictService:
             logger.error(f"搜索词条失败: {e}")
             raise DictError(f"搜索词条失败: {e}")
     
+    def search_characters(self, keyword: str, field: str = "word") -> List[Dict[str, Any]]:
+        """搜索字符"""
+        try:
+            db_words = self.repo.search(keyword, field)
+            # 过滤出is_character=True的结果
+            return [{
+                "id": word.id,
+                "word": word.word,
+                "code": word.code,
+                "weight": word.weight,
+                "is_active": word.is_active,
+                "is_character": word.is_character,
+                "is_special": word.is_special,
+                "manual": word.manual
+            } for word in db_words if word.is_character]
+        except Exception as e:
+            logger.error(f"搜索字符失败: {e}")
+            raise DictError(f"搜索字符失败: {e}")
+    
     def get_code_preview(self) -> List[Dict[str, Any]]:
         """获取编码变化预览数据"""
         try:
