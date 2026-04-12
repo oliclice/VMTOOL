@@ -27,13 +27,20 @@ class StatsService:
         try:
             all_words = self.repo.get_all()
             length_counter: Counter[int] = Counter()
+            total_chars = 0
+            total_special = 0
             
             for word in all_words:
                 length = len(word.word)
                 length_counter[length] += 1
+                total_chars += length
+                if word.is_special:
+                    total_special += 1
             
             return {
                 "total_words": len(all_words),
+                "total_chars": total_chars,
+                "total_special": total_special,
                 "length_distribution": dict(length_counter),
                 "average_length": sum(len(word.word) for word in all_words) / len(all_words) if all_words else 0
             }
@@ -47,11 +54,18 @@ class StatsService:
             all_words = self.repo.get_all()
             code_length_counter: Counter[int] = Counter()
             code_counter: Counter[str] = Counter()
+            code_to_words: Dict[str, List[str]] = {}
             
             for word in all_words:
                 code_length = len(word.code)
                 code_length_counter[code_length] += 1
                 code_counter[word.code] += 1
+                
+                # 记录编码到词条的映射
+                if word.code not in code_to_words:
+                    code_to_words[word.code] = []
+                if len(code_to_words[word.code]) < 3:  # 只保存前 3 个示例
+                    code_to_words[word.code].append(word.word)
             
             # 计算编码冲突
             conflicts = {code: count for code, count in code_counter.items() if count > 1}
@@ -61,7 +75,8 @@ class StatsService:
                 "code_length_distribution": dict(code_length_counter),
                 "conflicts": conflicts,
                 "conflict_count": len(conflicts),
-                "code_frequency": dict(code_counter)
+                "code_frequency": dict(code_counter),
+                "code_to_words": code_to_words
             }
         except Exception as e:
             logger.error(f"获取编码统计失败: {e}")
