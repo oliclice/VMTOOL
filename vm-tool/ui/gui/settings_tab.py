@@ -39,7 +39,7 @@ class SettingsTab(QWidget):
         
         # 添加设置类型
         sections = ["主题设置", "字体设置", "语言设置", 
-                   "配置目录", "数据库路径", "缓存设置", "删除表", "文件配置"]
+                   "配置目录", "数据库路径", "缓存设置", "统计设置", "删除表", "文件配置"]
         for section in sections:
             QTreeWidgetItem(settings_types, [section])
         
@@ -1202,13 +1202,25 @@ elif len(vac) >= 4:
         
         # 词条示例上限
         example_limit_label = QLabel("词条示例上限:")
-        example_limit_combo = QComboBox()
-        example_limit_combo.addItems(["3", "5", "10", "15", "20", "30", "50"])
-        example_limit_combo.setCurrentText(str(config_manager.get("stats_example_limit", 20)))
-        # 连接信号，自动保存
-        example_limit_combo.currentTextChanged.connect(lambda text: config_manager.set("stats_example_limit", int(text)))
+        example_limit_edit = QLineEdit()
+        example_limit_edit.setText(str(config_manager.get("stats_example_limit", 20)))
         
-        stats_layout.addRow(example_limit_label, example_limit_combo)
+        # 输入验证函数
+        def validate_example_limit(text):
+            if not text.isdigit():
+                # 不是纯数字，显示toast提醒并恢复到20
+                if hasattr(self.parent(), 'show_toast'):
+                    self.parent().show_toast("词条示例上限必须是纯数字")
+                example_limit_edit.setText("20")
+                config_manager.set("stats_example_limit", 20)
+            else:
+                # 是纯数字，保存设置
+                config_manager.set("stats_example_limit", int(text))
+        
+        # 连接信号，自动保存
+        example_limit_edit.textChanged.connect(validate_example_limit)
+        
+        stats_layout.addRow(example_limit_label, example_limit_edit)
         section_layout.addLayout(stats_layout)
         section_widget.setLayout(section_layout)
         
