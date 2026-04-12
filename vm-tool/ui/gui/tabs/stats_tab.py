@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QT
                              QPushButton, QLabel, QComboBox, QMessageBox, QGroupBox)
 from PyQt6.QtCore import Qt
 from app.services.stats import StatsService
+from app.core.config_manager import config_manager
 
 class StatsTab(QWidget):
     """统计分析标签页"""
@@ -122,8 +123,10 @@ class StatsTab(QWidget):
                 # 获取使用该编码的词条示例
                 example_words = code_to_words.get(code, [])
                 if example_words:
-                    # 显示前 20 个词条，用逗号分隔
-                    example_text = ", ".join(example_words[:20])
+                    # 从配置中获取词条示例上限，默认为20
+                    example_limit = config_manager.get("stats_example_limit", 20)
+                    # 显示前 N 个词条，用逗号分隔
+                    example_text = ", ".join(example_words[:example_limit])
                     self.code_frequency_table.setItem(i, 2, QTableWidgetItem(example_text))
                 else:
                     self.code_frequency_table.setItem(i, 2, QTableWidgetItem("-"))
