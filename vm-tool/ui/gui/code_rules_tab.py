@@ -325,6 +325,9 @@ class CodeRulesTab(QWidget):
     
     def show_syntax_help(self):
         """显示语法说明"""
+        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QPushButton, QScrollArea
+        from PyQt6.QtCore import QSize
+        
         help_text = """编码规则语法说明：
 
 普通模式：
@@ -380,11 +383,45 @@ else:
 
 # 自定义复杂逻辑
 """
-        dialog = QMessageBox()
+        
+        # 创建可调整大小的对话框
+        dialog = QDialog(self)
         dialog.setWindowTitle("语法说明")
-        dialog.setText(help_text)
-        dialog.setIcon(QMessageBox.Icon.Information)
-        dialog.setStandardButtons(QMessageBox.StandardButton.Ok)
+        
+        # 获取屏幕尺寸
+        screen = self.screen()
+        screen_size = screen.size()
+        dialog_width = int(screen_size.width() * 2/5)
+        dialog_height = int(screen_size.height() * 1/2)
+        
+        # 设置默认大小
+        dialog.resize(dialog_width, dialog_height)
+        
+        # 设置布局
+        layout = QVBoxLayout(dialog)
+        
+        # 创建滚动区域
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        
+        # 创建文本显示组件
+        text_edit = QTextEdit()
+        text_edit.setPlainText(help_text)
+        text_edit.setReadOnly(True)
+        text_edit.setFont(QFont("Monospace", 10))
+        
+        # 将文本组件放入滚动区域
+        scroll_area.setWidget(text_edit)
+        
+        # 添加滚动区域到布局
+        layout.addWidget(scroll_area)
+        
+        # 添加确定按钮
+        button = QPushButton("确定")
+        button.clicked.connect(dialog.accept)
+        layout.addWidget(button)
+        
+        # 显示对话框
         dialog.exec()
     
     def apply_template(self):
