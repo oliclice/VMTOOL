@@ -5,6 +5,10 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QLa
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QColor
 from app.core.config_manager import config_manager
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class CodeRulesTab(QWidget):
     """编码规则标签页"""
@@ -491,9 +495,85 @@ else:
             self.preview_result.setText("请输入测试词")
             return
         
-        # 简单模拟规则应用
-        result = f"测试词: {test_word}\n"
-        result += f"词长度: {len(test_word)}\n"
-        result += "编码结果: 模拟编码"
+        try:
+            if self.dict_service:
+                # 获取当前正在编辑的规则内容和Python模式
+                rule_content = self.rule_content_edit.toPlainText().strip()
+                python_mode = self.python_mode_checkbox.isChecked()
+                
+                # 保存原始配置
+                from app.core.config_manager import config_manager
+                original_rule = config_manager.get("code_rule")
+                original_rules = config_manager.get("custom_rules", {}).copy()
+                
+                # 保存CodeGenerator的原始配置
+                original_config = self.dict_service.code_generator.get_config().copy()
+                
+                # 构建临时规则数据
+                temp_rule_name = "__temp_test_rule__"
+                temp_rules = original_rules.copy()
+                temp_rules[temp_rule_name] = {
+                    "content": rule_content,
+                    "python_mode": python_mode
+                }
+                
+                # 设置临时规则
+                config_manager.set("code_rule", temp_rule_name)
+                config_manager.set("custom_rules", temp_rules)
+                
+                # 设置CodeGenerator为custom规则模式
+                self.dict_service.code_generator.set_config({'rule': 'custom'})
+                
+                try:
+                    # 生成编码
+                    code = self.dict_service.generate_code(test_word)
+                    
+                    result = f"测试词: {test_word}\n"
+                    result += f"词长度: {len(test_word)}\n"
+                    
+                    # 尝试获取字符编码信息
+                    try:
+                        # 显示用户正在编辑的规则名称，而不是临时规则名称
+                        current_rule_name = self.rule_name_edit.text().strip()
+                        if not current_rule_name:
+                            current_rule_name = "未命名规则"
+                        result += f"使用规则: {current_rule_name}\n"
+                        
+                        # 获取当前规则是否为Python模式
+                        python_mode = self.python_mode_checkbox.isChecked()
+                        if python_mode:
+                            result += f"规则模式: Python模式\n"
+                        else:
+                            result += f"规则模式: 普通模式\n"
+                    except:
+                        pass
+                    
+                    result += f"编码结果: {code}"
+                finally:
+                    # 恢复原始配置
+                    config_manager.set("code_rule", original_rule)
+                    config_manager.set("custom_rules", original_rules)
+                    
+                    # 恢复CodeGenerator的原始配置
+                    self.dict_service.code_generator.set_config(original_config)
+                    
+                    # 清理临时规则（如果还在）
+                    current_rules = config_manager.get("custom_rules", {}).copy()
+                    if temp_rule_name in current_rules:
+                        del current_rules[temp_rule_name]
+                        config_manager.set("custom_rules", current_rules)
+            else:
+                result = f"测试词: {test_word}\n"
+                result += f"词长度: {len(test_word)}\n"
+                result += "编码结果: 无法生成编码（服务未初始化）"
+        except Exception as e:
+            import traceback
+            error_details = traceback.format_exc()
+            logger.error(f"预览生成编码失败: {error_details}")
+            
+            result = f"测试词: {test_word}\n"
+            result += f"词长度: {len(test_word)}\n"
+            result += f"编码结果: 生成失败 - {str(e)}\n"
+            result += f"详细错误: 请查看日志"
         
         self.preview_result.setText(result)
