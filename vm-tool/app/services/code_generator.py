@@ -18,8 +18,7 @@ class CodeGenerator:
         self.repo = WordRepository(self.db)
         self.config = {
             'rule': 'first_letter',  # first_letter, all_letters, custom
-            'separator': '',  # 编码分隔符
-            'max_length': 4  # 最大编码长度
+            'separator': ''  # 编码分隔符
         }
     
     def set_config(self, config: Dict[str, any]):
@@ -53,17 +52,41 @@ class CodeGenerator:
             if code:
                 return code
             
-            # 如果字表中没有对应的字，使用默认方法
-            # 对于单个字符，生成多个字符的编码，避免编码长度为1
+            # 如果 generate_code_from_chars 返回空字符串，检查是否是自定义规则模式
+            # 如果是自定义规则模式，尝试直接执行自定义规则
+            if self.config['rule'] == 'custom':
+                try:
+                    # 为每个字生成默认编码
+                    char_codes = []
+                    for char in word:
+                        # 为每个字符生成2个字符的默认编码
+                        char_code = "".join([chr((ord(char) + i) % 26 + 97) for i in range(2)])
+                        char_codes.append(char_code)
+                    
+                    # 执行自定义规则
+                    code = self._execute_custom_rule(word, char_codes)
+                    if code:
+                        return code
+                except Exception as e:
+                    logger.error(f"自定义规则回退执行失败: {e}")
+                    # 继续使用默认方法
+            
+            # 默认方法
+            # 对于单个字符和词语，都生成多个字符的编码
             if len(word) == 1:
-                # 为单个字符生成更长的编码
+                # 为单个字符生成编码
                 char = word[0]
-                # 使用字符的ASCII码生成多个字符的编码
-                code = "".join([chr((ord(char) + i) % 26 + 97) for i in range(self.config['max_length'])])
+                # 使用字符的ASCII码生成编码
+                code = "".join([chr((ord(char) + i) % 26 + 97) for i in range(4)])
                 return code
             else:
-                # 对于词语，使用原方法
-                return "".join([chr(ord(c) % 26 + 97) for c in word])[:self.config['max_length']]
+                # 对于词语，为每个字符生成多个字符的编码
+                code = ""
+                for char in word:
+                    # 为每个字符生成编码
+                    char_code = "".join([chr((ord(char) + i) % 26 + 97) for i in range(2)])  # 每个字生成2个字符
+                    code += char_code
+                return code
         except Exception as e:
             logger.error(f"生成编码失败: {e}")
             return ""
@@ -86,8 +109,10 @@ class CodeGenerator:
                 if char_word:
                     char_codes.append(char_word.code)
                 else:
-                    # 如果字表中没有这个字，返回空
-                    return ""
+                    # 如果字表中没有这个字，使用默认方法生成编码
+                    # 为每个字符生成2个字符的编码
+                    char_code = "".join([chr((ord(char) + i) % 26 + 97) for i in range(2)])
+                    char_codes.append(char_code)
             
             # 根据配置的规则生成编码
             if self.config['rule'] == 'first_letter':
@@ -103,8 +128,8 @@ class CodeGenerator:
                 # 默认规则
                 code = self.config['separator'].join([c[0] for c in char_codes])
             
-            # 限制编码长度
-            return code[:self.config['max_length']]
+            # 移除编码长度限制
+            return code
         except Exception as e:
             logger.error(f"根据字表生成编码失败: {e}")
             return ""
@@ -177,6 +202,8 @@ class CodeGenerator:
                     return result
                 except Exception as e:
                     logger.error(f"执行Python模式编码规则失败: {e}")
+                    logger.error(f"字符编码: {code}")
+                    logger.error(f"规则内容: {custom_rule_content}")
                     # 失败时使用默认规则
                     return self.config['separator'].join([c[0] for c in char_codes])
             else:
