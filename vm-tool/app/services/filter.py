@@ -372,7 +372,7 @@ class FilterService:
             config_manager = ConfigManager()
             separator = config_manager.get("separator", "\t")
             
-            if not words:
+            if words is None:
                 # 使用自己的数据库会话
                 db = self.db or next(get_db())
                 repo = WordRepository(db)
@@ -400,7 +400,7 @@ class FilterService:
             # 规范化路径，防止路径遍历攻击
             output_file = str(pathlib.Path(output_file).resolve())
             
-            if not words:
+            if words is None:
                 # 使用自己的数据库会话
                 db = self.db or next(get_db())
                 repo = WordRepository(db)
@@ -430,7 +430,7 @@ class FilterService:
             # 规范化路径，防止路径遍历攻击
             output_file = str(pathlib.Path(output_file).resolve())
             
-            if not words:
+            if words is None:
                 # 使用自己的数据库会话
                 db = self.db or next(get_db())
                 repo = WordRepository(db)
