@@ -337,6 +337,52 @@ class DictService:
             logger.error(f"批量删除词条失败: {e}")
             raise DictError(f"批量删除词条失败: {e}")
     
+    def delete_table(self, table_type: str) -> Dict[str, Any]:
+        """删除指定类型的数据表
+        
+        Args:
+            table_type: 表类型，支持 "chars"（字表）、"words"（词表）、"special"（特殊字符表）
+        
+        Returns:
+            Dict[str, Any]: 删除结果，包含 deleted 字段表示删除的数量
+        """
+        from sqlalchemy import text
+        
+        try:
+            # 根据类型删除对应的数据
+            if table_type == "chars":
+                # 删除字表（is_character=True 的记录）
+                result = self.db.execute(
+                    text("DELETE FROM words WHERE is_character = :is_character"),
+                    {"is_character": True}
+                )
+            elif table_type == "words":
+                # 删除词表（is_character=False 且 is_special=False 的记录）
+                result = self.db.execute(
+                    text("DELETE FROM words WHERE is_character = :is_character AND is_special = :is_special"),
+                    {"is_character": False, "is_special": False}
+                )
+            elif table_type == "special":
+                # 删除特殊字符表（is_special=True 的记录）
+                result = self.db.execute(
+                    text("DELETE FROM words WHERE is_special = :is_special"),
+                    {"is_special": True}
+                )
+            else:
+                raise DictError(f"不支持的表类型：{table_type}")
+            
+            # 提交事务
+            self.db.commit()
+            
+            return {"deleted": result.rowcount}
+        except DictError:
+            self.db.rollback()
+            raise
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"删除表失败: {e}")
+            raise DictError(f"删除表失败: {e}")
+    
     def generate_code(self, word: str) -> str:
         """生成编码"""
         return self.code_generator.generate_code(word)
