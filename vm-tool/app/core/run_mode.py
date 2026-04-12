@@ -5,9 +5,7 @@ from typing import Optional, Dict, Any
 class RunMode(Enum):
     """运行模式枚举"""
     CLI = "cli"
-    WEB = "web"
     GUI = "gui"
-    API = "api"
 
 
 class RunModeManager:
@@ -21,19 +19,9 @@ class RunModeManager:
                 "description": "通过命令行交互操作码表工具",
                 "enabled": True
             },
-            RunMode.WEB: {
-                "name": "Web模式",
-                "description": "通过Web界面操作码表工具",
-                "enabled": True
-            },
             RunMode.GUI: {
-                "name": "GUI模式",
+                "name": "GUI 模式",
                 "description": "通过图形界面操作码表工具",
-                "enabled": True
-            },
-            RunMode.API: {
-                "name": "API模式",
-                "description": "通过API接口操作码表工具",
                 "enabled": True
             }
         }
