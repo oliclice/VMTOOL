@@ -337,6 +337,15 @@ class DictService:
             logger.error(f"批量删除词条失败: {e}")
             raise DictError(f"批量删除词条失败: {e}")
     
+    def delete_character(self, char: str) -> bool:
+        """删除字符"""
+        try:
+            # 调用现有的delete_word方法
+            return self.delete_word(char)
+        except Exception as e:
+            logger.error(f"删除字符失败: {e}")
+            raise DictError(f"删除字符失败: {e}")
+    
     def delete_table(self, table_type: str) -> Dict[str, Any]:
         """删除指定类型的数据表
         
