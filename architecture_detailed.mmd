@@ -40,6 +40,9 @@ flowchart TD
         CharsTab --> search_characters_gui["search_characters()"]
         search_characters_gui --> DictService.search_characters
         
+        CharsTab --> delete_character_gui["delete_character()"]
+        delete_character_gui --> DictService.delete_character
+        
         CodeRulesTab --> test_rule["test_rule()"]
         test_rule --> get_rule_content["get rule content"]
         test_rule --> get_python_mode["get python mode"]
@@ -142,6 +145,9 @@ flowchart TD
         DictService --> delete_words["delete_words()"]
         delete_words --> WordRepository.get_by_word
         delete_words --> WordRepository.delete
+        
+        DictService --> delete_character["delete_character()"]
+        delete_character --> delete_word
         
         DictService --> delete_table["delete_table()"]
         
