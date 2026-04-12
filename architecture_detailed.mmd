@@ -40,8 +40,10 @@ flowchart TD
         
         SettingsTab --> on_settings_order_changed["on_settings_order_changed()"]
         SettingsTab --> reload_settings_content["reload_settings_content()"]
+        SettingsTab --> load_language_settings["load_language_settings()"]
         on_settings_order_changed --> config_manager
         on_settings_order_changed --> reload_settings_content
+        load_language_settings --> config_manager
         
         CharsTab --> search_characters_gui["search_characters()"]
         search_characters_gui --> DictService.search_characters
