@@ -186,9 +186,12 @@ class ImportExportTab(QWidget):
         try:
             import subprocess
             
-            # 使用 zenity 打开文件选择对话框
+            # 使用 zenity 打开文件选择对话框，为每个文件类型单独指定过滤器
             result = subprocess.run(
-                ["zenity", "--file-selection", "--title=选择导入文件", "--file-filter=文本文件 (*.txt)|*.txt|CSV文件 (*.csv)|*.csv|JSON文件 (*.json)|*.json"],
+                ["zenity", "--file-selection", "--title=选择导入文件", 
+                 "--file-filter=文本文件 (*.txt) | *.txt", 
+                 "--file-filter=CSV文件 (*.csv) | *.csv", 
+                 "--file-filter=JSON文件 (*.json) | *.json"],
                 capture_output=True,
                 text=True,
                 timeout=30
