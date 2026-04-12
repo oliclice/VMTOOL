@@ -36,10 +36,12 @@ class SettingsTab(QWidget):
         
         settings_types = QTreeWidget()
         settings_types.setHeaderLabel("设置类型")
-        # 允许拖动排序
+        # 允许拖动排序，但只能在同一级别
         settings_types.setDragEnabled(True)
         settings_types.setDropIndicatorShown(True)
         settings_types.setDragDropMode(QTreeWidget.DragDropMode.InternalMove)
+        # 设置拖放指示器位置，确保只能在同一级别拖动
+        settings_types.setDropIndicatorPosition(QTreeWidget.DropIndicatorPosition.OnItemOrWidget)
         
         # 从配置中加载设置类型顺序，如果没有则使用默认顺序
         default_sections = ["主题设置", "字体设置", "语言设置", 
