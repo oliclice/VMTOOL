@@ -140,7 +140,7 @@ class WordRepository(BaseRepository):
     
     def get_words(self, skip: int = 0, limit: int = None) -> List[Word]:
         """获取所有词"""
-        query = self.db.query(Word).filter(Word.is_character == False).offset(skip)
+        query = self.db.query(Word).filter(Word.is_character == False, Word.is_special == False).offset(skip)
         if limit is not None:
             query = query.limit(limit)
         return query.all()
