@@ -10,8 +10,10 @@ class CharsTab(QWidget):
     def __init__(self, parent=None, dict_service=None):
         super().__init__(parent)
         self.dict_service = dict_service
+        self.is_initializing = True  # 添加标志，防止初始化时触发cellChanged信号
         self.init_ui()
         self.refresh_chars()
+        self.is_initializing = False  # 初始化完成，设置标志为False
     
     def init_ui(self):
         """初始化UI"""
@@ -48,6 +50,12 @@ class CharsTab(QWidget):
         self.char_table.setColumnWidth(1, 150)
         self.char_table.setColumnWidth(2, 100)
         self.char_table.setColumnWidth(3, 80)
+        
+        # 允许单元格编辑
+        self.char_table.setEditTriggers(QTableWidget.EditTrigger.DoubleClicked | QTableWidget.EditTrigger.SelectedClicked)
+        
+        # 监听编辑完成信号
+        self.char_table.cellChanged.connect(self.on_char_cell_changed)
         
         # 添加右键菜单
         self.char_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -325,6 +333,47 @@ class CharsTab(QWidget):
         layout.addRow(button_layout)
         
         dialog.exec()
+    
+    def on_char_cell_changed(self, row, column):
+        """处理字表单元格编辑完成"""
+        if self.is_initializing or not self.dict_service:
+            return
+        
+        # 获取字
+        char_item = self.char_table.item(row, 0)
+        if not char_item:
+            return
+        char = char_item.text()
+        
+        # 获取编辑后的值
+        edited_item = self.char_table.item(row, column)
+        if not edited_item:
+            return
+        new_value = edited_item.text()
+        
+        try:
+            if column == 1:  # 编码
+                # 获取权重
+                weight_item = self.char_table.item(row, 2)
+                if weight_item:
+                    weight = float(weight_item.text())
+                    self.dict_service.update_character(char, new_value, weight)
+                    if hasattr(self.parent, 'show_toast'):
+                        self.parent.show_toast(f"字 '{char}' 编码更新成功")
+            elif column == 2:  # 权重
+                # 获取编码
+                code_item = self.char_table.item(row, 1)
+                if code_item:
+                    code = code_item.text()
+                    weight = float(new_value)
+                    self.dict_service.update_character(char, code, weight)
+                    if hasattr(self.parent, 'show_toast'):
+                        self.parent.show_toast(f"字 '{char}' 权重更新成功")
+            # 手动列不允许直接编辑，需要通过其他方式处理
+        except Exception as e:
+            QMessageBox.critical(self, "错误", f"更新失败: {e}")
+            # 恢复原始值
+            self.refresh_chars()
     
     def show_char_context_menu(self, position):
         """显示字表右键菜单"""

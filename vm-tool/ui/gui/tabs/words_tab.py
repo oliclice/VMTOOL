@@ -10,8 +10,10 @@ class WordsTab(QWidget):
     def __init__(self, parent=None, dict_service=None):
         super().__init__(parent)
         self.dict_service = dict_service
+        self.is_initializing = True  # 添加标志，防止初始化时触发cellChanged信号
         self.init_ui()
         self.refresh_words()
+        self.is_initializing = False  # 初始化完成，设置标志为False
     
     def init_ui(self):
         """初始化UI"""
@@ -48,6 +50,12 @@ class WordsTab(QWidget):
         self.word_table.setColumnWidth(1, 150)
         self.word_table.setColumnWidth(2, 100)
         self.word_table.setColumnWidth(3, 80)
+        
+        # 允许单元格编辑
+        self.word_table.setEditTriggers(QTableWidget.EditTrigger.DoubleClicked | QTableWidget.EditTrigger.SelectedClicked)
+        
+        # 监听编辑完成信号
+        self.word_table.cellChanged.connect(self.on_word_cell_changed)
         
         # 添加右键菜单
         self.word_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -349,6 +357,47 @@ class WordsTab(QWidget):
             self.delete_word()
         elif action == update_action:
             self.update_word()
+    
+    def on_word_cell_changed(self, row, column):
+        """处理词表单元格编辑完成"""
+        if self.is_initializing or not self.dict_service:
+            return
+        
+        # 获取词
+        word_item = self.word_table.item(row, 0)
+        if not word_item:
+            return
+        word = word_item.text()
+        
+        # 获取编辑后的值
+        edited_item = self.word_table.item(row, column)
+        if not edited_item:
+            return
+        new_value = edited_item.text()
+        
+        try:
+            if column == 1:  # 编码
+                # 获取权重
+                weight_item = self.word_table.item(row, 2)
+                if weight_item:
+                    weight = float(weight_item.text())
+                    self.dict_service.update_word(word, code=new_value, weight=weight)
+                    if hasattr(self.parent, 'show_toast'):
+                        self.parent.show_toast(f"词 '{word}' 编码更新成功")
+            elif column == 2:  # 权重
+                # 获取编码
+                code_item = self.word_table.item(row, 1)
+                if code_item:
+                    code = code_item.text()
+                    weight = float(new_value)
+                    self.dict_service.update_word(word, code=code, weight=weight)
+                    if hasattr(self.parent, 'show_toast'):
+                        self.parent.show_toast(f"词 '{word}' 权重更新成功")
+            # 手动列不允许直接编辑，需要通过其他方式处理
+        except Exception as e:
+            QMessageBox.critical(self, "错误", f"更新失败: {e}")
+            # 恢复原始值
+            self.refresh_words()
     
     def recalculate_all_codes(self):
         """批量重新计算编码"""
