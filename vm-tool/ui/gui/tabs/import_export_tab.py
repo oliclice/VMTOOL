@@ -350,41 +350,43 @@ class ImportExportTab(QWidget):
                 QMessageBox.information(self, "成功", f"分表导出成功，共导出 {total_exported} 条数据")
             else:
                 # 普通导出
-                result = self.dict_service.export_data(file_path, export_format)
-                
-                # 检查是否需要自动导出到 Rime 目录
-                if config_manager.get("auto_export_ibus_rime", False):
-                    ibus_rime_path = os.path.expanduser("~/.config/ibus/rime")
-                    if os.path.exists(ibus_rime_path):
-                        # 复制文件到 ibus/rime 目录
-                        import shutil
-                        if config_manager.get("only_export_words", False):
-                            # 只导出词表
-                            words_export_name = config_manager.get("words_export_name", "vmtool_words")
-                            words_file_path = os.path.join(export_path, f"{words_export_name}.{export_format}")
-                            # 先导出词表
-                            self.dict_service.export_data(words_file_path, export_format, table="words")
-                            # 然后复制到 Rime 目录
+                if config_manager.get("only_export_words", False):
+                    # 只导出词表
+                    words_export_name = config_manager.get("words_export_name", "vmtool_words")
+                    words_file_path = os.path.join(export_path, f"{words_export_name}.{export_format}")
+                    result = self.dict_service.export_data(words_file_path, export_format, table="words")
+                    
+                    # 检查是否需要自动导出到 Rime 目录
+                    if config_manager.get("auto_export_ibus_rime", False):
+                        ibus_rime_path = os.path.expanduser("~/.config/ibus/rime")
+                        if os.path.exists(ibus_rime_path):
+                            # 复制文件到 ibus/rime 目录
+                            import shutil
                             shutil.copy(words_file_path, ibus_rime_path)
-                        else:
-                            # 导出所有数据
-                            shutil.copy(file_path, ibus_rime_path)
-                
-                if config_manager.get("auto_export_fcitx5_rime", False):
-                    fcitx5_rime_path = os.path.expanduser("~/.local/share/fcitx5/rime")
-                    if os.path.exists(fcitx5_rime_path):
-                        # 复制文件到 fcitx5/rime 目录
-                        import shutil
-                        if config_manager.get("only_export_words", False):
-                            # 只导出词表
-                            words_export_name = config_manager.get("words_export_name", "vmtool_words")
-                            words_file_path = os.path.join(export_path, f"{words_export_name}.{export_format}")
-                            # 先导出词表
-                            self.dict_service.export_data(words_file_path, export_format, table="words")
-                            # 然后复制到 Rime 目录
+                    
+                    if config_manager.get("auto_export_fcitx5_rime", False):
+                        fcitx5_rime_path = os.path.expanduser("~/.local/share/fcitx5/rime")
+                        if os.path.exists(fcitx5_rime_path):
+                            # 复制文件到 fcitx5/rime 目录
+                            import shutil
                             shutil.copy(words_file_path, fcitx5_rime_path)
-                        else:
-                            # 导出所有数据
+                else:
+                    # 导出所有数据
+                    result = self.dict_service.export_data(file_path, export_format)
+                    
+                    # 检查是否需要自动导出到 Rime 目录
+                    if config_manager.get("auto_export_ibus_rime", False):
+                        ibus_rime_path = os.path.expanduser("~/.config/ibus/rime")
+                        if os.path.exists(ibus_rime_path):
+                            # 复制文件到 ibus/rime 目录
+                            import shutil
+                            shutil.copy(file_path, ibus_rime_path)
+                    
+                    if config_manager.get("auto_export_fcitx5_rime", False):
+                        fcitx5_rime_path = os.path.expanduser("~/.local/share/fcitx5/rime")
+                        if os.path.exists(fcitx5_rime_path):
+                            # 复制文件到 fcitx5/rime 目录
+                            import shutil
                             shutil.copy(file_path, fcitx5_rime_path)
                 
                 QMessageBox.information(self, "成功", f"导出成功，共导出 {result} 条数据")
