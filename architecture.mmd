@@ -32,6 +32,8 @@ flowchart TD
         DictService["DictService"] --> WordRepository["WordRepository"]
         DictService --> CodeGenerator["CodeGenerator"]
         DictService --> export_data["export_data()"]
+        DictService --> add_character["add_character()"]
+        DictService --> update_character["update_character()"]
         WeightCalculator["WeightCalculator"] --> WordRepository
         FilterService["FilterService"] --> WordRepository
         FilterService --> export_to_txt["export_to_txt()"]
@@ -50,6 +52,8 @@ flowchart TD
         config_manager["config_manager"] --> VMTOOLPyQtApp
         config_manager --> CodeRulesTab
         theme_manager["theme_manager"] --> VMTOOLPyQtApp
+        config_manager --> config_location["配置位置: ~/.config/vm-tool"]
+        init_db --> db_location["数据库位置: ~/.config/vm-tool"]
     end
 
     main --> CLI_Main

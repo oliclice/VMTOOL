@@ -336,6 +336,24 @@ class DictService:
             logger.error(f"批量删除词条失败: {e}")
             raise DictError(f"批量删除词条失败: {e}")
     
+    def add_character(self, char: str, code: str, weight: float = 1.0, manual: bool = True) -> Dict[str, Any]:
+        """添加字符"""
+        try:
+            # 调用现有的add_word方法
+            return self.add_word(char, code, weight, True, False, manual)
+        except Exception as e:
+            logger.error(f"添加字符失败: {e}")
+            raise DictError(f"添加字符失败: {e}")
+    
+    def update_character(self, char: str, code: str, weight: float) -> Dict[str, Any]:
+        """更新字符"""
+        try:
+            # 调用现有的update_word方法
+            return self.update_word(char, code=code, weight=weight)
+        except Exception as e:
+            logger.error(f"更新字符失败: {e}")
+            raise DictError(f"更新字符失败: {e}")
+    
     def delete_character(self, char: str) -> bool:
         """删除字符"""
         try:
