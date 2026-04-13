@@ -1,126 +1,57 @@
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem, 
-                             QPushButton, QLineEdit, QLabel, QComboBox, QMenu, QInputDialog, 
-                             QMessageBox, QDialog, QFormLayout, QTextEdit)
-from PyQt6.QtCore import Qt
-from app.services.dict import DictService
+from PyQt6.QtWidgets import (QPushButton, QLineEdit, QDialog, QFormLayout, QTextEdit, QMessageBox, QTableWidgetItem, QLabel)
+from .base_table_tab import BaseTableTab
 from ..threads import AddBatchThread
 
-class CharsTab(QWidget):
+class CharsTab(BaseTableTab):
     """字表管理标签页"""
     def __init__(self, parent=None, dict_service=None):
-        super().__init__(parent)
-        self.dict_service = dict_service
-        self.is_initializing = True  # 添加标志，防止初始化时触发cellChanged信号
-        self.init_ui()
-        self.refresh_chars()
-        self.is_initializing = False  # 初始化完成，设置标志为False
+        super().__init__(parent, dict_service)
     
-    def init_ui(self):
-        """初始化UI"""
-        layout = QVBoxLayout(self)
-        
-        # 搜索框
-        search_layout = QHBoxLayout()
-        search_label = QLabel("搜索:")
-        self.char_search_edit = QLineEdit()
-        self.char_search_edit.setPlaceholderText("输入关键词搜索")
-        
-        # 添加字段选择下拉菜单
-        self.char_search_field = QComboBox()
-        self.char_search_field.addItems(["字", "编码", "权重", "手动"])
-        
-        search_button = QPushButton("搜索")
-        search_button.clicked.connect(self.search_chars)
-        
-        search_layout.addWidget(search_label)
-        search_layout.addWidget(self.char_search_edit)
-        search_layout.addWidget(self.char_search_field)
-        search_layout.addWidget(search_button)
-        layout.addLayout(search_layout)
-        
-        # 字表表格
-        self.char_table = QTableWidget()
-        self.char_table.setColumnCount(4)
-        self.char_table.setHorizontalHeaderLabels(["字", "编码", "权重", "手动"])
-        self.char_table.setSortingEnabled(True)
-        self.char_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        
-        # 设置列宽
-        self.char_table.setColumnWidth(0, 100)
-        self.char_table.setColumnWidth(1, 150)
-        self.char_table.setColumnWidth(2, 100)
-        self.char_table.setColumnWidth(3, 80)
-        
-        # 允许单元格编辑
-        self.char_table.setEditTriggers(QTableWidget.EditTrigger.DoubleClicked | QTableWidget.EditTrigger.SelectedClicked)
-        
-        # 监听编辑完成信号
-        self.char_table.cellChanged.connect(self.on_char_cell_changed)
-        
-        # 添加右键菜单
-        self.char_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.char_table.customContextMenuRequested.connect(self.show_char_context_menu)
-        
-        layout.addWidget(self.char_table)
-        
-        # 操作按钮
-        button_layout = QHBoxLayout()
-        add_button = QPushButton("添加")
-        add_button.clicked.connect(self.add_char)
-        
-        add_batch_button = QPushButton("批量添加")
-        add_batch_button.clicked.connect(self.add_batch_chars)
-        
-        delete_button = QPushButton("删除")
-        delete_button.clicked.connect(self.delete_char)
-        
-        refresh_button = QPushButton("刷新")
-        refresh_button.clicked.connect(self.refresh_chars)
-        
-        button_layout.addWidget(add_button)
-        button_layout.addWidget(add_batch_button)
-        button_layout.addWidget(delete_button)
-        button_layout.addWidget(refresh_button)
-        layout.addLayout(button_layout)
+    def set_column_widths(self):
+        """设置列宽"""
+        self.table.setColumnWidth(0, 100)
+        self.table.setColumnWidth(1, 150)
+        self.table.setColumnWidth(2, 100)
+        self.table.setColumnWidth(3, 80)
     
-    def refresh_chars(self):
+    def refresh_data(self):
         """刷新字表"""
         if not self.dict_service:
             return
         
         try:
             chars = self.dict_service.get_characters()
-            self.char_table.setRowCount(len(chars))
+            self.table.setRowCount(len(chars))
             
             for i, char in enumerate(chars):
-                self.char_table.setItem(i, 0, QTableWidgetItem(char["word"]))
-                self.char_table.setItem(i, 1, QTableWidgetItem(char["code"]))
-                self.char_table.setItem(i, 2, QTableWidgetItem(str(char["weight"])))
-                self.char_table.setItem(i, 3, QTableWidgetItem("是" if char["manual"] else "否"))
+                self.table.setItem(i, 0, QTableWidgetItem(char["word"]))
+                self.table.setItem(i, 1, QTableWidgetItem(char["code"]))
+                self.table.setItem(i, 2, QTableWidgetItem(str(char["weight"])))
+                self.table.setItem(i, 3, QTableWidgetItem("是" if char["manual"] else "否"))
         except Exception as e:
             QMessageBox.critical(self, "错误", f"刷新字表失败: {e}")
     
-    def search_chars(self):
+    def search_data(self):
         """搜索字表"""
         if not self.dict_service:
             return
         
-        keyword = self.char_search_edit.text()
-        field = self.char_search_field.currentText()
+        keyword = self.search_edit.text()
+        field = self.search_field.currentText()
         
         try:
             chars = self.dict_service.search_characters(keyword, field)
-            self.char_table.setRowCount(len(chars))
+            self.table.setRowCount(len(chars))
             
             for i, char in enumerate(chars):
-                self.char_table.setItem(i, 0, QTableWidgetItem(char["word"]))
-                self.char_table.setItem(i, 1, QTableWidgetItem(char["code"]))
-                self.char_table.setItem(i, 2, QTableWidgetItem(str(char["weight"])))
-                self.char_table.setItem(i, 3, QTableWidgetItem("是" if char["manual"] else "否"))
+                self.table.setItem(i, 0, QTableWidgetItem(char["word"]))
+                self.table.setItem(i, 1, QTableWidgetItem(char["code"]))
+                self.table.setItem(i, 2, QTableWidgetItem(str(char["weight"])))
+                self.table.setItem(i, 3, QTableWidgetItem("是" if char["manual"] else "否"))
         except Exception as e:
             QMessageBox.critical(self, "错误", f"搜索失败: {e}")
     
-    def add_char(self):
+    def add_item(self):
         """添加字"""
         if not self.dict_service:
             return
@@ -159,7 +90,7 @@ class CharsTab(QWidget):
             try:
                 self.dict_service.add_character(char, code, weight, True)
                 QMessageBox.information(self, "成功", f"字 '{char}' 添加成功")
-                self.refresh_chars()
+                self.refresh_data()
                 dialog.accept()
             except Exception as e:
                 QMessageBox.critical(self, "错误", f"添加失败: {e}")
@@ -173,7 +104,7 @@ class CharsTab(QWidget):
         
         dialog.exec()
     
-    def add_batch_chars(self):
+    def add_batch_items(self):
         """批量添加汉字"""
         if not self.dict_service:
             return
@@ -230,7 +161,7 @@ class CharsTab(QWidget):
                     else:
                         if hasattr(self.parent, 'show_toast'):
                             self.parent.show_toast(f"添加成功，共添加 {result.get('added', 0)} 个汉字")
-                    self.refresh_chars()
+                    self.refresh_data()
                     dialog.accept()
                 
                 def on_error(error):
@@ -254,17 +185,17 @@ class CharsTab(QWidget):
         
         dialog.exec()
     
-    def delete_char(self):
+    def delete_item(self):
         """删除字"""
         if not self.dict_service:
             return
         
-        selected_row = self.char_table.currentRow()
+        selected_row = self.table.currentRow()
         if selected_row == -1:
             QMessageBox.warning(self, "警告", "请选择要删除的字")
             return
         
-        char = self.char_table.item(selected_row, 0).text()
+        char = self.table.item(selected_row, 0).text()
         
         # 显示确认对话框
         reply = QMessageBox.question(
@@ -276,23 +207,23 @@ class CharsTab(QWidget):
             try:
                 self.dict_service.delete_character(char)
                 QMessageBox.information(self, "成功", f"字 '{char}' 删除成功")
-                self.refresh_chars()
+                self.refresh_data()
             except Exception as e:
                 QMessageBox.critical(self, "错误", f"删除失败: {e}")
     
-    def update_char(self):
+    def update_item(self):
         """更新字"""
         if not self.dict_service:
             return
         
-        selected_row = self.char_table.currentRow()
+        selected_row = self.table.currentRow()
         if selected_row == -1:
             QMessageBox.warning(self, "警告", "请选择要更新的字")
             return
         
-        char = self.char_table.item(selected_row, 0).text()
-        code = self.char_table.item(selected_row, 1).text()
-        weight = self.char_table.item(selected_row, 2).text()
+        char = self.table.item(selected_row, 0).text()
+        code = self.table.item(selected_row, 1).text()
+        weight = self.table.item(selected_row, 2).text()
         
         dialog = QDialog(self)
         dialog.setWindowTitle("更新字")
@@ -320,7 +251,7 @@ class CharsTab(QWidget):
             try:
                 self.dict_service.update_character(char, new_code, new_weight)
                 QMessageBox.information(self, "成功", f"字 '{char}' 更新成功")
-                self.refresh_chars()
+                self.refresh_data()
                 dialog.accept()
             except Exception as e:
                 QMessageBox.critical(self, "错误", f"更新失败: {e}")
@@ -334,19 +265,19 @@ class CharsTab(QWidget):
         
         dialog.exec()
     
-    def on_char_cell_changed(self, row, column):
+    def on_cell_changed(self, row, column):
         """处理字表单元格编辑完成"""
         if self.is_initializing or not self.dict_service:
             return
         
         # 获取字
-        char_item = self.char_table.item(row, 0)
+        char_item = self.table.item(row, 0)
         if not char_item:
             return
         char = char_item.text()
         
         # 获取编辑后的值
-        edited_item = self.char_table.item(row, column)
+        edited_item = self.table.item(row, column)
         if not edited_item:
             return
         new_value = edited_item.text()
@@ -354,7 +285,7 @@ class CharsTab(QWidget):
         try:
             if column == 1:  # 编码
                 # 获取权重
-                weight_item = self.char_table.item(row, 2)
+                weight_item = self.table.item(row, 2)
                 if weight_item:
                     weight = float(weight_item.text())
                     self.dict_service.update_character(char, new_value, weight)
@@ -362,7 +293,7 @@ class CharsTab(QWidget):
                         self.parent.show_toast(f"字 '{char}' 编码更新成功")
             elif column == 2:  # 权重
                 # 获取编码
-                code_item = self.char_table.item(row, 1)
+                code_item = self.table.item(row, 1)
                 if code_item:
                     code = code_item.text()
                     weight = float(new_value)
@@ -373,24 +304,4 @@ class CharsTab(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "错误", f"更新失败: {e}")
             # 恢复原始值
-            self.refresh_chars()
-    
-    def show_char_context_menu(self, position):
-        """显示字表右键菜单"""
-        if not self.dict_service:
-            return
-        
-        menu = QMenu()
-        
-        add_action = menu.addAction("添加")
-        delete_action = menu.addAction("删除")
-        update_action = menu.addAction("编辑")
-        
-        action = menu.exec(self.char_table.mapToGlobal(position))
-        
-        if action == add_action:
-            self.add_char()
-        elif action == delete_action:
-            self.delete_char()
-        elif action == update_action:
-            self.update_char()
+            self.refresh_data()

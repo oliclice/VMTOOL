@@ -1,130 +1,63 @@
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem, 
-                             QPushButton, QLineEdit, QLabel, QComboBox, QMenu, QInputDialog, 
-                             QMessageBox, QDialog, QFormLayout, QTextEdit)
-from PyQt6.QtCore import Qt
-from app.services.dict import DictService
+from PyQt6.QtWidgets import (QPushButton, QLineEdit, QDialog, QFormLayout, QTextEdit, QMessageBox, QTableWidgetItem, QLabel)
+from .base_table_tab import BaseTableTab
 from ..threads import AddBatchThread
 
-class WordsTab(QWidget):
+class WordsTab(BaseTableTab):
     """词表管理标签页"""
     def __init__(self, parent=None, dict_service=None):
-        super().__init__(parent)
-        self.dict_service = dict_service
-        self.is_initializing = True  # 添加标志，防止初始化时触发cellChanged信号
-        self.init_ui()
-        self.refresh_words()
-        self.is_initializing = False  # 初始化完成，设置标志为False
+        super().__init__(parent, dict_service)
     
-    def init_ui(self):
-        """初始化UI"""
-        layout = QVBoxLayout(self)
-        
-        # 搜索框
-        search_layout = QHBoxLayout()
-        search_label = QLabel("搜索:")
-        self.word_search_edit = QLineEdit()
-        self.word_search_edit.setPlaceholderText("输入关键词搜索")
-        
-        # 添加字段选择下拉菜单
-        self.word_search_field = QComboBox()
-        self.word_search_field.addItems(["词", "编码", "权重", "手动"])
-        
-        search_button = QPushButton("搜索")
-        search_button.clicked.connect(self.search_words)
-        
-        search_layout.addWidget(search_label)
-        search_layout.addWidget(self.word_search_edit)
-        search_layout.addWidget(self.word_search_field)
-        search_layout.addWidget(search_button)
-        layout.addLayout(search_layout)
-        
-        # 词表表格
-        self.word_table = QTableWidget()
-        self.word_table.setColumnCount(4)
-        self.word_table.setHorizontalHeaderLabels(["词", "编码", "权重", "手动"])
-        self.word_table.setSortingEnabled(True)
-        self.word_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        
-        # 设置列宽
-        self.word_table.setColumnWidth(0, 200)
-        self.word_table.setColumnWidth(1, 150)
-        self.word_table.setColumnWidth(2, 100)
-        self.word_table.setColumnWidth(3, 80)
-        
-        # 允许单元格编辑
-        self.word_table.setEditTriggers(QTableWidget.EditTrigger.DoubleClicked | QTableWidget.EditTrigger.SelectedClicked)
-        
-        # 监听编辑完成信号
-        self.word_table.cellChanged.connect(self.on_word_cell_changed)
-        
-        # 添加右键菜单
-        self.word_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.word_table.customContextMenuRequested.connect(self.show_word_context_menu)
-        
-        layout.addWidget(self.word_table)
-        
-        # 操作按钮
-        button_layout = QHBoxLayout()
-        add_button = QPushButton("添加")
-        add_button.clicked.connect(self.add_word)
-        
-        add_batch_button = QPushButton("批量添加")
-        add_batch_button.clicked.connect(self.add_batch_words)
-        
-        delete_button = QPushButton("删除")
-        delete_button.clicked.connect(self.delete_word)
-        
-        refresh_button = QPushButton("刷新")
-        refresh_button.clicked.connect(self.refresh_words)
-        
+    def set_column_widths(self):
+        """设置列宽"""
+        self.table.setColumnWidth(0, 200)
+        self.table.setColumnWidth(1, 150)
+        self.table.setColumnWidth(2, 100)
+        self.table.setColumnWidth(3, 80)
+    
+    def add_extra_buttons(self, layout):
+        """添加额外按钮"""
         recalculate_button = QPushButton("批量重新计算编码")
         recalculate_button.clicked.connect(self.recalculate_all_codes)
-        
-        button_layout.addWidget(add_button)
-        button_layout.addWidget(add_batch_button)
-        button_layout.addWidget(delete_button)
-        button_layout.addWidget(refresh_button)
-        button_layout.addWidget(recalculate_button)
-        layout.addLayout(button_layout)
+        layout.addWidget(recalculate_button)
     
-    def refresh_words(self):
+    def refresh_data(self):
         """刷新词表"""
         if not self.dict_service:
             return
         
         try:
             words = self.dict_service.get_words()
-            self.word_table.setRowCount(len(words))
+            self.table.setRowCount(len(words))
             
             for i, word in enumerate(words):
-                self.word_table.setItem(i, 0, QTableWidgetItem(word["word"]))
-                self.word_table.setItem(i, 1, QTableWidgetItem(word["code"]))
-                self.word_table.setItem(i, 2, QTableWidgetItem(str(word["weight"])))
-                self.word_table.setItem(i, 3, QTableWidgetItem("是" if word["manual"] else "否"))
+                self.table.setItem(i, 0, QTableWidgetItem(word["word"]))
+                self.table.setItem(i, 1, QTableWidgetItem(word["code"]))
+                self.table.setItem(i, 2, QTableWidgetItem(str(word["weight"])))
+                self.table.setItem(i, 3, QTableWidgetItem("是" if word["manual"] else "否"))
         except Exception as e:
             QMessageBox.critical(self, "错误", f"刷新词表失败: {e}")
     
-    def search_words(self):
+    def search_data(self):
         """搜索词表"""
         if not self.dict_service:
             return
         
-        keyword = self.word_search_edit.text()
-        field = self.word_search_field.currentText()
+        keyword = self.search_edit.text()
+        field = self.search_field.currentText()
         
         try:
             words = self.dict_service.search_words(keyword, field)
-            self.word_table.setRowCount(len(words))
+            self.table.setRowCount(len(words))
             
             for i, word in enumerate(words):
-                self.word_table.setItem(i, 0, QTableWidgetItem(word["word"]))
-                self.word_table.setItem(i, 1, QTableWidgetItem(word["code"]))
-                self.word_table.setItem(i, 2, QTableWidgetItem(str(word["weight"])))
-                self.word_table.setItem(i, 3, QTableWidgetItem("是" if word["manual"] else "否"))
+                self.table.setItem(i, 0, QTableWidgetItem(word["word"]))
+                self.table.setItem(i, 1, QTableWidgetItem(word["code"]))
+                self.table.setItem(i, 2, QTableWidgetItem(str(word["weight"])))
+                self.table.setItem(i, 3, QTableWidgetItem("是" if word["manual"] else "否"))
         except Exception as e:
             QMessageBox.critical(self, "错误", f"搜索失败: {e}")
     
-    def add_word(self):
+    def add_item(self):
         """添加词"""
         if not self.dict_service:
             return
@@ -163,7 +96,7 @@ class WordsTab(QWidget):
             try:
                 self.dict_service.add_word(word, code, weight, True)
                 QMessageBox.information(self, "成功", f"词 '{word}' 添加成功")
-                self.refresh_words()
+                self.refresh_data()
                 dialog.accept()
             except Exception as e:
                 QMessageBox.critical(self, "错误", f"添加失败: {e}")
@@ -177,7 +110,7 @@ class WordsTab(QWidget):
         
         dialog.exec()
     
-    def add_batch_words(self):
+    def add_batch_items(self):
         """批量添加词"""
         if not self.dict_service:
             return
@@ -234,7 +167,7 @@ class WordsTab(QWidget):
                     else:
                         if hasattr(self.parent, 'show_toast'):
                             self.parent.show_toast(f"添加成功，共添加 {result.get('added', 0)} 个词")
-                    self.refresh_words()
+                    self.refresh_data()
                     dialog.accept()
                 
                 def on_error(error):
@@ -258,17 +191,17 @@ class WordsTab(QWidget):
         
         dialog.exec()
     
-    def delete_word(self):
+    def delete_item(self):
         """删除词"""
         if not self.dict_service:
             return
         
-        selected_row = self.word_table.currentRow()
+        selected_row = self.table.currentRow()
         if selected_row == -1:
             QMessageBox.warning(self, "警告", "请选择要删除的词")
             return
         
-        word = self.word_table.item(selected_row, 0).text()
+        word = self.table.item(selected_row, 0).text()
         
         # 显示确认对话框
         reply = QMessageBox.question(
@@ -280,23 +213,23 @@ class WordsTab(QWidget):
             try:
                 self.dict_service.delete_word(word)
                 QMessageBox.information(self, "成功", f"词 '{word}' 删除成功")
-                self.refresh_words()
+                self.refresh_data()
             except Exception as e:
                 QMessageBox.critical(self, "错误", f"删除失败: {e}")
     
-    def update_word(self):
+    def update_item(self):
         """更新词"""
         if not self.dict_service:
             return
         
-        selected_row = self.word_table.currentRow()
+        selected_row = self.table.currentRow()
         if selected_row == -1:
             QMessageBox.warning(self, "警告", "请选择要更新的词")
             return
         
-        word = self.word_table.item(selected_row, 0).text()
-        code = self.word_table.item(selected_row, 1).text()
-        weight = self.word_table.item(selected_row, 2).text()
+        word = self.table.item(selected_row, 0).text()
+        code = self.table.item(selected_row, 1).text()
+        weight = self.table.item(selected_row, 2).text()
         
         dialog = QDialog(self)
         dialog.setWindowTitle("更新词")
@@ -324,7 +257,7 @@ class WordsTab(QWidget):
             try:
                 self.dict_service.update_word(word, new_code, new_weight)
                 QMessageBox.information(self, "成功", f"词 '{word}' 更新成功")
-                self.refresh_words()
+                self.refresh_data()
                 dialog.accept()
             except Exception as e:
                 QMessageBox.critical(self, "错误", f"更新失败: {e}")
@@ -338,39 +271,19 @@ class WordsTab(QWidget):
         
         dialog.exec()
     
-    def show_word_context_menu(self, position):
-        """显示词表右键菜单"""
-        if not self.dict_service:
-            return
-        
-        menu = QMenu()
-        
-        add_action = menu.addAction("添加")
-        delete_action = menu.addAction("删除")
-        update_action = menu.addAction("编辑")
-        
-        action = menu.exec(self.word_table.mapToGlobal(position))
-        
-        if action == add_action:
-            self.add_word()
-        elif action == delete_action:
-            self.delete_word()
-        elif action == update_action:
-            self.update_word()
-    
-    def on_word_cell_changed(self, row, column):
+    def on_cell_changed(self, row, column):
         """处理词表单元格编辑完成"""
         if self.is_initializing or not self.dict_service:
             return
         
         # 获取词
-        word_item = self.word_table.item(row, 0)
+        word_item = self.table.item(row, 0)
         if not word_item:
             return
         word = word_item.text()
         
         # 获取编辑后的值
-        edited_item = self.word_table.item(row, column)
+        edited_item = self.table.item(row, column)
         if not edited_item:
             return
         new_value = edited_item.text()
@@ -378,7 +291,7 @@ class WordsTab(QWidget):
         try:
             if column == 1:  # 编码
                 # 获取权重
-                weight_item = self.word_table.item(row, 2)
+                weight_item = self.table.item(row, 2)
                 if weight_item:
                     weight = float(weight_item.text())
                     self.dict_service.update_word(word, code=new_value, weight=weight)
@@ -386,7 +299,7 @@ class WordsTab(QWidget):
                         self.parent.show_toast(f"词 '{word}' 编码更新成功")
             elif column == 2:  # 权重
                 # 获取编码
-                code_item = self.word_table.item(row, 1)
+                code_item = self.table.item(row, 1)
                 if code_item:
                     code = code_item.text()
                     weight = float(new_value)
@@ -397,7 +310,7 @@ class WordsTab(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "错误", f"更新失败: {e}")
             # 恢复原始值
-            self.refresh_words()
+            self.refresh_data()
     
     def recalculate_all_codes(self):
         """批量重新计算编码"""
@@ -440,7 +353,7 @@ class WordsTab(QWidget):
                     )
                 
                 # 刷新词表
-                self.refresh_words()
+                self.refresh_data()
             
             def on_error(error):
                 if progress_bar:
