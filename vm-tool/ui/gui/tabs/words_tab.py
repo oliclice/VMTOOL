@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import (QPushButton, QLineEdit, QDialog, QFormLayout, QTextEdit, QMessageBox, QTableWidgetItem, QLabel)
+from PyQt6.QtWidgets import (QPushButton, QLineEdit, QDialog, QFormLayout, QTextEdit, QMessageBox, QTableWidgetItem, QLabel, QHBoxLayout, QVBoxLayout)
 from .base_table_tab import BaseTableTab
 from ..threads import AddBatchThread
 
