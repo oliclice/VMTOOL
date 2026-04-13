@@ -423,23 +423,37 @@ class ImportExportTab(QWidget):
             else:
                 all_paths.append("⚠️ 默认导出路径已禁用")
             
-            # 添加 ibus/rime 导出路径（只导出词表）
+            # 添加 ibus/rime 导出路径
             if config_manager.get("auto_export_ibus_rime", False):
                 ibus_rime_path = os.path.expanduser("~/.config/ibus/rime")
                 if os.path.exists(ibus_rime_path):
-                    words_export_name = config_manager.get("words_export_name", "vmtool_words")
-                    ibus_full_path = os.path.join(ibus_rime_path, f"{words_export_name}.{export_format}")
-                    all_paths.append(f"☁️ ibus/rime (词表): {ibus_full_path}")
+                    if config_manager.get("only_export_words", False):
+                        # 只导出词表
+                        words_export_name = config_manager.get("words_export_name", "vmtool_words")
+                        ibus_full_path = os.path.join(ibus_rime_path, f"{words_export_name}.{export_format}")
+                        all_paths.append(f"☁️ ibus/rime (词表): {ibus_full_path}")
+                    else:
+                        # 导出所有数据
+                        default_export_name = config_manager.get("default_export_name", "vmtool_export")
+                        ibus_full_path = os.path.join(ibus_rime_path, f"{default_export_name}.{export_format}")
+                        all_paths.append(f"☁️ ibus/rime: {ibus_full_path}")
                 else:
                     all_paths.append(f"⚠️ ibus/rime 目录不存在：{ibus_rime_path}")
             
-            # 添加 fcitx5/rime 导出路径（只导出词表）
+            # 添加 fcitx5/rime 导出路径
             if config_manager.get("auto_export_fcitx5_rime", False):
                 fcitx5_rime_path = os.path.expanduser("~/.local/share/fcitx5/rime")
                 if os.path.exists(fcitx5_rime_path):
-                    words_export_name = config_manager.get("words_export_name", "vmtool_words")
-                    fcitx5_full_path = os.path.join(fcitx5_rime_path, f"{words_export_name}.{export_format}")
-                    all_paths.append(f"☁️ fcitx5/rime (词表): {fcitx5_full_path}")
+                    if config_manager.get("only_export_words", False):
+                        # 只导出词表
+                        words_export_name = config_manager.get("words_export_name", "vmtool_words")
+                        fcitx5_full_path = os.path.join(fcitx5_rime_path, f"{words_export_name}.{export_format}")
+                        all_paths.append(f"☁️ fcitx5/rime (词表): {fcitx5_full_path}")
+                    else:
+                        # 导出所有数据
+                        default_export_name = config_manager.get("default_export_name", "vmtool_export")
+                        fcitx5_full_path = os.path.join(fcitx5_rime_path, f"{default_export_name}.{export_format}")
+                        all_paths.append(f"☁️ fcitx5/rime: {fcitx5_full_path}")
                 else:
                     all_paths.append(f"⚠️ fcitx5/rime 目录不存在：{fcitx5_rime_path}")
         else:
