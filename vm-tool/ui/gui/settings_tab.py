@@ -1106,6 +1106,19 @@ elif len(vac) >= 4:
             fcitx5_rime_checkbox.stateChanged.connect(on_fcitx5_rime_changed)
             rime_layout.addWidget(fcitx5_rime_checkbox)
         
+        # 只导出词表选项
+        only_export_words_checkbox = QCheckBox("只导出词表")
+        only_export_words_checkbox.setChecked(config_manager.get("only_export_words", False))
+        
+        def on_only_export_words_changed(state):
+            config_manager.set("only_export_words", state == 2)
+            # 更新导出界面中的完整路径
+            if hasattr(self.parent(), 'update_export_full_path'):
+                self.parent().update_export_full_path()
+        
+        only_export_words_checkbox.stateChanged.connect(on_only_export_words_changed)
+        rime_layout.addWidget(only_export_words_checkbox)
+        
         section_layout.addLayout(export_path_layout)
         section_layout.addLayout(delimiter_layout)
         section_layout.addLayout(import_path_layout)
