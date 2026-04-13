@@ -309,9 +309,12 @@ class ImportExportTab(QWidget):
         file_path = os.path.join(export_path, f"{default_export_name}.{export_format}")
         
         try:
+            # 检查是否只导出词表
+            only_export_words = config_manager.get("only_export_words", False)
+            
             # 检查是否启用分表导出
-            if config_manager.get("split_export_enabled", False):
-                # 分表导出
+            if config_manager.get("split_export_enabled", False) and not only_export_words:
+                # 分表导出（不启用只导出词表时）
                 total_exported = 0
                 
                 # 导出词表
