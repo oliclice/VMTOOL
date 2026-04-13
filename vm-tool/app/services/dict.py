@@ -24,6 +24,8 @@ class DictService:
             self.db = next(get_db())
         self.repo = WordRepository(self.db)
         self.code_generator = CodeGenerator()
+        # 设置为使用自定义规则，这样会使用GUI中指定的默认规则
+        self.code_generator.set_config({'rule': 'custom'})
     
     @cache.decorator()
     def get_word(self, word: str) -> Optional[Dict[str, Any]]:
@@ -198,14 +200,11 @@ class DictService:
                 if "is_character" not in word_data:
                     word_data["is_character"] = len(word) == 1
                 
-                # 如果没有提供编码，自动生成（仅对词表，字表不自动生成）
-                if code is None and not word_data["is_character"]:
+                # 如果没有提供编码，自动生成
+                if code is None:
                     code = self.generate_code(word)
                     word_data["code"] = code
                     word_data["manual"] = False  # 自动生成的编码，manual设为False
-                elif code is None and word_data["is_character"]:
-                    # 字表没有提供编码，跳过
-                    continue
                 
                 processed_words_data.append(word_data)
             
