@@ -462,7 +462,13 @@ class DictService:
     def search_words(self, keyword: str, field: str = "word") -> List[Dict[str, Any]]:
         """搜索词条"""
         try:
+            # 首先在指定字段搜索
             db_words = self.repo.search(keyword, field)
+            
+            # 如果在word字段搜索且没有结果，再在code字段搜索
+            if field == "word" and not db_words:
+                db_words = self.repo.search(keyword, "code")
+                
             return [{
                 "word": word.word,
                 "code": word.code,
@@ -476,7 +482,13 @@ class DictService:
     def search_characters(self, keyword: str, field: str = "word") -> List[Dict[str, Any]]:
         """搜索字符"""
         try:
+            # 首先在指定字段搜索
             db_words = self.repo.search(keyword, field)
+            
+            # 如果在word字段搜索且没有结果，再在code字段搜索
+            if field == "word" and not db_words:
+                db_words = self.repo.search(keyword, "code")
+                
             # 过滤出is_character=True的结果
             return [{
                 "id": word.id,
