@@ -139,11 +139,14 @@ class WeightCalculator:
             if weight < 0.1 or weight > 100.0:
                 raise WeightError("权重必须在 0.1 到 100.0 之间")
             
+            # 保存旧权重（在更新之前）
+            old_weight = db_word.weight
+            
             # 更新权重
             updated = self.repo.update(db_word.id, weight=weight)
             return {
                 "word": updated.word,
-                "old_weight": db_word.weight,
+                "old_weight": old_weight,
                 "new_weight": updated.weight
             }
         except WeightError:
