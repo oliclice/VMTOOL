@@ -175,6 +175,7 @@ flowchart TD
         get_word_by_text --> WordRepository.get_by_word
         
         DictService --> get_word_by_id["get_word_by_id()"]
+        get_word_by_id --> WordRepository.get_by_id
         
         DictService --> get_words_by_code["get_words_by_code()"]
         get_words_by_code --> WordRepository.get_by_code
@@ -313,6 +314,7 @@ flowchart TD
         WordRepository --> delete["delete()"]
         WordRepository --> get_all["get_all()"]
         WordRepository --> search["search()"]
+        WordRepository --> get_by_id["get_by_id()"]
         
         WordRepository --> Word["Word模型"]
         WordRepository --> get_db["get_db()"]
@@ -352,10 +354,12 @@ flowchart TD
     classDef service fill:#ffb,stroke:#333,stroke-width:2px;
     classDef dal fill:#fbb,stroke:#333,stroke-width:2px;
     classDef core fill:#bff,stroke:#333,stroke-width:2px;
+    classDef thread fill:#ff9,stroke:#333,stroke-width:2px;
 
     class main main;
-    class VMTOOLPyQtApp,CharsTab,SpecialTab,WordsTab,StatsTab,ImportExportTab,CodeRulesTab,SettingsTab gui;
+    class VMTOOLPyQtApp,CharsTab,SpecialTab,WordsTab,StatsTab,ImportExportTab,CodeRulesTab,SettingsTab,ProgressBarWidget gui;
     class CLI_Main,start_gui cli;
     class DictService,WeightCalculator,FilterService,StatsService,CodeGenerator service;
-    class WordRepository,Word,get_db,dal dal;
+    class WordRepository,Word,get_db dal;
     class config_manager,theme_manager core;
+    class BaseBatchThread,AddBatchThread,ImportThread,CalculateThread,DeleteTableThread,SetAllManualToFalseThread,RefreshDataThread thread;

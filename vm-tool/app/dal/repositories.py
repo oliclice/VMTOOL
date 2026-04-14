@@ -122,14 +122,10 @@ class WordRepository(BaseRepository):
     
     def get_special_chars(self, skip: int = 0, limit: int = None) -> List[Word]:
         """获取所有特殊字符"""
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.info(f"[WordRepository] 查询特殊字符，skip={skip}, limit={limit}")
         query = self.db.query(Word).filter(Word.is_special == True).offset(skip)
         if limit is not None:
             query = query.limit(limit)
         result = query.all()
-        logger.info(f"[WordRepository] 查询到 {len(result)} 个特殊字符")
         return result
     
     def count_special_chars(self) -> int:
@@ -138,26 +134,18 @@ class WordRepository(BaseRepository):
     
     def get_characters(self, skip: int = 0, limit: int = None) -> List[Word]:
         """获取所有字"""
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.info(f"[WordRepository] 查询字表，skip={skip}, limit={limit}")
         query = self.db.query(Word).filter(Word.is_character == True).offset(skip)
         if limit is not None:
             query = query.limit(limit)
         result = query.all()
-        logger.info(f"[WordRepository] 查询到 {len(result)} 个字")
         return result
     
     def get_words(self, skip: int = 0, limit: int = None) -> List[Word]:
         """获取所有词"""
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.info(f"[WordRepository] 查询词表，skip={skip}, limit={limit}")
         query = self.db.query(Word).filter(Word.is_character == False, Word.is_special == False).offset(skip)
         if limit is not None:
             query = query.limit(limit)
         result = query.all()
-        logger.info(f"[WordRepository] 查询到 {len(result)} 个词")
         return result
 
 

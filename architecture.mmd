@@ -17,6 +17,7 @@ flowchart TD
         VMTOOLPyQtApp --> WeightCalculator_GUI["WeightCalculator"]
         VMTOOLPyQtApp --> FilterService_GUI["FilterService"]
         VMTOOLPyQtApp --> StatsService_GUI["StatsService"]
+        VMTOOLPyQtApp --> ProgressBarWidget["ProgressBarWidget"]
         
         subgraph 表格基类
             BaseTableTab["BaseTableTab"] --> WordsTab
@@ -84,6 +85,7 @@ flowchart TD
     subgraph 核心
         config_manager["config_manager"] --> VMTOOLPyQtApp
         config_manager --> CodeRulesTab
+        config_manager --> ImportExportTab
         theme_manager["theme_manager"] --> VMTOOLPyQtApp
         config_manager --> config_location["配置位置: ~/.config/vm-tool"]
         init_db --> db_location["数据库位置: ~/.config/vm-tool"]
@@ -91,6 +93,13 @@ flowchart TD
 
     main --> CLI_Main
     main --> VMTOOLPyQtApp
+    ImportExportTab --> DictService
+    ImportExportTab --> FilterService
+    CodeRulesTab --> DictService
+    WordsTab --> DictService
+    CharsTab --> DictService
+    SpecialTab --> DictService
+    StatsTab --> StatsService
 
     classDef main fill:#f9f,stroke:#333,stroke-width:2px;
     classDef gui fill:#bbf,stroke:#333,stroke-width:2px;
@@ -98,11 +107,12 @@ flowchart TD
     classDef service fill:#ffb,stroke:#333,stroke-width:2px;
     classDef dal fill:#fbb,stroke:#333,stroke-width:2px;
     classDef core fill:#bff,stroke:#333,stroke-width:2px;
+    classDef thread fill:#ff9,stroke:#333,stroke-width:2px;
 
     class main main;
-    class VMTOOLPyQtApp,CharsTab,SpecialTab,WordsTab,StatsTab,ImportExportTab,CodeRulesTab,SettingsTab,BaseTableTab gui;
+    class VMTOOLPyQtApp,CharsTab,SpecialTab,WordsTab,StatsTab,ImportExportTab,CodeRulesTab,SettingsTab,BaseTableTab,ProgressBarWidget gui;
     class CLI_Main,start_gui cli;
     class DictService,WeightCalculator,FilterService,StatsService,CodeGenerator service;
-    class WordRepository,Word,get_db,dal dal;
+    class WordRepository,Word,get_db dal;
     class config_manager,theme_manager core;
-    class BaseBatchThread,AddBatchThread,ImportThread,CalculateThread service;
+    class BaseBatchThread,AddBatchThread,ImportThread,CalculateThread,DeleteTableThread,SetAllManualToFalseThread,RefreshDataThread thread;

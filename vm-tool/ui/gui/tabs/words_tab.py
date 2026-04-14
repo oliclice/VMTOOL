@@ -3,6 +3,7 @@ from PyQt6.QtCore import Qt
 from .base_table_tab import BaseTableTab
 from ..threads import AddBatchThread
 from ..threads.refresh_data_thread import RefreshDataThread
+from rich.progress import Progress, BarColumn, TextColumn, TimeElapsedColumn
 
 class WordsTab(BaseTableTab):
     """词表管理标签页"""
@@ -25,33 +26,80 @@ class WordsTab(BaseTableTab):
     
     def refresh_data(self):
         """刷新词表（异步）"""
-        print(f"[WordsTab] 开始刷新词表数据...", flush=True)
         if not self.dict_service:
-            print(f"[WordsTab] ✗ dict_service 为空，跳过刷新", flush=True)
             return
         
         # 如果已有刷新线程在运行，先停止
         if self.refresh_thread and self.refresh_thread.isRunning():
-            print(f"[WordsTab] 刷新线程正在运行，跳过本次刷新", flush=True)
             return
+        
+        # 创建并启动刷新线程
+        table_type = "words"
+        
+        # 根据任务类型设置描述
+        task_description = {
+            "words": "加载词表",
+            "chars": "加载字符表",
+            "special": "加载特殊字符表"
+        }.get(table_type, "加载数据")
+        
+        # 获取数据总数量
+        try:
+            if table_type == "words":
+                total_count = self.dict_service.count_words()
+            elif table_type == "chars":
+                total_count = self.dict_service.count_characters()
+            elif table_type == "special":
+                total_count = self.dict_service.count_special_chars()
+            else:
+                total_count = 100
+        except Exception as e:
+            print(f"[WordsTab] 获取数据总数量失败: {e}")
+            total_count = 100
         
         # 显示进度条
         if self.parent and hasattr(self.parent, 'progress_bar'):
-            self.parent.progress_bar.start_progress("正在加载词表...")
-            print(f"[WordsTab] 显示进度条", flush=True)
+            self.parent.progress_bar.start_progress(f"正在{task_description}...")
         
-        # 创建并启动刷新线程
-        print(f"[WordsTab] 创建刷新线程...", flush=True)
-        self.refresh_thread = RefreshDataThread(self.dict_service, "words")
-        print(f"[WordsTab] 刷新线程创建成功: {self.refresh_thread}", flush=True)
+        self.refresh_thread = RefreshDataThread(self.dict_service, table_type)
         
-        def on_progress(progress, message):
-            print(f"[WordsTab] 进度更新: {progress}% - {message}", flush=True)
+        # 创建Rich进度条
+        progress = Progress(
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+            BarColumn(),
+            TextColumn("[progress.completed]{task.completed:.0f}/{task.total:.0f}"),
+            TimeElapsedColumn(),
+        )
+        progress.start()
+        task = progress.add_task(f"[cyan]{task_description}", total=total_count)
+        
+        def on_progress(progress_val, message):
+            # 从message中提取实际已加载的数据量
+            try:
+                # 解析message，提取数字部分
+                import re
+                match = re.search(r'已加载 (\d+) 条', message)
+                if match:
+                    actual_completed = int(match.group(1))
+                    progress.update(task, completed=actual_completed)
+                elif message == "加载完成":
+                    # 完成时设置为总数量
+                    progress.update(task, completed=total_count)
+                else:
+                    # 如果解析失败，使用百分比计算
+                    actual_completed = int(total_count * (progress_val / 100))
+                    progress.update(task, completed=actual_completed)
+            except Exception as e:
+                # 如果解析失败，使用百分比计算
+                actual_completed = int(total_count * (progress_val / 100))
+                progress.update(task, completed=actual_completed)
+            
             if self.parent and hasattr(self.parent, 'progress_bar'):
-                self.parent.progress_bar.update_progress(progress, message)
+                self.parent.progress_bar.update_progress(progress_val, message)
         
         def on_finished(words):
-            print(f"[WordsTab] 刷新完成，共 {len(words)} 条数据", flush=True)
+            progress.update(task, completed=total_count)
+            progress.stop()
             
             # 优化表格数据更新，避免UI卡顿
             from PyQt6.QtWidgets import QApplication
@@ -65,18 +113,15 @@ class WordsTab(BaseTableTab):
             
             # 3. 清空表格
             self.table.setRowCount(0)
-            print(f"[WordsTab] 清空表格完成", flush=True)
             
             # 4. 预分配行数
             total_rows = len(words)
             self.table.setRowCount(total_rows)
-            print(f"[WordsTab] 设置表格行数为: {total_rows}", flush=True)
             
             # 5. 批量更新表格数据，使用更高效的策略
             batch_size = 1000
             for batch_start in range(0, total_rows, batch_size):
                 batch_end = min(batch_start + batch_size, total_rows)
-                print(f"[WordsTab] 更新表格数据，批次: {batch_start}-{batch_end}", flush=True)
                 
                 for i in range(batch_start, batch_end):
                     word = words[i]
@@ -115,10 +160,9 @@ class WordsTab(BaseTableTab):
             # 清理线程
             self.refresh_thread.deleteLater()
             self.refresh_thread = None
-            print(f"[WordsTab] 线程清理完成", flush=True)
         
         def on_error(error_msg):
-            print(f"[WordsTab] 刷新失败: {error_msg}", flush=True)
+            progress.stop()
             if self.parent and hasattr(self.parent, 'progress_bar'):
                 self.parent.progress_bar.error_progress(f"加载词表失败: {error_msg}")
             QMessageBox.critical(self, "错误", f"刷新词表失败: {error_msg}")
@@ -126,15 +170,14 @@ class WordsTab(BaseTableTab):
             # 清理线程
             self.refresh_thread.deleteLater()
             self.refresh_thread = None
-            print(f"[WordsTab] 错误处理完成", flush=True)
         
-        print(f"[WordsTab] 连接信号...", flush=True)
+        # 连接信号
         self.refresh_thread.progress.connect(on_progress)
         self.refresh_thread.finished.connect(on_finished)
         self.refresh_thread.error.connect(on_error)
-        print(f"[WordsTab] 启动线程...", flush=True)
+        
+        # 启动线程
         self.refresh_thread.start()
-        print(f"[WordsTab] 线程已启动", flush=True)
     
     def search_data(self):
         """搜索词表"""

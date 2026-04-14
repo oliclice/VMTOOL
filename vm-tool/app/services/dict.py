@@ -82,9 +82,7 @@ class DictService:
     def get_special_chars(self, skip: int = 0, limit: int = None) -> List[Dict[str, Any]]:
         """获取所有特殊字符"""
         try:
-            logger.info(f"[DictService] 开始获取特殊字符，skip={skip}, limit={limit}")
             db_words = self.repo.get_special_chars(skip, limit)
-            logger.info(f"[DictService] 获取到 {len(db_words)} 个特殊字符")
             result = [{
                 "id": word.id,
                 "word": word.word,
@@ -94,7 +92,6 @@ class DictService:
                 "is_special": word.is_special,
                 "manual": word.manual
             } for word in db_words]
-            logger.info(f"[DictService] 特殊字符数据转换完成")
             return result
         except Exception as e:
             logger.error(f"获取特殊字符失败: {e}")
@@ -108,12 +105,30 @@ class DictService:
             logger.error(f"统计特殊字符数量失败: {e}")
             raise DictError(f"统计特殊字符数量失败: {e}")
     
+    def count_characters(self) -> int:
+        """统计字符数量"""
+        try:
+            from sqlalchemy import func
+            count = self.db.query(func.count(Word.id)).filter(Word.is_character == True).scalar()
+            return count or 0
+        except Exception as e:
+            logger.error(f"统计字符数量失败: {e}")
+            raise DictError(f"统计字符数量失败: {e}")
+    
+    def count_words(self) -> int:
+        """统计词数量"""
+        try:
+            from sqlalchemy import func
+            count = self.db.query(func.count(Word.id)).filter(Word.is_character == False, Word.is_special == False).scalar()
+            return count or 0
+        except Exception as e:
+            logger.error(f"统计词数量失败: {e}")
+            raise DictError(f"统计词数量失败: {e}")
+    
     def get_characters(self, skip: int = 0, limit: int = None) -> List[Dict[str, Any]]:
         """获取所有字"""
         try:
-            logger.info(f"[DictService] 开始获取字表数据，skip={skip}, limit={limit}")
             db_words = self.repo.get_characters(skip, limit)
-            logger.info(f"[DictService] 获取到 {len(db_words)} 个字")
             result = [{
                 "id": word.id,
                 "word": word.word,
@@ -124,7 +139,6 @@ class DictService:
                 "is_special": word.is_special,
                 "manual": word.manual
             } for word in db_words]
-            logger.info(f"[DictService] 字表数据转换完成")
             return result
         except Exception as e:
             logger.error(f"获取字失败: {e}")
@@ -133,9 +147,7 @@ class DictService:
     def get_words(self, skip: int = 0, limit: int = None) -> List[Dict[str, Any]]:
         """获取所有词"""
         try:
-            logger.info(f"[DictService] 开始获取词表数据，skip={skip}, limit={limit}")
             db_words = self.repo.get_words(skip, limit)
-            logger.info(f"[DictService] 获取到 {len(db_words)} 个词")
             result = [{
                 "id": word.id,
                 "word": word.word,
@@ -146,7 +158,6 @@ class DictService:
                 "is_special": word.is_special,
                 "manual": word.manual
             } for word in db_words]
-            logger.info(f"[DictService] 词表数据转换完成")
             return result
         except Exception as e:
             logger.error(f"获取词失败: {e}")
