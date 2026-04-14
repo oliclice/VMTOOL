@@ -20,7 +20,6 @@ class RefreshDataThread(QThread):
     def run(self):
         """执行刷新操作"""
         try:
-            logger.info(f"[RefreshDataThread] 开始刷新 {self.table_type} 数据...")
             self.progress.emit(0, "正在加载数据...")
             
             all_data = []
@@ -28,7 +27,6 @@ class RefreshDataThread(QThread):
             
             while True:
                 # 分批获取数据
-                logger.info(f"[RefreshDataThread] 正在获取 {self.table_type} 数据，offset={offset}, limit={self.batch_size}")
                 if self.table_type == "chars":
                     batch = self.dict_service.get_characters(skip=offset, limit=self.batch_size)
                 elif self.table_type == "words":
@@ -38,10 +36,7 @@ class RefreshDataThread(QThread):
                 else:
                     raise ValueError(f"不支持的表类型: {self.table_type}")
                 
-                logger.info(f"[RefreshDataThread] 获取到 {len(batch)} 条 {self.table_type} 数据")
-                
                 if not batch:
-                    logger.info(f"[RefreshDataThread] 没有更多 {self.table_type} 数据，退出循环")
                     break
                 
                 all_data.extend(batch)
@@ -49,15 +44,12 @@ class RefreshDataThread(QThread):
                 
                 # 更新进度
                 progress = min(90, int(offset / (offset + self.batch_size) * 90))
-                self.progress.emit(progress, f"已加载 {offset} 条数据...")
-                logger.info(f"[RefreshDataThread] 已加载 {offset} 条 {self.table_type} 数据，进度: {progress}%")
+                self.progress.emit(progress, f"已加载 {offset} 条 {self.table_type} 数据")
                 
                 # 如果这批数据少于batch_size，说明已经加载完所有数据
                 if len(batch) < self.batch_size:
-                    logger.info(f"[RefreshDataThread] 批次大小小于 {self.batch_size}，退出循环")
                     break
             
-            logger.info(f"[RefreshDataThread] 数据加载完成，共 {len(all_data)} 条 {self.table_type} 数据")
             self.progress.emit(100, "加载完成")
             self.finished.emit(all_data)
         except Exception as e:
