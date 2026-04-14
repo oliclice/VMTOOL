@@ -1,4 +1,6 @@
 from PyQt6.QtWidgets import (QPushButton, QLineEdit, QDialog, QFormLayout, QTextEdit, QMessageBox, QTableWidgetItem, QLabel, QHBoxLayout, QVBoxLayout)
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QApplication
 from .base_table_tab import BaseTableTab
 from ..threads import AddBatchThread
 from ..threads.refresh_data_thread import RefreshDataThread
@@ -37,13 +39,52 @@ class CharsTab(BaseTableTab):
                 self.parent.progress_bar.update_progress(progress, message)
         
         def on_finished(chars):
-            # 更新表格数据
-            self.table.setRowCount(len(chars))
-            for i, char in enumerate(chars):
-                self.table.setItem(i, 0, QTableWidgetItem(char["word"]))
-                self.table.setItem(i, 1, QTableWidgetItem(char["code"]))
-                self.table.setItem(i, 2, QTableWidgetItem(str(char["weight"])))
-                self.table.setItem(i, 3, QTableWidgetItem("是" if char["manual"] else "否"))
+            # 1. 阻塞信号，避免每次 setItem 都触发 cellChanged
+            self.table.blockSignals(True)
+            
+            # 2. 禁用排序，避免插入数据时重新排序
+            was_sorted = self.table.isSortingEnabled()
+            self.table.setSortingEnabled(False)
+            
+            # 3. 清空并预分配行数
+            self.table.setRowCount(0)
+            total_rows = len(chars)
+            self.table.setRowCount(total_rows)
+            
+            # 4. 批量更新表格数据
+            batch_size = 1000
+            for batch_start in range(0, total_rows, batch_size):
+                batch_end = min(batch_start + batch_size, total_rows)
+                
+                for i in range(batch_start, batch_end):
+                    char = chars[i]
+                    # 第0列：字
+                    item_0 = QTableWidgetItem()
+                    item_0.setData(Qt.ItemDataRole.DisplayRole, char["word"])
+                    self.table.setItem(i, 0, item_0)
+                    
+                    # 第1列：编码
+                    item_1 = QTableWidgetItem()
+                    item_1.setData(Qt.ItemDataRole.DisplayRole, char["code"])
+                    self.table.setItem(i, 1, item_1)
+                    
+                    # 第2列：权重
+                    item_2 = QTableWidgetItem()
+                    item_2.setData(Qt.ItemDataRole.DisplayRole, str(char["weight"]))
+                    item_2.setData(Qt.ItemDataRole.EditRole, char["weight"])  # 用于排序
+                    self.table.setItem(i, 2, item_2)
+                    
+                    # 第3列：手动
+                    item_3 = QTableWidgetItem()
+                    item_3.setData(Qt.ItemDataRole.DisplayRole, "是" if char["manual"] else "否")
+                    self.table.setItem(i, 3, item_3)
+                
+                # 处理事件，避免UI卡顿
+                QApplication.processEvents()
+            
+            # 5. 恢复信号和排序
+            self.table.blockSignals(False)
+            self.table.setSortingEnabled(was_sorted)
             
             if self.parent and hasattr(self.parent, 'progress_bar'):
                 self.parent.progress_bar.finish_progress(f"字表加载完成，共 {len(chars)} 条记录")

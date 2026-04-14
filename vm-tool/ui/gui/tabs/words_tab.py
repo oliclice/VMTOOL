@@ -1,4 +1,5 @@
 from PyQt6.QtWidgets import (QPushButton, QLineEdit, QDialog, QFormLayout, QTextEdit, QMessageBox, QTableWidgetItem, QLabel, QHBoxLayout, QVBoxLayout)
+from PyQt6.QtCore import Qt
 from .base_table_tab import BaseTableTab
 from ..threads import AddBatchThread
 from ..threads.refresh_data_thread import RefreshDataThread
@@ -24,41 +25,100 @@ class WordsTab(BaseTableTab):
     
     def refresh_data(self):
         """刷新词表（异步）"""
+        print(f"[WordsTab] 开始刷新词表数据...", flush=True)
         if not self.dict_service:
+            print(f"[WordsTab] ✗ dict_service 为空，跳过刷新", flush=True)
             return
         
         # 如果已有刷新线程在运行，先停止
         if self.refresh_thread and self.refresh_thread.isRunning():
+            print(f"[WordsTab] 刷新线程正在运行，跳过本次刷新", flush=True)
             return
         
         # 显示进度条
         if self.parent and hasattr(self.parent, 'progress_bar'):
             self.parent.progress_bar.start_progress("正在加载词表...")
+            print(f"[WordsTab] 显示进度条", flush=True)
         
         # 创建并启动刷新线程
+        print(f"[WordsTab] 创建刷新线程...", flush=True)
         self.refresh_thread = RefreshDataThread(self.dict_service, "words")
+        print(f"[WordsTab] 刷新线程创建成功: {self.refresh_thread}", flush=True)
         
         def on_progress(progress, message):
+            print(f"[WordsTab] 进度更新: {progress}% - {message}", flush=True)
             if self.parent and hasattr(self.parent, 'progress_bar'):
                 self.parent.progress_bar.update_progress(progress, message)
         
         def on_finished(words):
-            # 更新表格数据
-            self.table.setRowCount(len(words))
-            for i, word in enumerate(words):
-                self.table.setItem(i, 0, QTableWidgetItem(word["word"]))
-                self.table.setItem(i, 1, QTableWidgetItem(word["code"]))
-                self.table.setItem(i, 2, QTableWidgetItem(str(word["weight"])))
-                self.table.setItem(i, 3, QTableWidgetItem("是" if word["manual"] else "否"))
+            print(f"[WordsTab] 刷新完成，共 {len(words)} 条数据", flush=True)
+            
+            # 优化表格数据更新，避免UI卡顿
+            from PyQt6.QtWidgets import QApplication
+            
+            # 1. 阻塞信号，避免每次 setItem 都触发 cellChanged
+            self.table.blockSignals(True)
+            
+            # 2. 禁用排序，避免插入数据时重新排序
+            was_sorted = self.table.isSortingEnabled()
+            self.table.setSortingEnabled(False)
+            
+            # 3. 清空表格
+            self.table.setRowCount(0)
+            print(f"[WordsTab] 清空表格完成", flush=True)
+            
+            # 4. 预分配行数
+            total_rows = len(words)
+            self.table.setRowCount(total_rows)
+            print(f"[WordsTab] 设置表格行数为: {total_rows}", flush=True)
+            
+            # 5. 批量更新表格数据，使用更高效的策略
+            batch_size = 1000
+            for batch_start in range(0, total_rows, batch_size):
+                batch_end = min(batch_start + batch_size, total_rows)
+                print(f"[WordsTab] 更新表格数据，批次: {batch_start}-{batch_end}", flush=True)
+                
+                for i in range(batch_start, batch_end):
+                    word = words[i]
+                    # 使用 setData 而不是创建 QTableWidgetItem，更高效
+                    # 第0列：词
+                    item_0 = QTableWidgetItem()
+                    item_0.setData(Qt.ItemDataRole.DisplayRole, word["word"])
+                    self.table.setItem(i, 0, item_0)
+                    
+                    # 第1列：编码
+                    item_1 = QTableWidgetItem()
+                    item_1.setData(Qt.ItemDataRole.DisplayRole, word["code"])
+                    self.table.setItem(i, 1, item_1)
+                    
+                    # 第2列：权重
+                    item_2 = QTableWidgetItem()
+                    item_2.setData(Qt.ItemDataRole.DisplayRole, str(word["weight"]))
+                    item_2.setData(Qt.ItemDataRole.EditRole, word["weight"])  # 用于排序
+                    self.table.setItem(i, 2, item_2)
+                    
+                    # 第3列：手动
+                    item_3 = QTableWidgetItem()
+                    item_3.setData(Qt.ItemDataRole.DisplayRole, "是" if word["manual"] else "否")
+                    self.table.setItem(i, 3, item_3)
+                
+                # 处理事件，避免UI卡顿
+                QApplication.processEvents()
+            
+            # 6. 恢复信号和排序
+            self.table.blockSignals(False)
+            self.table.setSortingEnabled(was_sorted)
             
             if self.parent and hasattr(self.parent, 'progress_bar'):
-                self.parent.progress_bar.finish_progress(f"词表加载完成，共 {len(words)} 条记录")
+                self.parent.progress_bar.finish_progress(f"词表加载完成，共 {total_rows} 条记录")
             
             # 清理线程
             self.refresh_thread.deleteLater()
             self.refresh_thread = None
+            print(f"[WordsTab] 线程清理完成", flush=True)
         
         def on_error(error_msg):
+            print(f"[WordsTab] 刷新失败: {error_msg}", flush=True)
             if self.parent and hasattr(self.parent, 'progress_bar'):
                 self.parent.progress_bar.error_progress(f"加载词表失败: {error_msg}")
             QMessageBox.critical(self, "错误", f"刷新词表失败: {error_msg}")
@@ -66,11 +126,15 @@ class WordsTab(BaseTableTab):
             # 清理线程
             self.refresh_thread.deleteLater()
             self.refresh_thread = None
+            print(f"[WordsTab] 错误处理完成", flush=True)
         
+        print(f"[WordsTab] 连接信号...", flush=True)
         self.refresh_thread.progress.connect(on_progress)
         self.refresh_thread.finished.connect(on_finished)
         self.refresh_thread.error.connect(on_error)
+        print(f"[WordsTab] 启动线程...", flush=True)
         self.refresh_thread.start()
+        print(f"[WordsTab] 线程已启动", flush=True)
     
     def search_data(self):
         """搜索词表"""

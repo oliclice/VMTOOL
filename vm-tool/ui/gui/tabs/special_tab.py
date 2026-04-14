@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem, 
                              QPushButton, QLineEdit, QLabel, QComboBox, QMenu, QInputDialog, 
-                             QMessageBox, QDialog, QFormLayout, QTextEdit)
+                             QMessageBox, QDialog, QFormLayout, QTextEdit, QApplication)
 from PyQt6.QtCore import Qt
 from app.services.dict import DictService
 from ..threads import AddBatchThread
@@ -97,12 +97,47 @@ class SpecialTab(QWidget):
                 self.parent.progress_bar.update_progress(progress, message)
         
         def on_finished(special_chars):
-            # 更新表格数据
-            self.special_table.setRowCount(len(special_chars))
-            for i, char in enumerate(special_chars):
-                self.special_table.setItem(i, 0, QTableWidgetItem(char["word"]))
-                self.special_table.setItem(i, 1, QTableWidgetItem(char["code"]))
-                self.special_table.setItem(i, 2, QTableWidgetItem(str(char["weight"])))
+            # 1. 阻塞信号，避免每次 setItem 都触发 cellChanged
+            self.special_table.blockSignals(True)
+            
+            # 2. 禁用排序，避免插入数据时重新排序
+            was_sorted = self.special_table.isSortingEnabled()
+            self.special_table.setSortingEnabled(False)
+            
+            # 3. 清空并预分配行数
+            self.special_table.setRowCount(0)
+            total_rows = len(special_chars)
+            self.special_table.setRowCount(total_rows)
+            
+            # 4. 批量更新表格数据
+            batch_size = 1000
+            for batch_start in range(0, total_rows, batch_size):
+                batch_end = min(batch_start + batch_size, total_rows)
+                
+                for i in range(batch_start, batch_end):
+                    char = special_chars[i]
+                    # 第0列：特殊字符
+                    item_0 = QTableWidgetItem()
+                    item_0.setData(Qt.ItemDataRole.DisplayRole, char["word"])
+                    self.special_table.setItem(i, 0, item_0)
+                    
+                    # 第1列：编码
+                    item_1 = QTableWidgetItem()
+                    item_1.setData(Qt.ItemDataRole.DisplayRole, char["code"])
+                    self.special_table.setItem(i, 1, item_1)
+                    
+                    # 第2列：权重
+                    item_2 = QTableWidgetItem()
+                    item_2.setData(Qt.ItemDataRole.DisplayRole, str(char["weight"]))
+                    item_2.setData(Qt.ItemDataRole.EditRole, char["weight"])  # 用于排序
+                    self.special_table.setItem(i, 2, item_2)
+                
+                # 处理事件，避免UI卡顿
+                QApplication.processEvents()
+            
+            # 5. 恢复信号和排序
+            self.special_table.blockSignals(False)
+            self.special_table.setSortingEnabled(was_sorted)
             
             if self.parent and hasattr(self.parent, 'progress_bar'):
                 self.parent.progress_bar.finish_progress(f"特殊表加载完成，共 {len(special_chars)} 条记录")
