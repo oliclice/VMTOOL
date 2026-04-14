@@ -112,6 +112,21 @@ flowchart TD
         RefreshDataThread["RefreshDataThread"] --> WordsTab
         RefreshDataThread --> CharsTab
         RefreshDataThread --> SpecialTab
+        
+        subgraph 性能优化
+            BlockSignals["blockSignals(True)"] --> WordsTab
+            BlockSignals --> CharsTab
+            BlockSignals --> SpecialTab
+            DisableSorting["setSortingEnabled(False)"] --> WordsTab
+            DisableSorting --> CharsTab
+            DisableSorting --> SpecialTab
+            BatchUpdate["分批更新(1000条/批)"] --> WordsTab
+            BatchUpdate --> CharsTab
+            BatchUpdate --> SpecialTab
+            DataRole["Qt.ItemDataRole.DisplayRole"] --> WordsTab
+            DataRole --> CharsTab
+            DataRole --> SpecialTab
+        end
     end
 
     subgraph CLI
@@ -311,6 +326,13 @@ flowchart TD
         config_manager --> SettingsTab
         config_manager --> CodeGenerator._execute_custom_rule
         theme_manager["theme_manager"] --> VMTOOLPyQtApp
+        
+        subgraph 性能优化机制
+            SignalBlocking["信号阻塞机制"] --> BlockSignals
+            SortOptimization["排序优化"] --> DisableSorting
+            BatchProcessing["批处理机制"] --> BatchUpdate
+            RoleBasedData["角色化数据"] --> DataRole
+        end
     end
 
     main --> CLI_Main
