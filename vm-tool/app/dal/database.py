@@ -1,6 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from app.core.config_manager import config_manager
 
@@ -8,7 +9,12 @@ from app.core.config_manager import config_manager
 database_path = config_manager.get("database_path")
 engine = create_engine(
     f"sqlite:///{database_path}",
-    connect_args={"check_same_thread": False}  # SQLite 特定配置
+    connect_args={
+        "check_same_thread": False,  # SQLite 特定配置，允许跨线程访问
+        "timeout": 30  # 增加超时时间，避免并发访问冲突
+    },
+    poolclass=StaticPool,  # SQLite 使用静态连接池
+    pool_pre_ping=True  # 连接前检查连接是否有效
 )
 
 # 创建会话工厂

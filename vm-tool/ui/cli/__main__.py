@@ -61,18 +61,31 @@ def main(ctx: typer.Context):
                 except Exception as e:
                     console.print(f"[red]执行命令失败:[/red] {e}")
 
-# 初始化服务
-dict_service = DictService()
-weight_calc = WeightCalculator()
-filter_service = FilterService()
-stats_service = StatsService()
-compatibility = CompatibilityLayer()
+# 延迟初始化服务，避免全局初始化导致的数据库冲突
+dict_service = None
+weight_calc = None
+filter_service = None
+stats_service = None
+compatibility = None
+
+
+def get_services():
+    """获取服务实例"""
+    global dict_service, weight_calc, filter_service, stats_service, compatibility
+    if dict_service is None:
+        dict_service = DictService()
+        weight_calc = WeightCalculator()
+        filter_service = FilterService()
+        stats_service = StatsService()
+        compatibility = CompatibilityLayer()
+    return dict_service, weight_calc, filter_service, stats_service, compatibility
 
 
 @app.command("add")
 def add_word(word: str, code: Optional[str] = None, weight: float = 1.0, is_character: Optional[bool] = None):
     """添加词条"""
     try:
+        dict_service, _, _, _, _ = get_services()
         result = dict_service.add_word(word, code, weight, is_character)
         console.print(f"[green]添加成功:[/green] {result}")
     except Exception as e:
@@ -89,6 +102,7 @@ def add_word(word: str, code: Optional[str] = None, weight: float = 1.0, is_char
 def delete_word(word: str):
     """删除词条"""
     try:
+        dict_service, _, _, _, _ = get_services()
         result = dict_service.delete_word(word)
         if result:
             console.print(f"[green]删除成功:[/green] {word}")
@@ -102,6 +116,7 @@ def delete_word(word: str):
 def delete_batch(words: List[str]):
     """批量删除词条"""
     try:
+        dict_service, _, _, _, _ = get_services()
         result = dict_service.delete_words(words)
         console.print(f"[green]批量删除完成:[/green] 删除了 {result['deleted']} 条，{result['not_found']} 条不存在")
         if result['not_found_words']:
@@ -114,6 +129,7 @@ def delete_batch(words: List[str]):
 def query_word(keyword: str):
     """查询词条"""
     try:
+        dict_service, _, _, _, _ = get_services()
         results = dict_service.search_words(keyword)
         if results:
             table = Table(title="查询结果")
@@ -135,6 +151,7 @@ def query_word(keyword: str):
 def set_weight(word: str, weight: float):
     """设置词条权重"""
     try:
+        _, weight_calc, _, _, _ = get_services()
         result = weight_calc.set_weight_directly(word, weight)
         console.print(f"[green]设置权重成功:[/green] {result}")
     except Exception as e:
@@ -145,6 +162,7 @@ def set_weight(word: str, weight: float):
 def replace_code(word: str, new_code: str):
     """替换词条编码"""
     try:
+        dict_service, _, _, _, _ = get_services()
         result = dict_service.replace_code(word, new_code)
         console.print(f"[green]替换编码成功:[/green] {result}")
     except Exception as e:
@@ -161,6 +179,7 @@ def calculate_all_codes(rule: str = "first_letter", separator: str = "", max_len
         max_length: 最大编码长度
     """
     try:
+        dict_service, _, _, _, _ = get_services()
         # 设置编码生成配置
         config = {
             'rule': rule,
@@ -184,6 +203,7 @@ def calculate_all_codes(rule: str = "first_letter", separator: str = "", max_len
 def show_stats():
     """显示统计信息"""
     try:
+        _, _, _, stats_service, _ = get_services()
         report = stats_service.generate_report()
         
         # 显示词长统计
@@ -231,6 +251,7 @@ def import_data(
         words: 批量导入的词条列表（当直接导入词条时使用）
     """
     try:
+        dict_service, _, filter_service, _, _ = get_services()
         from rich.progress import Progress, TextColumn, BarColumn, TimeRemainingColumn
         
         def progress_callback(progress, message):
@@ -301,6 +322,7 @@ def import_data(
 def export_data(output_file: Optional[str] = None, format: Optional[str] = None):
     """导出数据"""
     try:
+        dict_service, _, _, _, _ = get_services()
         from app.core.config_manager import config_manager
         import os
         
@@ -483,20 +505,111 @@ def show_typer_help():
 @app.command("gui")
 def start_gui():
     """启动图形界面"""
+    import sys as sys_module
+    # 强制刷新输出
+    if hasattr(sys_module.stdout, 'reconfigure'):
+        sys_module.stdout.reconfigure(line_buffering=True)
+    
+    print("[CLI-GUI] ===== 开始启动 GUI =====", flush=True)
     try:
         console.print("[green]正在启动图形界面...[/green]")
+        print("[CLI-GUI] [1/5] 导入 PyQt6 模块...", flush=True)
         # 导入并启动PyQt应用
-        import sys
-        sys.path.insert(0, ".")
-        from ui.gui.pyqt_app import VMTOOLPyQtApp
+        import sys as sys_module
+        sys_module.path.insert(0, ".")
         from PyQt6.QtWidgets import QApplication
+        print("[CLI-GUI] ✓ PyQt6 导入成功", flush=True)
         
-        app = QApplication(sys.argv)
+        # 检查是否已经有 QApplication 实例
+        print("[CLI-GUI] [2/5] 检查 QApplication 实例...", flush=True)
+        qapp = QApplication.instance()
+        if qapp is None:
+            # 创建 QApplication 实例
+            print("[CLI-GUI] 创建新的 QApplication 实例", flush=True)
+            qapp = QApplication(sys_module.argv)
+        else:
+            print("[CLI-GUI] 使用已存在的 QApplication 实例", flush=True)
+        print("[CLI-GUI] ✓ QApplication 就绪", flush=True)
+        
+        # 导入并创建主窗口
+        print("[CLI-GUI] [3/5] 导入 VMTOOLPyQtApp...", flush=True)
+        from ui.gui.pyqt_app import VMTOOLPyQtApp
+        print("[CLI-GUI] ✓ VMTOOLPyQtApp 导入成功", flush=True)
+        
+        print("[CLI-GUI] [4/5] 创建主窗口...", flush=True)
+        print("[CLI-GUI] 开始创建 VMTOOLPyQtApp 实例...", flush=True)
         window = VMTOOLPyQtApp()
+        print(f"[CLI-GUI] ✓ 主窗口创建成功", flush=True)
+        print(f"[CLI-GUI] 窗口对象: {window}", flush=True)
+        print(f"[CLI-GUI] 窗口属性:", flush=True)
+        print(f"[CLI-GUI]   - windowTitle: {window.windowTitle()}", flush=True)
+        print(f"[CLI-GUI]   - size: {window.size().width()}x{window.size().height()}", flush=True)
+        print(f"[CLI-GUI]   - centralWidget: {window.centralWidget()}", flush=True)
+        print(f"[CLI-GUI]   - layout: {window.layout()}", flush=True)
+        print(f"[CLI-GUI]   - isVisible: {window.isVisible()}", flush=True)
+        print(f"[CLI-GUI]   - isMinimized: {window.isMinimized()}", flush=True)
+        print(f"[CLI-GUI]   - isMaximized: {window.isMaximized()}", flush=True)
+        
+        print("[CLI-GUI] [5/5] 显示窗口...", flush=True)
+        print("[CLI-GUI] 调用 window.show()...", flush=True)
         window.show()
-        sys.exit(app.exec())
+        print(f"[CLI-GUI] ✓ window.show() 调用完成", flush=True)
+        print(f"[CLI-GUI] 窗口状态检查:", flush=True)
+        print(f"[CLI-GUI]   - isVisible: {window.isVisible()}", flush=True)
+        print(f"[CLI-GUI]   - isActiveWindow: {window.isActiveWindow()}", flush=True)
+        print(f"[CLI-GUI]   - isHidden: {window.isHidden()}", flush=True)
+        print(f"[CLI-GUI]   - isMinimized: {window.isMinimized()}", flush=True)
+        print(f"[CLI-GUI] 窗口大小: {window.size().width()}x{window.size().height()}", flush=True)
+        print(f"[CLI-GUI] 窗口标题: {window.windowTitle()}", flush=True)
+        
+        # 启动事件循环
+        print("[CLI-GUI] 准备启动 Qt 事件循环...", flush=True)
+        
+        # 在启动事件循环前，确保窗口可见
+        print("[CLI-GUI] 最终窗口状态检查:", flush=True)
+        print(f"[CLI-GUI]   - isVisible: {window.isVisible()}", flush=True)
+        print(f"[CLI-GUI]   - isHidden: {window.isHidden()}", flush=True)
+        print(f"[CLI-GUI]   - isMinimized: {window.isMinimized()}", flush=True)
+        print(f"[CLI-GUI]   - geometry: {window.geometry()}", flush=True)
+        print(f"[CLI-GUI]   - pos: {window.pos().x()},{window.pos().y()}", flush=True)
+        
+        # 如果窗口不可见，强制显示
+        if not window.isVisible():
+            print("[CLI-GUI] ⚠️  窗口不可见，强制调用 show()", flush=True)
+            window.show()
+            window.raise_()  # 提升到顶层
+            window.activateWindow()  # 激活窗口
+        
+        # 确保窗口在屏幕可见区域内
+        from PyQt6.QtGui import QGuiApplication
+        screen = QGuiApplication.primaryScreen().geometry()
+        win_geometry = window.geometry()
+        print(f"[CLI-GUI] 屏幕大小: {screen.width()}x{screen.height()}", flush=True)
+        print(f"[CLI-GUI] 窗口位置: ({win_geometry.x()}, {win_geometry.y()}), 大小: {win_geometry.width()}x{win_geometry.height()}", flush=True)
+        
+        # 如果窗口位置在屏幕外，移动到屏幕中心
+        if (win_geometry.x() < -100 or win_geometry.y() < -100 or 
+            win_geometry.x() > screen.width() + 100 or win_geometry.y() > screen.height() + 100):
+            print("[CLI-GUI] ⚠️  窗口在屏幕外，移动到屏幕中心", flush=True)
+            window.move(
+                (screen.width() - win_geometry.width()) // 2,
+                (screen.height() - win_geometry.height()) // 2
+            )
+        
+        print("[CLI-GUI] 调用 app.exec()...", flush=True)
+        print("[CLI-GUI] ===== GUI 启动完成，进入事件循环 =====", flush=True)
+        
+        # 这里会阻塞，直到应用退出
+        exit_code = qapp.exec()
+        print(f"[CLI-GUI] Qt 事件循环结束，退出码: {exit_code}", flush=True)
+        sys_module.exit(exit_code)
     except Exception as e:
+        print(f"[CLI-GUI] ✗ 启动图形界面失败: {e}")
+        import traceback
+        print(f"[CLI-GUI] 错误堆栈:")
+        traceback.print_exc()
         console.print(f"[red]启动图形界面失败:[/red] {e}")
+        console.print(f"[red]{traceback.format_exc()}[/red]")
 
 
 if __name__ == "__main__":

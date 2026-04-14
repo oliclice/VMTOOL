@@ -1,0 +1,98 @@
+```mermaid
+graph TB
+    subgraph "VM-TOOL 项目架构"
+        A[main.py] --> B[vmtool.py]
+        B --> C{运行模式}
+        
+        C -->|CLI| D[ui/cli/]
+        C -->|GUI| E[ui/gui/]
+        
+        D --> D1[CLI 命令处理]
+        D1 --> D2[Typer 框架]
+        
+        E --> E1[PyQt6 GUI]
+        E1 --> E2[主窗口]
+        E2 --> E3[数据表格]
+        E2 --> E4[操作界面]
+        E1 --> E5[事件循环]
+        
+        subgraph "核心应用层 app/"
+            F[app/core/] --> F1[配置管理]
+            F --> F2[服务注册]
+            F --> F3[缓存管理]
+            F --> F4[兼容性处理]
+            
+            G[app/services/] --> G1[编码规则服务]
+            G --> G2[码表管理服务]
+            G --> G3[统计分析服务]
+            G --> G4[过滤服务]
+            G --> G5[权重服务]
+            
+            H[app/plugins/] --> H1[插件管理器]
+            H --> H2[插件基类]
+        end
+        
+        subgraph "数据访问层 app/dal/"
+            I[数据库相关] --> I1[数据库连接]
+            I --> I2[模型定义]
+            I --> I3[仓储模式]
+            I --> I4[迁移管理]
+            I --> I5[初始化数据库]
+        end
+        
+        E1 --> F
+        D1 --> F
+        F --> G
+        G --> I
+        I --> I6[(vm_tool.db)]
+    end
+    
+    subgraph "CLI 启动 GUI 流程分析"
+        J[vmtool.py 入口] --> K[app() 启动 Typer]
+        K --> L[用户输入 gui 命令]
+        L --> M[start_gui() 函数]
+        M --> N[创建 QApplication]
+        N --> O[创建 VMTOOLPyQtApp]
+        O --> P[__init__ 初始化]
+        P --> Q[init_database 同步调用]
+        Q --> R[可能阻塞主线程]
+        R --> S[GUI 卡死]
+        
+        M --> T[sys.exit app.exec ]
+        T --> U[事件循环开始]
+    end
+    
+    subgraph "潜在问题点"
+        V[问题1: 数据库初始化阻塞] --> W[init_database 在 __init__ 中同步执行]
+        V --> X[可能导致 GUI 启动卡死]
+        
+        Y[问题2: 双重 QApplication] --> Z[vmtool.py 和 main.py 可能冲突]
+        
+        AA[问题3: 服务初始化顺序] --> BB[服务在数据库初始化前创建]
+        
+        CC[问题4: 线程安全] --> DD[数据库操作可能在非主线程]
+    end
+    
+    subgraph "修复方案"
+        EE[修复1: 同步数据库初始化] --> FF[数据库表结构创建很快，无需异步]
+        FF --> GG[避免异步导致的时序问题]
+        
+        HH[修复2: QApplication 单例检查] --> II[使用 QApplication.instance() 检查]
+        II --> JJ[避免创建多个 QApplication 实例]
+        
+        KK[修复3: 调整初始化顺序] --> LL[先创建组件，再设置主题]
+        LL --> MM[避免主题刷新影响组件渲染]
+        
+        NN[修复4: SQLite 线程安全配置] --> OO[使用 StaticPool 和 timeout]
+        OO --> PP[提高并发访问的稳定性]
+        
+        QQ[修复5: 移除 repaint 调用] --> RR[避免初始化时强制刷新导致问题]
+        RR --> SS[让 Qt 自然渲染组件]
+        
+        TT[修复6: 设置窗口初始大小] --> UU[resize(1200, 800)]
+        UU --> VV[确保窗口有足够空间显示组件]
+        
+        WW[修复7: 添加布局拉伸因子] --> XX[addWidget(tab_widget, 1)]
+        XX --> YY[让标签页占据剩余空间]
+    end
+```
