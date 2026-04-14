@@ -188,8 +188,35 @@ def calculate_all_codes(rule: str = "first_letter", separator: str = "", max_len
         }
         dict_service.code_generator.set_config(config)
         
-        # 批量计算编码
-        result = dict_service.calculate_all_codes()
+        # 获取总数用于进度条
+        from app.dal.models import Word
+        total = dict_service.db.query(Word).filter(Word.manual == False, Word.is_character == False).count()
+        
+        if total == 0:
+            console.print("[yellow]没有需要计算编码的词条[/yellow]")
+            return
+        
+        # 使用Rich进度条
+        from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeRemainingColumn
+        
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            TimeRemainingColumn(),
+            console=console
+        ) as progress:
+            task = progress.add_task("[cyan]计算编码中...", total=total)
+            
+            # 定义进度回调函数
+            def progress_callback(percentage: int, message: str):
+                # 根据百分比更新进度条
+                completed = int(total * percentage / 100)
+                progress.update(task, completed=completed, description=f"[cyan]{message}[/cyan]")
+            
+            # 批量计算编码
+            result = dict_service.calculate_all_codes(progress_callback=progress_callback)
         
         console.print(f"[green]批量计算编码完成:[/green]")
         console.print(f"总词条数: {result['total']}")

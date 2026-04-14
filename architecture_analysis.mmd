@@ -95,4 +95,21 @@ graph TB
         WW[修复7: 添加布局拉伸因子] --> XX[addWidget(tab_widget, 1)]
         XX --> YY[让标签页占据剩余空间]
     end
+    
+    subgraph "性能优化方案"
+        ZZ[优化1: 信号阻塞] --> AAA[blockSignals(True)避免频繁触发cellChanged]
+        AAA --> BBB[减少211,500次信号处理(52,875行×4列)]
+        
+        CCC[优化2: 排序禁用] --> DDD[setSortingEnabled(False)临时关闭排序]
+        DDD --> EEE[避免每次插入都重新排序]
+        
+        FFF[优化3: 分批处理] --> GGG[每1000条调用processEvents()]
+        GGG --> HHH[保持UI响应性，避免卡顿]
+        
+        III[优化4: 角色化数据] --> JJJ[使用Qt.ItemDataRole.DisplayRole/EditRole]
+        JJJ --> KKK[分离显示数据和编辑数据，提高排序效率]
+        
+        LLL[性能提升] --> MMM[预计加载速度提升5-10倍]
+        MMM --> NNN[适用于WordsTab/CharsTab/SpecialTab]
+    end
 ```

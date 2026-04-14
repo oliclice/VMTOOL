@@ -35,6 +35,21 @@ flowchart TD
             RefreshDataThread --> CharsTab
             RefreshDataThread --> SpecialTab
         end
+        
+        subgraph 性能优化机制
+            BlockSignals["blockSignals(True)"] --> WordsTab
+            BlockSignals --> CharsTab
+            BlockSignals --> SpecialTab
+            DisableSorting["setSortingEnabled(False)"] --> WordsTab
+            DisableSorting --> CharsTab
+            DisableSorting --> SpecialTab
+            BatchUpdate["分批更新(1000条/批)"] --> WordsTab
+            BatchUpdate --> CharsTab
+            BatchUpdate --> SpecialTab
+            DataRole["Qt.ItemDataRole.DisplayRole/EditRole"] --> WordsTab
+            DataRole --> CharsTab
+            DataRole --> SpecialTab
+        end
     end
 
     subgraph CLI
