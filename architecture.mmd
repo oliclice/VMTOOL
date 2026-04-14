@@ -29,6 +29,11 @@ flowchart TD
             AddBatchThread --> CharsTab
             ImportThread["ImportThread"] --> ImportExportTab
             CalculateThread["CalculateThread"] --> WordsTab
+            DeleteTableThread["DeleteTableThread"] --> SettingsTab
+            SetAllManualToFalseThread["SetAllManualToFalseThread"] --> SettingsTab
+            RefreshDataThread["RefreshDataThread"] --> WordsTab
+            RefreshDataThread --> CharsTab
+            RefreshDataThread --> SpecialTab
         end
     end
 

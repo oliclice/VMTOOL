@@ -101,6 +101,19 @@ flowchart TD
         ProgressBarWidget --> error_progress["error_progress()"]
     end
 
+    subgraph 线程
+        BaseBatchThread["BaseBatchThread"] --> AddBatchThread["AddBatchThread"]
+        AddBatchThread --> WordsTab
+        AddBatchThread --> CharsTab
+        ImportThread["ImportThread"] --> ImportExportTab
+        CalculateThread["CalculateThread"] --> WordsTab
+        DeleteTableThread["DeleteTableThread"] --> SettingsTab
+        SetAllManualToFalseThread["SetAllManualToFalseThread"] --> SettingsTab
+        RefreshDataThread["RefreshDataThread"] --> WordsTab
+        RefreshDataThread --> CharsTab
+        RefreshDataThread --> SpecialTab
+    end
+
     subgraph CLI
         CLI_Main["cli/__main__.py"] --> main_cli["main()"]
         main_cli --> show_typer_help["show_typer_help()"]
@@ -193,6 +206,7 @@ flowchart TD
         delete_character --> delete_word
         
         DictService --> delete_table["delete_table()"]
+        DictService --> set_all_manual_to_false["set_all_manual_to_false()"]
         
         DictService --> replace_code["replace_code()"]
         replace_code --> update_word

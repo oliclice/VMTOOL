@@ -74,8 +74,8 @@ class ProgressBarWidget(QWidget):
         self.status_label.setText(message)
         
         # 使用主题色
-        from app.core.theme_manager import theme_manager
-        theme_color = theme_manager.get_theme_color()
+        from .theme_manager import theme_manager
+        theme_color = theme_manager.current_theme_color
         color_map = {
             "blue": "#1976D2",
             "green": "#4CAF50",

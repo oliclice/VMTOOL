@@ -1,10 +1,12 @@
 from PyQt6.QtWidgets import (QPushButton, QLineEdit, QDialog, QFormLayout, QTextEdit, QMessageBox, QTableWidgetItem, QLabel, QHBoxLayout, QVBoxLayout)
 from .base_table_tab import BaseTableTab
 from ..threads import AddBatchThread
+from ..threads.refresh_data_thread import RefreshDataThread
 
 class WordsTab(BaseTableTab):
     """词表管理标签页"""
     def __init__(self, parent=None, dict_service=None):
+        self.refresh_thread = None
         super().__init__(parent, dict_service)
     
     def set_column_widths(self):
@@ -21,21 +23,54 @@ class WordsTab(BaseTableTab):
         layout.addWidget(recalculate_button)
     
     def refresh_data(self):
-        """刷新词表"""
+        """刷新词表（异步）"""
         if not self.dict_service:
             return
         
-        try:
-            words = self.dict_service.get_words()
+        # 如果已有刷新线程在运行，先停止
+        if self.refresh_thread and self.refresh_thread.isRunning():
+            return
+        
+        # 显示进度条
+        if self.parent and hasattr(self.parent, 'progress_bar'):
+            self.parent.progress_bar.start_progress("正在加载词表...")
+        
+        # 创建并启动刷新线程
+        self.refresh_thread = RefreshDataThread(self.dict_service, "words")
+        
+        def on_progress(progress, message):
+            if self.parent and hasattr(self.parent, 'progress_bar'):
+                self.parent.progress_bar.update_progress(progress, message)
+        
+        def on_finished(words):
+            # 更新表格数据
             self.table.setRowCount(len(words))
-            
             for i, word in enumerate(words):
                 self.table.setItem(i, 0, QTableWidgetItem(word["word"]))
                 self.table.setItem(i, 1, QTableWidgetItem(word["code"]))
                 self.table.setItem(i, 2, QTableWidgetItem(str(word["weight"])))
                 self.table.setItem(i, 3, QTableWidgetItem("是" if word["manual"] else "否"))
-        except Exception as e:
-            QMessageBox.critical(self, "错误", f"刷新词表失败: {e}")
+            
+            if self.parent and hasattr(self.parent, 'progress_bar'):
+                self.parent.progress_bar.finish_progress(f"词表加载完成，共 {len(words)} 条记录")
+            
+            # 清理线程
+            self.refresh_thread.deleteLater()
+            self.refresh_thread = None
+        
+        def on_error(error_msg):
+            if self.parent and hasattr(self.parent, 'progress_bar'):
+                self.parent.progress_bar.error_progress(f"加载词表失败: {error_msg}")
+            QMessageBox.critical(self, "错误", f"刷新词表失败: {error_msg}")
+            
+            # 清理线程
+            self.refresh_thread.deleteLater()
+            self.refresh_thread = None
+        
+        self.refresh_thread.progress.connect(on_progress)
+        self.refresh_thread.finished.connect(on_finished)
+        self.refresh_thread.error.connect(on_error)
+        self.refresh_thread.start()
     
     def search_data(self):
         """搜索词表"""
