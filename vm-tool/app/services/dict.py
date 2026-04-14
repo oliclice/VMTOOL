@@ -551,6 +551,68 @@ class DictService:
             logger.error(f"批量计算编码失败: {e}")
             raise DictError(f"批量计算编码失败: {e}")
     
+    def set_all_manual_to_false(self, table_type: str, progress_callback: Optional[Callable[[int, str], None]] = None) -> Dict[str, Any]:
+        """将指定表的所有词条的manual设置为False
+        
+        Args:
+            table_type: 表类型，支持 "chars"（字表）、"words"（词表）、"special"（特殊字符表）
+            progress_callback: 进度回调函数
+        
+        Returns:
+            Dict[str, Any]: 更新结果，包含 updated 字段表示更新的数量
+        """
+        from sqlalchemy import text
+        
+        try:
+            if progress_callback:
+                progress_callback(10, "准备更新...")
+            
+            # 根据类型更新对应的数据
+            if table_type == "chars":
+                if progress_callback:
+                    progress_callback(30, "更新字表...")
+                # 更新字表（is_character=True 的记录）
+                result = self.db.execute(
+                    text("UPDATE words SET manual = :manual WHERE is_character = :is_character"),
+                    {"manual": False, "is_character": True}
+                )
+            elif table_type == "words":
+                if progress_callback:
+                    progress_callback(30, "更新词表...")
+                # 更新词表（is_character=False 且 is_special=False 的记录）
+                result = self.db.execute(
+                    text("UPDATE words SET manual = :manual WHERE is_character = :is_character AND is_special = :is_special"),
+                    {"manual": False, "is_character": False, "is_special": False}
+                )
+            elif table_type == "special":
+                if progress_callback:
+                    progress_callback(30, "更新特殊字符表...")
+                # 更新特殊字符表（is_special=True 的记录）
+                result = self.db.execute(
+                    text("UPDATE words SET manual = :manual WHERE is_special = :is_special"),
+                    {"manual": False, "is_special": True}
+                )
+            else:
+                raise DictError(f"不支持的表类型：{table_type}")
+            
+            if progress_callback:
+                progress_callback(70, "提交事务...")
+            
+            # 提交事务
+            self.db.commit()
+            
+            if progress_callback:
+                progress_callback(100, "更新完成")
+            
+            return {"updated": result.rowcount}
+        except DictError:
+            self.db.rollback()
+            raise
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"批量更新manual失败: {e}")
+            raise DictError(f"批量更新manual失败: {e}")
+    
     def export_data(self, output_file: str, format: str = "txt", encoding: str = "utf-8", table: str = None) -> int:
         """导出数据"""
         try:

@@ -4,12 +4,14 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QT
 from PyQt6.QtCore import Qt
 from app.services.dict import DictService
 from ..threads import AddBatchThread
+from ..threads.refresh_data_thread import RefreshDataThread
 
 class SpecialTab(QWidget):
     """特殊表管理标签页"""
     def __init__(self, parent=None, dict_service=None):
         super().__init__(parent)
         self.dict_service = dict_service
+        self.refresh_thread = None
         self.init_ui()
         self.refresh_special()
     
@@ -75,20 +77,53 @@ class SpecialTab(QWidget):
         layout.addLayout(button_layout)
     
     def refresh_special(self):
-        """刷新特殊表"""
+        """刷新特殊表（异步）"""
         if not self.dict_service:
             return
         
-        try:
-            special_chars = self.dict_service.get_special_chars()
+        # 如果已有刷新线程在运行，先停止
+        if self.refresh_thread and self.refresh_thread.isRunning():
+            return
+        
+        # 显示进度条
+        if self.parent and hasattr(self.parent, 'progress_bar'):
+            self.parent.progress_bar.start_progress("正在加载特殊表...")
+        
+        # 创建并启动刷新线程
+        self.refresh_thread = RefreshDataThread(self.dict_service, "special")
+        
+        def on_progress(progress, message):
+            if self.parent and hasattr(self.parent, 'progress_bar'):
+                self.parent.progress_bar.update_progress(progress, message)
+        
+        def on_finished(special_chars):
+            # 更新表格数据
             self.special_table.setRowCount(len(special_chars))
-            
             for i, char in enumerate(special_chars):
                 self.special_table.setItem(i, 0, QTableWidgetItem(char["word"]))
                 self.special_table.setItem(i, 1, QTableWidgetItem(char["code"]))
                 self.special_table.setItem(i, 2, QTableWidgetItem(str(char["weight"])))
-        except Exception as e:
-            QMessageBox.critical(self, "错误", f"刷新特殊表失败: {e}")
+            
+            if self.parent and hasattr(self.parent, 'progress_bar'):
+                self.parent.progress_bar.finish_progress(f"特殊表加载完成，共 {len(special_chars)} 条记录")
+            
+            # 清理线程
+            self.refresh_thread.deleteLater()
+            self.refresh_thread = None
+        
+        def on_error(error_msg):
+            if self.parent and hasattr(self.parent, 'progress_bar'):
+                self.parent.progress_bar.error_progress(f"加载特殊表失败: {error_msg}")
+            QMessageBox.critical(self, "错误", f"刷新特殊表失败: {error_msg}")
+            
+            # 清理线程
+            self.refresh_thread.deleteLater()
+            self.refresh_thread = None
+        
+        self.refresh_thread.progress.connect(on_progress)
+        self.refresh_thread.finished.connect(on_finished)
+        self.refresh_thread.error.connect(on_error)
+        self.refresh_thread.start()
     
     def search_special(self):
         """搜索特殊表"""
