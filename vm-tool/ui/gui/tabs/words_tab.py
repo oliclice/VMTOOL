@@ -1,15 +1,14 @@
-from PyQt6.QtWidgets import (QPushButton, QLineEdit, QDialog, QFormLayout, QTextEdit, QMessageBox, QTableWidgetItem, QLabel, QHBoxLayout, QVBoxLayout)
+from PyQt6.QtWidgets import (QPushButton, QLineEdit, QDialog, QFormLayout, QMessageBox, QTableWidgetItem)
 from PyQt6.QtCore import Qt
 from .base_table_tab import BaseTableTab
-from ..threads import AddBatchThread
-from ..threads.refresh_data_thread import RefreshDataThread
+from .refreshable_tab import RefreshableTab
 from rich.progress import Progress, BarColumn, TextColumn, TimeElapsedColumn
 
-class WordsTab(BaseTableTab):
+
+class WordsTab(BaseTableTab, RefreshableTab):
     """词表管理标签页"""
     def __init__(self, parent=None, dict_service=None):
-        self.refresh_thread = None
-        self.is_refreshing = False
+        self.init_refreshable_tab()
         super().__init__(parent, dict_service)
     
     def set_column_widths(self):
@@ -25,40 +24,44 @@ class WordsTab(BaseTableTab):
         recalculate_button.clicked.connect(self.recalculate_all_codes)
         layout.addWidget(recalculate_button)
     
+    def update_table_row(self, table, row, data):
+        """更新表格单行数据"""
+        word = data
+        # 第0列：词
+        item_0 = QTableWidgetItem()
+        item_0.setData(Qt.ItemDataRole.DisplayRole, word["word"])
+        table.setItem(row, 0, item_0)
+        
+        # 第1列：编码
+        item_1 = QTableWidgetItem()
+        item_1.setData(Qt.ItemDataRole.DisplayRole, word["code"])
+        table.setItem(row, 1, item_1)
+        
+        # 第2列：权重
+        item_2 = QTableWidgetItem()
+        item_2.setData(Qt.ItemDataRole.DisplayRole, str(word["weight"]))
+        item_2.setData(Qt.ItemDataRole.EditRole, word["weight"])
+        table.setItem(row, 2, item_2)
+        
+        # 第3列：手动
+        item_3 = QTableWidgetItem()
+        item_3.setData(Qt.ItemDataRole.DisplayRole, "是" if word["manual"] else "否")
+        table.setItem(row, 3, item_3)
+    
     def refresh_data(self):
         """刷新词表（异步）"""
         if not self.dict_service:
             return
         
-        # 如果已有刷新操作在进行，显示提示并返回
-        if self.is_refreshing or (self.refresh_thread and self.refresh_thread.isRunning()):
-            if self.parent and hasattr(self.parent, 'show_toast'):
-                self.parent.show_toast("请勿频繁操作")
+        thread = self.create_refresh_thread("words")
+        if not thread:
             return
         
-        # 设置刷新状态为True
-        self.is_refreshing = True
-        
-        # 创建并启动刷新线程
-        table_type = "words"
-        
-        # 根据任务类型设置描述
-        task_description = {
-            "words": "加载词表",
-            "chars": "加载字符表",
-            "special": "加载特殊字符表"
-        }.get(table_type, "加载数据")
+        task_description = "加载词表"
         
         # 获取数据总数量
         try:
-            if table_type == "words":
-                total_count = self.dict_service.count_words()
-            elif table_type == "chars":
-                total_count = self.dict_service.count_characters()
-            elif table_type == "special":
-                total_count = self.dict_service.count_special_chars()
-            else:
-                total_count = 100
+            total_count = self.dict_service.count_words()
         except Exception as e:
             print(f"[WordsTab] 获取数据总数量失败: {e}")
             total_count = 100
@@ -66,8 +69,6 @@ class WordsTab(BaseTableTab):
         # 显示进度条
         if self.parent and hasattr(self.parent, 'progress_bar'):
             self.parent.progress_bar.start_progress(f"正在{task_description}...")
-        
-        self.refresh_thread = RefreshDataThread(self.dict_service, table_type)
         
         # 创建Rich进度条
         progress = Progress(
@@ -80,23 +81,18 @@ class WordsTab(BaseTableTab):
         task = progress.add_task(f"[cyan]{task_description}", total=total_count)
         
         def on_progress(progress_val, message):
-            # 从message中提取实际已加载的数据量
             try:
-                # 解析message，提取数字部分
                 import re
                 match = re.search(r'已加载 (\d+) 条', message)
                 if match:
                     actual_completed = int(match.group(1))
                     progress.update(task, completed=actual_completed)
                 elif message == "加载完成":
-                    # 完成时设置为总数量
                     progress.update(task, completed=total_count)
                 else:
-                    # 如果解析失败，使用百分比计算
                     actual_completed = int(total_count * (progress_val / 100))
                     progress.update(task, completed=actual_completed)
             except Exception as e:
-                # 如果解析失败，使用百分比计算
                 actual_completed = int(total_count * (progress_val / 100))
                 progress.update(task, completed=actual_completed)
             
@@ -106,88 +102,19 @@ class WordsTab(BaseTableTab):
         def on_finished(words):
             progress.update(task, completed=total_count)
             progress.stop()
-            
-            # 优化表格数据更新，避免UI卡顿
-            from PyQt6.QtWidgets import QApplication
-            
-            # 1. 阻塞信号，避免每次 setItem 都触发 cellChanged
-            self.table.blockSignals(True)
-            
-            # 2. 禁用排序，避免插入数据时重新排序
-            was_sorted = self.table.isSortingEnabled()
-            self.table.setSortingEnabled(False)
-            
-            # 3. 清空表格
-            self.table.setRowCount(0)
-            
-            # 4. 预分配行数
-            total_rows = len(words)
-            self.table.setRowCount(total_rows)
-            
-            # 5. 批量更新表格数据，使用更高效的策略
-            batch_size = 1000
-            for batch_start in range(0, total_rows, batch_size):
-                batch_end = min(batch_start + batch_size, total_rows)
-                
-                for i in range(batch_start, batch_end):
-                    word = words[i]
-                    # 使用 setData 而不是创建 QTableWidgetItem，更高效
-                    # 第0列：词
-                    item_0 = QTableWidgetItem()
-                    item_0.setData(Qt.ItemDataRole.DisplayRole, word["word"])
-                    self.table.setItem(i, 0, item_0)
-                    
-                    # 第1列：编码
-                    item_1 = QTableWidgetItem()
-                    item_1.setData(Qt.ItemDataRole.DisplayRole, word["code"])
-                    self.table.setItem(i, 1, item_1)
-                    
-                    # 第2列：权重
-                    item_2 = QTableWidgetItem()
-                    item_2.setData(Qt.ItemDataRole.DisplayRole, str(word["weight"]))
-                    item_2.setData(Qt.ItemDataRole.EditRole, word["weight"])  # 用于排序
-                    self.table.setItem(i, 2, item_2)
-                    
-                    # 第3列：手动
-                    item_3 = QTableWidgetItem()
-                    item_3.setData(Qt.ItemDataRole.DisplayRole, "是" if word["manual"] else "否")
-                    self.table.setItem(i, 3, item_3)
-                
-                # 处理事件，避免UI卡顿
-                QApplication.processEvents()
-            
-            # 6. 恢复信号和排序
-            self.table.blockSignals(False)
-            self.table.setSortingEnabled(was_sorted)
-            
-            if self.parent and hasattr(self.parent, 'progress_bar'):
-                self.parent.progress_bar.finish_progress(f"词表加载完成，共 {total_rows} 条记录")
-            
-            # 清理线程
-            self.refresh_thread.deleteLater()
-            self.refresh_thread = None
-            # 重置刷新状态
-            self.is_refreshing = False
+            self.update_table_data(self.table, words, task_description)
         
         def on_error(error_msg):
             progress.stop()
             if self.parent and hasattr(self.parent, 'progress_bar'):
                 self.parent.progress_bar.error_progress(f"加载词表失败: {error_msg}")
             QMessageBox.critical(self, "错误", f"刷新词表失败: {error_msg}")
-            
-            # 清理线程
-            self.refresh_thread.deleteLater()
-            self.refresh_thread = None
-            # 重置刷新状态
-            self.is_refreshing = False
+            self.cleanup_refresh_thread()
         
-        # 连接信号
-        self.refresh_thread.progress.connect(on_progress)
-        self.refresh_thread.finished.connect(on_finished)
-        self.refresh_thread.error.connect(on_error)
-        
-        # 启动线程
-        self.refresh_thread.start()
+        thread.progress.connect(on_progress)
+        thread.finished.connect(on_finished)
+        thread.error.connect(on_error)
+        thread.start()
     
     def search_data(self):
         """搜索词表"""
@@ -267,80 +194,15 @@ class WordsTab(BaseTableTab):
         if not self.dict_service:
             return
         
-        dialog = QDialog(self)
-        dialog.setWindowTitle("批量添加词")
-        dialog.setGeometry(200, 200, 500, 300)
+        def add_callback(words, dialog):
+            self.execute_batch_add(words, dialog, {"is_character": False}, "添加成功，共添加 {} 个词")
         
-        layout = QVBoxLayout(dialog)
-        
-        label = QLabel("请输入要添加的词，每个词占一行:")
-        layout.addWidget(label)
-        
-        text_edit = QTextEdit()
-        layout.addWidget(text_edit)
-        
-        button_layout = QHBoxLayout()
-        add_button = QPushButton("添加")
-        cancel_button = QPushButton("取消")
-        
-        def add_words():
-            text = text_edit.toPlainText()
-            words = text.strip().split('\n')
-            words = [w.strip() for w in words if w.strip()]
-            
-            if not words:
-                QMessageBox.warning(self, "警告", "请输入要添加的词")
-                return
-            
-            # 显示确认对话框
-            reply = QMessageBox.question(
-                self, "确认", f"确定要添加 {len(words)} 个词吗？",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-            )
-            
-            if reply == QMessageBox.StandardButton.Yes:
-                # 使用统一的进度条
-                if self.parent and hasattr(self.parent, 'progress_bar'):
-                    progress_bar = self.parent.progress_bar
-                    progress_bar.start_progress("正在添加词...")
-                else:
-                    progress_bar = None
-                
-                # 创建并启动线程（保存为实例变量，防止被垃圾回收）
-                self.add_batch_thread = AddBatchThread(self.dict_service, words, is_character=False)
-                
-                def update_progress(progress, message):
-                    if progress_bar:
-                        progress_bar.update_progress(progress, message)
-                
-                def on_finished(result):
-                    if progress_bar:
-                        progress_bar.finish_progress(f"添加成功，共添加 {result.get('added', 0)} 个词", success=True)
-                    else:
-                        if hasattr(self.parent, 'show_toast'):
-                            self.parent.show_toast(f"添加成功，共添加 {result.get('added', 0)} 个词")
-                    self.refresh_data()
-                    dialog.accept()
-                
-                def on_error(error):
-                    if progress_bar:
-                        progress_bar.error_progress(f"添加失败：{error}")
-                    else:
-                        if hasattr(self.parent, 'show_toast'):
-                            self.parent.show_toast(f"添加失败：{error}")
-                
-                self.add_batch_thread.progress.connect(update_progress)
-                self.add_batch_thread.finished.connect(on_finished)
-                self.add_batch_thread.error.connect(on_error)
-                self.add_batch_thread.start()
-        
-        add_button.clicked.connect(add_words)
-        cancel_button.clicked.connect(dialog.reject)
-        
-        button_layout.addWidget(add_button)
-        button_layout.addWidget(cancel_button)
-        layout.addLayout(button_layout)
-        
+        dialog = self.create_batch_add_dialog(
+            "批量添加词",
+            "请输入要添加的词，每个词占一行:",
+            "添加",
+            add_callback
+        )
         dialog.exec()
     
     def delete_item(self):

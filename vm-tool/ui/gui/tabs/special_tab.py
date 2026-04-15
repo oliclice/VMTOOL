@@ -1,18 +1,17 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem, 
-                             QPushButton, QLineEdit, QLabel, QComboBox, QMenu, QInputDialog, 
-                             QMessageBox, QDialog, QFormLayout, QTextEdit, QApplication)
+                             QPushButton, QLineEdit, QLabel, QComboBox, QMenu, QMessageBox, 
+                             QDialog, QFormLayout)
 from PyQt6.QtCore import Qt
 from app.services.dict import DictService
-from ..threads import AddBatchThread
-from ..threads.refresh_data_thread import RefreshDataThread
+from .refreshable_tab import RefreshableTab
 
-class SpecialTab(QWidget):
+
+class SpecialTab(QWidget, RefreshableTab):
     """特殊表管理标签页"""
     def __init__(self, parent=None, dict_service=None):
         super().__init__(parent)
         self.dict_service = dict_service
-        self.refresh_thread = None
-        self.is_refreshing = False
+        self.init_refreshable_tab()
         self.init_ui()
         self.refresh_special()
     
@@ -26,7 +25,6 @@ class SpecialTab(QWidget):
         self.special_search_edit = QLineEdit()
         self.special_search_edit.setPlaceholderText("输入关键词搜索")
         
-        # 添加字段选择下拉菜单
         self.special_search_field = QComboBox()
         self.special_search_field.addItems(["特殊字符", "编码", "权重"])
         
@@ -46,12 +44,10 @@ class SpecialTab(QWidget):
         self.special_table.setSortingEnabled(True)
         self.special_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         
-        # 设置列宽
         self.special_table.setColumnWidth(0, 150)
         self.special_table.setColumnWidth(1, 150)
         self.special_table.setColumnWidth(2, 100)
         
-        # 添加右键菜单
         self.special_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.special_table.customContextMenuRequested.connect(self.show_special_context_menu)
         
@@ -77,98 +73,39 @@ class SpecialTab(QWidget):
         button_layout.addWidget(refresh_button)
         layout.addLayout(button_layout)
     
+    def update_table_row(self, table, row, data):
+        """更新表格单行数据"""
+        char = data
+        # 第0列：特殊字符
+        item_0 = QTableWidgetItem()
+        item_0.setData(Qt.ItemDataRole.DisplayRole, char["word"])
+        table.setItem(row, 0, item_0)
+        
+        # 第1列：编码
+        item_1 = QTableWidgetItem()
+        item_1.setData(Qt.ItemDataRole.DisplayRole, char["code"])
+        table.setItem(row, 1, item_1)
+        
+        # 第2列：权重
+        item_2 = QTableWidgetItem()
+        item_2.setData(Qt.ItemDataRole.DisplayRole, str(char["weight"]))
+        item_2.setData(Qt.ItemDataRole.EditRole, char["weight"])
+        table.setItem(row, 2, item_2)
+    
     def refresh_special(self):
         """刷新特殊表（异步）"""
         if not self.dict_service:
             return
         
-        # 如果已有刷新操作在进行，显示提示并返回
-        if self.is_refreshing or (self.refresh_thread and self.refresh_thread.isRunning()):
-            if self.parent and hasattr(self.parent, 'show_toast'):
-                self.parent.show_toast("请勿频繁操作")
+        thread = self.create_refresh_thread("special")
+        if not thread:
             return
         
-        # 设置刷新状态为True
-        self.is_refreshing = True
-        
-        # 显示进度条
         if self.parent and hasattr(self.parent, 'progress_bar'):
             self.parent.progress_bar.start_progress("正在加载特殊表...")
         
-        # 创建并启动刷新线程
-        self.refresh_thread = RefreshDataThread(self.dict_service, "special")
-        
-        def on_progress(progress, message):
-            if self.parent and hasattr(self.parent, 'progress_bar'):
-                self.parent.progress_bar.update_progress(progress, message)
-        
-        def on_finished(special_chars):
-            # 1. 阻塞信号，避免每次 setItem 都触发 cellChanged
-            self.special_table.blockSignals(True)
-            
-            # 2. 禁用排序，避免插入数据时重新排序
-            was_sorted = self.special_table.isSortingEnabled()
-            self.special_table.setSortingEnabled(False)
-            
-            # 3. 清空并预分配行数
-            self.special_table.setRowCount(0)
-            total_rows = len(special_chars)
-            self.special_table.setRowCount(total_rows)
-            
-            # 4. 批量更新表格数据
-            batch_size = 1000
-            for batch_start in range(0, total_rows, batch_size):
-                batch_end = min(batch_start + batch_size, total_rows)
-                
-                for i in range(batch_start, batch_end):
-                    char = special_chars[i]
-                    # 第0列：特殊字符
-                    item_0 = QTableWidgetItem()
-                    item_0.setData(Qt.ItemDataRole.DisplayRole, char["word"])
-                    self.special_table.setItem(i, 0, item_0)
-                    
-                    # 第1列：编码
-                    item_1 = QTableWidgetItem()
-                    item_1.setData(Qt.ItemDataRole.DisplayRole, char["code"])
-                    self.special_table.setItem(i, 1, item_1)
-                    
-                    # 第2列：权重
-                    item_2 = QTableWidgetItem()
-                    item_2.setData(Qt.ItemDataRole.DisplayRole, str(char["weight"]))
-                    item_2.setData(Qt.ItemDataRole.EditRole, char["weight"])  # 用于排序
-                    self.special_table.setItem(i, 2, item_2)
-                
-                # 处理事件，避免UI卡顿
-                QApplication.processEvents()
-            
-            # 5. 恢复信号和排序
-            self.special_table.blockSignals(False)
-            self.special_table.setSortingEnabled(was_sorted)
-            
-            if self.parent and hasattr(self.parent, 'progress_bar'):
-                self.parent.progress_bar.finish_progress(f"特殊表加载完成，共 {len(special_chars)} 条记录")
-            
-            # 清理线程
-            self.refresh_thread.deleteLater()
-            self.refresh_thread = None
-            # 重置刷新状态
-            self.is_refreshing = False
-        
-        def on_error(error_msg):
-            if self.parent and hasattr(self.parent, 'progress_bar'):
-                self.parent.progress_bar.error_progress(f"加载特殊表失败: {error_msg}")
-            QMessageBox.critical(self, "错误", f"刷新特殊表失败: {error_msg}")
-            
-            # 清理线程
-            self.refresh_thread.deleteLater()
-            self.refresh_thread = None
-            # 重置刷新状态
-            self.is_refreshing = False
-        
-        self.refresh_thread.progress.connect(on_progress)
-        self.refresh_thread.finished.connect(on_finished)
-        self.refresh_thread.error.connect(on_error)
-        self.refresh_thread.start()
+        self.setup_refresh_callbacks(thread, self.special_table, "特殊表加载")
+        thread.start()
     
     def search_special(self):
         """搜索特殊表"""
@@ -247,80 +184,15 @@ class SpecialTab(QWidget):
         if not self.dict_service:
             return
         
-        dialog = QDialog(self)
-        dialog.setWindowTitle("批量添加特殊字符")
-        dialog.setGeometry(200, 200, 500, 300)
+        def add_callback(chars, dialog):
+            self.execute_batch_add(chars, dialog, {"is_special": True}, "添加成功，共添加 {} 个特殊字符")
         
-        layout = QVBoxLayout(dialog)
-        
-        label = QLabel("请输入要添加的特殊字符，每个特殊字符占一行:")
-        layout.addWidget(label)
-        
-        text_edit = QTextEdit()
-        layout.addWidget(text_edit)
-        
-        button_layout = QHBoxLayout()
-        add_button = QPushButton("添加")
-        cancel_button = QPushButton("取消")
-        
-        def add_special_chars():
-            text = text_edit.toPlainText()
-            chars = text.strip().split('\n')
-            chars = [c.strip() for c in chars if c.strip()]
-            
-            if not chars:
-                QMessageBox.warning(self, "警告", "请输入要添加的特殊字符")
-                return
-            
-            # 显示确认对话框
-            reply = QMessageBox.question(
-                self, "确认", f"确定要添加 {len(chars)} 个特殊字符吗？",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-            )
-            
-            if reply == QMessageBox.StandardButton.Yes:
-                # 使用统一的进度条
-                if self.parent and hasattr(self.parent, 'progress_bar'):
-                    progress_bar = self.parent.progress_bar
-                    progress_bar.start_progress("正在添加特殊字符...")
-                else:
-                    progress_bar = None
-                
-                # 创建并启动线程（保存为实例变量，防止被垃圾回收）
-                self.add_batch_thread = AddBatchThread(self.dict_service, chars, is_special=True)
-                
-                def update_progress(progress, message):
-                    if progress_bar:
-                        progress_bar.update_progress(progress, message)
-                
-                def on_finished(result):
-                    if progress_bar:
-                        progress_bar.finish_progress(f"添加成功，共添加 {result.get('added', 0)} 个特殊字符", success=True)
-                    else:
-                        if hasattr(self.parent, 'show_toast'):
-                            self.parent.show_toast(f"添加成功，共添加 {result.get('added', 0)} 个特殊字符")
-                    self.refresh_special()
-                    dialog.accept()
-                
-                def on_error(error):
-                    if progress_bar:
-                        progress_bar.error_progress(f"添加失败：{error}")
-                    else:
-                        if hasattr(self.parent, 'show_toast'):
-                            self.parent.show_toast(f"添加失败：{error}")
-                
-                self.add_batch_thread.progress.connect(update_progress)
-                self.add_batch_thread.finished.connect(on_finished)
-                self.add_batch_thread.error.connect(on_error)
-                self.add_batch_thread.start()
-        
-        add_button.clicked.connect(add_special_chars)
-        cancel_button.clicked.connect(dialog.reject)
-        
-        button_layout.addWidget(add_button)
-        button_layout.addWidget(cancel_button)
-        layout.addLayout(button_layout)
-        
+        dialog = self.create_batch_add_dialog(
+            "批量添加特殊字符",
+            "请输入要添加的特殊字符，每个特殊字符占一行:",
+            "添加",
+            add_callback
+        )
         dialog.exec()
     
     def delete_special(self):
@@ -335,7 +207,6 @@ class SpecialTab(QWidget):
         
         char = self.special_table.item(selected_row, 0).text()
         
-        # 显示确认对话框
         reply = QMessageBox.question(
             self, "确认", f"确定要删除 '{char}' 吗？",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
@@ -370,7 +241,7 @@ class SpecialTab(QWidget):
         layout = QFormLayout(dialog)
         
         char_edit = QLineEdit(char)
-        char_edit.setEnabled(False)  # 特殊字符不可编辑
+        char_edit.setEnabled(False)
         code_edit = QLineEdit(code)
         weight_edit = QLineEdit(weight)
         

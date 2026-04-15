@@ -1,15 +1,13 @@
-from PyQt6.QtWidgets import (QPushButton, QLineEdit, QDialog, QFormLayout, QTextEdit, QMessageBox, QTableWidgetItem, QLabel, QHBoxLayout, QVBoxLayout)
+from PyQt6.QtWidgets import (QPushButton, QLineEdit, QDialog, QFormLayout, QMessageBox, QTableWidgetItem)
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QApplication
 from .base_table_tab import BaseTableTab
-from ..threads import AddBatchThread
-from ..threads.refresh_data_thread import RefreshDataThread
+from .refreshable_tab import RefreshableTab
 
-class CharsTab(BaseTableTab):
+
+class CharsTab(BaseTableTab, RefreshableTab):
     """字表管理标签页"""
     def __init__(self, parent=None, dict_service=None):
-        self.refresh_thread = None
-        self.is_refreshing = False
+        self.init_refreshable_tab()
         super().__init__(parent, dict_service)
     
     def set_column_widths(self):
@@ -19,103 +17,44 @@ class CharsTab(BaseTableTab):
         self.table.setColumnWidth(2, 100)
         self.table.setColumnWidth(3, 80)
     
+    def update_table_row(self, table, row, data):
+        """更新表格单行数据"""
+        char = data
+        # 第0列：字
+        item_0 = QTableWidgetItem()
+        item_0.setData(Qt.ItemDataRole.DisplayRole, char["word"])
+        table.setItem(row, 0, item_0)
+        
+        # 第1列：编码
+        item_1 = QTableWidgetItem()
+        item_1.setData(Qt.ItemDataRole.DisplayRole, char["code"])
+        table.setItem(row, 1, item_1)
+        
+        # 第2列：权重
+        item_2 = QTableWidgetItem()
+        item_2.setData(Qt.ItemDataRole.DisplayRole, str(char["weight"]))
+        item_2.setData(Qt.ItemDataRole.EditRole, char["weight"])
+        table.setItem(row, 2, item_2)
+        
+        # 第3列：手动
+        item_3 = QTableWidgetItem()
+        item_3.setData(Qt.ItemDataRole.DisplayRole, "是" if char["manual"] else "否")
+        table.setItem(row, 3, item_3)
+    
     def refresh_data(self):
         """刷新字表（异步）"""
         if not self.dict_service:
             return
         
-        # 如果已有刷新操作在进行，显示提示并返回
-        if self.is_refreshing or (self.refresh_thread and self.refresh_thread.isRunning()):
-            if self.parent and hasattr(self.parent, 'show_toast'):
-                self.parent.show_toast("请勿频繁操作")
+        thread = self.create_refresh_thread("chars")
+        if not thread:
             return
         
-        # 设置刷新状态为True
-        self.is_refreshing = True
-        
-        # 显示进度条
         if self.parent and hasattr(self.parent, 'progress_bar'):
             self.parent.progress_bar.start_progress("正在加载字表...")
         
-        # 创建并启动刷新线程
-        self.refresh_thread = RefreshDataThread(self.dict_service, "chars")
-        
-        def on_progress(progress, message):
-            if self.parent and hasattr(self.parent, 'progress_bar'):
-                self.parent.progress_bar.update_progress(progress, message)
-        
-        def on_finished(chars):
-            # 1. 阻塞信号，避免每次 setItem 都触发 cellChanged
-            self.table.blockSignals(True)
-            
-            # 2. 禁用排序，避免插入数据时重新排序
-            was_sorted = self.table.isSortingEnabled()
-            self.table.setSortingEnabled(False)
-            
-            # 3. 清空并预分配行数
-            self.table.setRowCount(0)
-            total_rows = len(chars)
-            self.table.setRowCount(total_rows)
-            
-            # 4. 批量更新表格数据
-            batch_size = 1000
-            for batch_start in range(0, total_rows, batch_size):
-                batch_end = min(batch_start + batch_size, total_rows)
-                
-                for i in range(batch_start, batch_end):
-                    char = chars[i]
-                    # 第0列：字
-                    item_0 = QTableWidgetItem()
-                    item_0.setData(Qt.ItemDataRole.DisplayRole, char["word"])
-                    self.table.setItem(i, 0, item_0)
-                    
-                    # 第1列：编码
-                    item_1 = QTableWidgetItem()
-                    item_1.setData(Qt.ItemDataRole.DisplayRole, char["code"])
-                    self.table.setItem(i, 1, item_1)
-                    
-                    # 第2列：权重
-                    item_2 = QTableWidgetItem()
-                    item_2.setData(Qt.ItemDataRole.DisplayRole, str(char["weight"]))
-                    item_2.setData(Qt.ItemDataRole.EditRole, char["weight"])  # 用于排序
-                    self.table.setItem(i, 2, item_2)
-                    
-                    # 第3列：手动
-                    item_3 = QTableWidgetItem()
-                    item_3.setData(Qt.ItemDataRole.DisplayRole, "是" if char["manual"] else "否")
-                    self.table.setItem(i, 3, item_3)
-                
-                # 处理事件，避免UI卡顿
-                QApplication.processEvents()
-            
-            # 5. 恢复信号和排序
-            self.table.blockSignals(False)
-            self.table.setSortingEnabled(was_sorted)
-            
-            if self.parent and hasattr(self.parent, 'progress_bar'):
-                self.parent.progress_bar.finish_progress(f"字表加载完成，共 {len(chars)} 条记录")
-            
-            # 清理线程
-            self.refresh_thread.deleteLater()
-            self.refresh_thread = None
-            # 重置刷新状态
-            self.is_refreshing = False
-        
-        def on_error(error_msg):
-            if self.parent and hasattr(self.parent, 'progress_bar'):
-                self.parent.progress_bar.error_progress(f"加载字表失败: {error_msg}")
-            QMessageBox.critical(self, "错误", f"刷新字表失败: {error_msg}")
-            
-            # 清理线程
-            self.refresh_thread.deleteLater()
-            self.refresh_thread = None
-            # 重置刷新状态
-            self.is_refreshing = False
-        
-        self.refresh_thread.progress.connect(on_progress)
-        self.refresh_thread.finished.connect(on_finished)
-        self.refresh_thread.error.connect(on_error)
-        self.refresh_thread.start()
+        self.setup_refresh_callbacks(thread, self.table, "字表加载")
+        thread.start()
     
     def search_data(self):
         """搜索字表"""
@@ -195,80 +134,15 @@ class CharsTab(BaseTableTab):
         if not self.dict_service:
             return
         
-        dialog = QDialog(self)
-        dialog.setWindowTitle("批量添加汉字")
-        dialog.setGeometry(200, 200, 500, 300)
+        def add_callback(chars, dialog):
+            self.execute_batch_add(chars, dialog, {"is_character": True}, "添加成功，共添加 {} 个汉字")
         
-        layout = QVBoxLayout(dialog)
-        
-        label = QLabel("请输入要添加的汉字，每个汉字占一行:")
-        layout.addWidget(label)
-        
-        text_edit = QTextEdit()
-        layout.addWidget(text_edit)
-        
-        button_layout = QHBoxLayout()
-        add_button = QPushButton("添加")
-        cancel_button = QPushButton("取消")
-        
-        def add_chars():
-            text = text_edit.toPlainText()
-            chars = text.strip().split('\n')
-            chars = [c.strip() for c in chars if c.strip()]
-            
-            if not chars:
-                QMessageBox.warning(self, "警告", "请输入要添加的汉字")
-                return
-            
-            # 显示确认对话框
-            reply = QMessageBox.question(
-                self, "确认", f"确定要添加 {len(chars)} 个汉字吗？",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-            )
-            
-            if reply == QMessageBox.StandardButton.Yes:
-                # 使用统一的进度条
-                if self.parent and hasattr(self.parent, 'progress_bar'):
-                    progress_bar = self.parent.progress_bar
-                    progress_bar.start_progress("正在添加汉字...")
-                else:
-                    progress_bar = None
-                
-                # 创建并启动线程（保存为实例变量，防止被垃圾回收）
-                self.add_batch_thread = AddBatchThread(self.dict_service, chars, is_character=True)
-                
-                def update_progress(progress, message):
-                    if progress_bar:
-                        progress_bar.update_progress(progress, message)
-                
-                def on_finished(result):
-                    if progress_bar:
-                        progress_bar.finish_progress(f"添加成功，共添加 {result.get('added', 0)} 个汉字", success=True)
-                    else:
-                        if hasattr(self.parent, 'show_toast'):
-                            self.parent.show_toast(f"添加成功，共添加 {result.get('added', 0)} 个汉字")
-                    self.refresh_data()
-                    dialog.accept()
-                
-                def on_error(error):
-                    if progress_bar:
-                        progress_bar.error_progress(f"添加失败：{error}")
-                    else:
-                        if hasattr(self.parent, 'show_toast'):
-                            self.parent.show_toast(f"添加失败：{error}")
-                
-                self.add_batch_thread.progress.connect(update_progress)
-                self.add_batch_thread.finished.connect(on_finished)
-                self.add_batch_thread.error.connect(on_error)
-                self.add_batch_thread.start()
-        
-        add_button.clicked.connect(add_chars)
-        cancel_button.clicked.connect(dialog.reject)
-        
-        button_layout.addWidget(add_button)
-        button_layout.addWidget(cancel_button)
-        layout.addLayout(button_layout)
-        
+        dialog = self.create_batch_add_dialog(
+            "批量添加汉字",
+            "请输入要添加的汉字，每个汉字占一行:",
+            "添加",
+            add_callback
+        )
         dialog.exec()
     
     def delete_item(self):
@@ -283,7 +157,6 @@ class CharsTab(BaseTableTab):
         
         char = self.table.item(selected_row, 0).text()
         
-        # 显示确认对话框
         reply = QMessageBox.question(
             self, "确认", f"确定要删除 '{char}' 吗？",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
@@ -318,7 +191,7 @@ class CharsTab(BaseTableTab):
         layout = QFormLayout(dialog)
         
         char_edit = QLineEdit(char)
-        char_edit.setEnabled(False)  # 字不可编辑
+        char_edit.setEnabled(False)
         code_edit = QLineEdit(code)
         weight_edit = QLineEdit(weight)
         
@@ -356,29 +229,25 @@ class CharsTab(BaseTableTab):
         if self.is_initializing or not self.dict_service:
             return
         
-        # 获取字
         char_item = self.table.item(row, 0)
         if not char_item:
             return
         char = char_item.text()
         
-        # 获取编辑后的值
         edited_item = self.table.item(row, column)
         if not edited_item:
             return
         new_value = edited_item.text()
         
         try:
-            if column == 1:  # 编码
-                # 获取权重
+            if column == 1:
                 weight_item = self.table.item(row, 2)
                 if weight_item:
                     weight = float(weight_item.text())
                     self.dict_service.update_character(char, new_value, weight)
                     if hasattr(self.parent, 'show_toast'):
                         self.parent.show_toast(f"字 '{char}' 编码更新成功")
-            elif column == 2:  # 权重
-                # 获取编码
+            elif column == 2:
                 code_item = self.table.item(row, 1)
                 if code_item:
                     code = code_item.text()
@@ -386,8 +255,6 @@ class CharsTab(BaseTableTab):
                     self.dict_service.update_character(char, code, weight)
                     if hasattr(self.parent, 'show_toast'):
                         self.parent.show_toast(f"字 '{char}' 权重更新成功")
-            # 手动列不允许直接编辑，需要通过其他方式处理
         except Exception as e:
             QMessageBox.critical(self, "错误", f"更新失败: {e}")
-            # 恢复原始值
             self.refresh_data()
