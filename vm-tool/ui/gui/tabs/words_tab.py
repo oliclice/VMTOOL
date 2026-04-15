@@ -9,6 +9,7 @@ class WordsTab(BaseTableTab):
     """词表管理标签页"""
     def __init__(self, parent=None, dict_service=None):
         self.refresh_thread = None
+        self.is_refreshing = False
         super().__init__(parent, dict_service)
     
     def set_column_widths(self):
@@ -29,9 +30,14 @@ class WordsTab(BaseTableTab):
         if not self.dict_service:
             return
         
-        # 如果已有刷新线程在运行，先停止
-        if self.refresh_thread and self.refresh_thread.isRunning():
+        # 如果已有刷新操作在进行，显示提示并返回
+        if self.is_refreshing or (self.refresh_thread and self.refresh_thread.isRunning()):
+            if self.parent and hasattr(self.parent, 'show_toast'):
+                self.parent.show_toast("请勿频繁操作")
             return
+        
+        # 设置刷新状态为True
+        self.is_refreshing = True
         
         # 创建并启动刷新线程
         table_type = "words"
@@ -160,6 +166,8 @@ class WordsTab(BaseTableTab):
             # 清理线程
             self.refresh_thread.deleteLater()
             self.refresh_thread = None
+            # 重置刷新状态
+            self.is_refreshing = False
         
         def on_error(error_msg):
             progress.stop()
@@ -170,6 +178,8 @@ class WordsTab(BaseTableTab):
             # 清理线程
             self.refresh_thread.deleteLater()
             self.refresh_thread = None
+            # 重置刷新状态
+            self.is_refreshing = False
         
         # 连接信号
         self.refresh_thread.progress.connect(on_progress)

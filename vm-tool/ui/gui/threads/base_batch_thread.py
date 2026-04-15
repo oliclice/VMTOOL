@@ -19,14 +19,22 @@ class BaseBatchThread(QThread):
     def run(self):
         """执行批量操作"""
         try:
+            last_progress = -1
             for i, item in enumerate(self.items):
                 try:
                     self.process_item(item)
                     self.added += 1
                 except Exception as e:
                     self.failed += 1
-                    self.progress.emit(int((i + 1) / self.total * 100), f"处理失败: {item} - {str(e)}")
-                self.progress.emit(int((i + 1) / self.total * 100), f"处理中: {item} ({i + 1}/{self.total})")
+                    current_progress = int((i + 1) / self.total * 100)
+                    if current_progress != last_progress:
+                        self.progress.emit(current_progress, f"处理失败: {item} - {str(e)}")
+                        last_progress = current_progress
+                # 只在进度变化时发射信号，避免过多信号导致GUI卡顿
+                current_progress = int((i + 1) / self.total * 100)
+                if current_progress != last_progress:
+                    self.progress.emit(current_progress, f"处理中: {item} ({i + 1}/{self.total})")
+                    last_progress = current_progress
             self.finished.emit({
                 "total": self.total,
                 "added": self.added,
