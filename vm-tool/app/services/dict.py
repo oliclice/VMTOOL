@@ -215,7 +215,7 @@ class DictService:
             valid_words = []
             existing_pairs = []
             
-            for word_data in words:
+            for i, word_data in enumerate(words):
                 word = word_data.get("word")
                 code = word_data.get("code")
                 
@@ -230,9 +230,17 @@ class DictService:
                     word_data["manual"] = False  # 自动生成的编码，manual设为False
                 
                 processed_words_data.append(word_data)
+                
+                # 每处理10%的词条更新一次进度
+                if progress_callback and total_words > 0:
+                    progress = int((i + 1) / total_words * 30)  # 前30%用于预处理
+                    progress_callback(progress, f"预处理词条: {i + 1}/{total_words}")
             
             # 批量查询已存在的词条
             if processed_words_data:
+                if progress_callback:
+                    progress_callback(40, "查询已存在词条...")
+                
                 # 收集所有 (word, code) 对
                 word_code_pairs = [(wd.get("word"), wd.get("code")) for wd in processed_words_data]
                 
@@ -243,7 +251,7 @@ class DictService:
                 existing_set = set(existing_word_code_pairs)
                 
                 # 过滤出有效的词条
-                for word_data in processed_words_data:
+                for i, word_data in enumerate(processed_words_data):
                     word = word_data.get("word")
                     code = word_data.get("code")
                     
@@ -251,16 +259,20 @@ class DictService:
                         valid_words.append(word_data)
                     else:
                         existing_pairs.append(f"{word}:{code}")
+                    
+                    # 每处理10%的词条更新一次进度
+                    if progress_callback and len(processed_words_data) > 0:
+                        progress = 40 + int((i + 1) / len(processed_words_data) * 10)  # 中间10%用于去重
+                        progress_callback(progress, f"去重处理: {i + 1}/{len(processed_words_data)}")
             
             # 处理进度回调
-            processed_count = len(processed_words_data)
             if progress_callback and total_words > 0:
                 progress_callback(50, "完成词条预处理")
             
             # 批量创建
             if valid_words:
                 if progress_callback:
-                    progress_callback(70, "开始批量创建...")
+                    progress_callback(60, "开始批量创建...")
                 # 调用批量创建方法
                 self.repo.bulk_create(valid_words)
                 if progress_callback:

@@ -281,11 +281,6 @@ def import_data(
         dict_service, _, filter_service, _, _ = get_services()
         from rich.progress import Progress, TextColumn, BarColumn, TimeRemainingColumn
         
-        def progress_callback(progress, message):
-            task_id = progress_task_map.get("import", None)
-            if task_id:
-                progress.update(task_id, completed=progress, description=message)
-        
         # 处理批量导入词条的情况
         if words:
             word_data = []
@@ -299,7 +294,11 @@ def import_data(
                 "[green]{task.percentage:>3.0f}%[/green]",
                 TimeRemainingColumn(),
             ) as progress:
-                progress_task_map = {"import": progress.add_task("开始批量添加...", total=100)}
+                progress_task = progress.add_task("开始批量添加...", total=100)
+                
+                def progress_callback(progress_val, message):
+                    progress.update(progress_task, completed=progress_val, description=message)
+                
                 result = dict_service.add_words(word_data, progress_callback=progress_callback)
             
             console.print(f"[green]批量添加完成:[/green] 添加了 {result['added']} 条，跳过了 {result['existing']} 条")
@@ -316,7 +315,10 @@ def import_data(
                 "[green]{task.percentage:>3.0f}%[/green]",
                 TimeRemainingColumn(),
             ) as progress:
-                progress_task_map = {"import": progress.add_task("开始导入...", total=100)}
+                progress_task = progress.add_task("开始导入...", total=100)
+                
+                def progress_callback(progress_val, message):
+                    progress.update(progress_task, completed=progress_val, description=message)
                 
                 if format == "txt":
                     result = filter_service.import_from_txt(file, progress_callback=progress_callback)
