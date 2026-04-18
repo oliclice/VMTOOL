@@ -7,7 +7,6 @@ from app.dal.repositories import WordRepository
 from app.dal.database import get_db
 from app.core.errors import WeightError
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 

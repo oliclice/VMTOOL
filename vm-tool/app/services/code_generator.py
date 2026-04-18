@@ -1,27 +1,26 @@
 """编码生成服务"""
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Any
 import logging
 
 from ..dal.repositories import WordRepository
 from ..dal.database import get_db
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 class CodeGenerator:
     """编码生成器"""
     
-    def __init__(self):
+    def __init__(self) -> None:
         """初始化编码生成器"""
         self.db = next(get_db())
         self.repo = WordRepository(self.db)
-        self.config = {
+        self.config: Dict[str, Any] = {
             'rule': 'first_letter',  # first_letter, all_letters, custom
             'separator': ''  # 编码分隔符
         }
     
-    def set_config(self, config: Dict[str, any]):
+    def set_config(self, config: Dict[str, Any]) -> None:
         """设置编码生成配置
         
         Args:
@@ -29,7 +28,7 @@ class CodeGenerator:
         """
         self.config.update(config)
     
-    def get_config(self) -> Dict[str, any]:
+    def get_config(self) -> Dict[str, Any]:
         """获取编码生成配置
         
         Returns:

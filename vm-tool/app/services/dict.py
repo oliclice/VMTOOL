@@ -10,7 +10,6 @@ from app.core.errors import DictError
 from app.core.cache import cache, optimize_batch_operation, performance_monitor
 from app.services.code_generator import CodeGenerator
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 

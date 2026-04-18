@@ -9,7 +9,6 @@ from app.dal.database import get_db
 from app.core.errors import DictError
 from app.core.config_manager import config_manager
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
