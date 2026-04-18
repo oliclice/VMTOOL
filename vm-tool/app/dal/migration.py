@@ -10,7 +10,6 @@ from app.dal.database import SessionLocal
 from app.core.config import settings
 from app.core.errors import FileError, DictError
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 

@@ -7,7 +7,6 @@ import logging
 
 from app.plugins.base import PluginBase
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 

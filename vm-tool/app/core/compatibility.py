@@ -10,7 +10,6 @@ from app.services.weight import WeightCalculator
 from app.services.filter import FilterService
 from app.services.stats import StatsService
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 

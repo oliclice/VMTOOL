@@ -13,13 +13,11 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from app.core.config import settings
 from app.core.run_mode import run_mode_manager, RunMode
 from app.core.service_registry import service_registry
+from app.core.logging_config import setup_logging
 from app.dal.init_db import init_database
 
-# 配置日志
-logging.basicConfig(
-    level=getattr(logging, settings.LOG_LEVEL),
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+# 初始化日志配置
+setup_logging(settings.LOG_LEVEL)
 logger = logging.getLogger(__name__)
 
 
