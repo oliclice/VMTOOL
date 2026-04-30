@@ -148,6 +148,39 @@ class WordRepository(BaseRepository):
         result = query.all()
         return result
 
+    def get_all_by_type(self, table_type: str, skip: int = 0, limit: int = None) -> List[Word]:
+        """根据表类型获取所有词条"""
+        query = self.db.query(Word)
+        if table_type == "chars":
+            query = query.filter(Word.is_character == True)
+        elif table_type == "words":
+            query = query.filter(Word.is_character == False, Word.is_special == False)
+        elif table_type == "special":
+            query = query.filter(Word.is_special == True)
+        query = query.offset(skip)
+        if limit is not None:
+            query = query.limit(limit)
+        return query.all()
+
+    def count_by_type(self, table_type: str) -> int:
+        """根据表类型统计数量"""
+        query = self.db.query(Word)
+        if table_type == "chars":
+            query = query.filter(Word.is_character == True)
+        elif table_type == "words":
+            query = query.filter(Word.is_character == False, Word.is_special == False)
+        elif table_type == "special":
+            query = query.filter(Word.is_special == True)
+        return query.count()
+
+    def bulk_delete(self, word_ids: List[int]) -> int:
+        """批量删除词条"""
+        if not word_ids:
+            return 0
+        deleted = self.db.query(Word).filter(Word.id.in_(word_ids)).delete(synchronize_session=False)
+        self.db.commit()
+        return deleted
+
 
 class DictConfigRepository(BaseRepository):
     """码表配置仓库"""

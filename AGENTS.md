@@ -1,7 +1,7 @@
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **VMtool** (819 symbols, 2319 relationships, 68 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **VMtool** (720 symbols, 2028 relationships, 58 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -60,6 +60,7 @@ This project is indexed by GitNexus as **VMtool** (819 symbols, 2319 relationshi
 | `gitnexus://repo/VMtool/clusters` | All functional areas |
 | `gitnexus://repo/VMtool/processes` | All execution flows |
 | `gitnexus://repo/VMtool/process/{name}` | Step-by-step execution trace |
+
 
 ## Self-Check Before Finishing
 

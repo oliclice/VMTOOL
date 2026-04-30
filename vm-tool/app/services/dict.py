@@ -248,14 +248,19 @@ class DictService:
                 
                 # 转换为集合，方便快速查找
                 existing_set = set(existing_word_code_pairs)
-                
+
+                # 追踪同一批次内已处理过的词条，避免批次内重复导入
+                seen_set = set()
+
                 # 过滤出有效的词条
                 for i, word_data in enumerate(processed_words_data):
                     word = word_data.get("word")
                     code = word_data.get("code")
-                    
-                    if (word, code) not in existing_set:
+                    pair = (word, code)
+
+                    if pair not in existing_set and pair not in seen_set:
                         valid_words.append(word_data)
+                        seen_set.add(pair)
                     else:
                         existing_pairs.append(f"{word}:{code}")
                     
@@ -658,7 +663,100 @@ class DictService:
             self.db.rollback()
             logger.error(f"批量更新manual失败: {e}")
             raise DictError(f"批量更新manual失败: {e}")
-    
+
+    def auto_dedupe(self, table_type: str, batch_size: int = 1000, progress_callback: Optional[Callable[[int, str], None]] = None) -> Dict[str, Any]:
+        """自动去重
+
+        删除规则：
+        1. 词相同，编码不同
+        2. 较短的编码是较长编码的前缀
+        3. 被删除项的manual必须为False
+        """
+        try:
+            total = self.repo.count_by_type(table_type)
+            if total == 0:
+                return {"analyzed": 0, "deleted": 0, "errors": 0}
+
+            if progress_callback:
+                progress_callback(0, f"正在分析 {total} 条数据...")
+
+            word_groups: Dict[str, List[Word]] = {}
+            offset = 0
+
+            while offset < total:
+                batch = self.repo.get_all_by_type(table_type, skip=offset, limit=batch_size)
+                if not batch:
+                    break
+                for word in batch:
+                    if word.word not in word_groups:
+                        word_groups[word.word] = []
+                    word_groups[word.word].append(word)
+                offset += batch_size
+
+                if progress_callback:
+                    prog = min(30, int(offset / total * 30))
+                    progress_callback(prog, f"已分析 {offset}/{total} 条数据")
+
+            if progress_callback:
+                progress_callback(30, "正在查找重复词...")
+
+            to_delete: List[int] = []
+            processed = 0
+            total_groups = len(word_groups)
+
+            for word_text, items in word_groups.items():
+                processed += 1
+                if len(items) < 2:
+                    continue
+
+                items.sort(key=lambda x: (len(x.code), x.code))
+                seen_codes = set()
+                for item in items:
+                    if item.code in seen_codes:
+                        if not item.manual:
+                            to_delete.append(item.id)
+                            logger.debug(f"去重(完全相同): 词={word_text}, 删除编码={item.code}, manual={item.manual}")
+                    else:
+                        seen_codes.add(item.code)
+
+                for i in range(len(items)):
+                    if items[i].id in to_delete:
+                        continue
+                    for j in range(i + 1, len(items)):
+                        if items[j].id in to_delete:
+                            continue
+                        if items[j].code.startswith(items[i].code):
+                            if not items[i].manual:
+                                to_delete.append(items[i].id)
+                                logger.debug(f"去重(前缀): 词={word_text}, 删除编码={items[i].code}, 保留编码={items[j].code}, manual={items[i].manual}")
+                            break
+
+                if progress_callback and processed % 100 == 0:
+                    prog = 30 + int(processed / total_groups * 60)
+                    progress_callback(prog, f"已处理 {processed}/{total_groups} 组词...")
+
+            logger.info(f"自动去重: 找到 {len(to_delete)} 条待删除记录")
+            if progress_callback:
+                progress_callback(90, f"准备删除 {len(to_delete)} 条重复数据...")
+
+            deleted = 0
+            errors = 0
+            if to_delete:
+                try:
+                    deleted = self.repo.bulk_delete(to_delete)
+                    logger.info(f"自动去重: 实际删除 {deleted} 条")
+                except Exception as e:
+                    errors = len(to_delete)
+                    logger.error(f"批量删除失败: {e}")
+
+            if progress_callback:
+                progress_callback(100, f"去重完成，删除 {deleted} 条")
+
+            return {"analyzed": total, "deleted": deleted, "errors": errors}
+        except Exception as e:
+            logger.error(f"自动去重失败: {e}")
+            raise DictError(f"自动去重失败: {e}")
+
     def export_data(self, output_file: str, format: str = "txt", encoding: str = "utf-8", table: str = None) -> int:
         """导出数据"""
         try:
