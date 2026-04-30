@@ -70,7 +70,11 @@ flowchart TD
         recalculate_all_codes_gui --> CalculateThread["CalculateThread"]
         CalculateThread --> DictService.calculate_all_codes
         recalculate_all_codes_gui --> ProgressBarWidget
-        
+
+        WordsTab --> auto_dedupe_gui["auto_dedupe()"]
+        auto_dedupe_gui --> AutoDedupeThread
+        AutoDedupeThread --> DictService.auto_dedupe
+
         ImportExportTab --> showEvent["showEvent()"]
         showEvent --> update_export_full_path["update_export_full_path()"]
         update_export_full_path --> split_export_paths["分表导出路径显示"]
@@ -112,6 +116,9 @@ flowchart TD
         RefreshDataThread["RefreshDataThread"] --> WordsTab
         RefreshDataThread --> CharsTab
         RefreshDataThread --> SpecialTab
+        AutoDedupeThread["AutoDedupeThread"] --> WordsTab
+        AutoDedupeThread --> CharsTab
+        AutoDedupeThread --> SpecialTab
         
         subgraph 性能优化
             BlockSignals["blockSignals(True)"] --> WordsTab
@@ -223,6 +230,7 @@ flowchart TD
         
         DictService --> delete_table["delete_table()"]
         DictService --> set_all_manual_to_false["set_all_manual_to_false()"]
+        DictService --> auto_dedupe["auto_dedupe()"]
         
         DictService --> replace_code["replace_code()"]
         replace_code --> update_word
@@ -315,6 +323,9 @@ flowchart TD
         WordRepository --> get_all["get_all()"]
         WordRepository --> search["search()"]
         WordRepository --> get_by_id["get_by_id()"]
+        WordRepository --> bulk_delete["bulk_delete()"]
+        WordRepository --> get_all_by_type["get_all_by_type()"]
+        WordRepository --> count_by_type["count_by_type()"]
         
         WordRepository --> Word["Word模型"]
         WordRepository --> get_db["get_db()"]
@@ -362,4 +373,4 @@ flowchart TD
     class DictService,WeightCalculator,FilterService,StatsService,CodeGenerator service;
     class WordRepository,Word,get_db dal;
     class config_manager,theme_manager core;
-    class BaseBatchThread,AddBatchThread,ImportThread,CalculateThread,DeleteTableThread,SetAllManualToFalseThread,RefreshDataThread thread;
+    class BaseBatchThread,AddBatchThread,ImportThread,CalculateThread,DeleteTableThread,SetAllManualToFalseThread,RefreshDataThread,AutoDedupeThread thread;
