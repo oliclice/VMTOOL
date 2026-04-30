@@ -55,12 +55,33 @@ flowchart TD
         add_batch_gui --> AddBatchThread["AddBatchThread"]
         AddBatchThread --> DictService.add_characters
         add_batch_gui --> ProgressBarWidget
-        
+
+        CharsTab --> auto_dedupe_chars_gui["auto_dedupe()"]
+        auto_dedupe_chars_gui --> AutoDedupeThread
+        AutoDedupeThread --> DictService.auto_dedupe
+
+        subgraph 基类
+            BaseTableTab["BaseTableTab"]
+            RefreshableTab["RefreshableTab"]
+            GeneralTableTab["GeneralTableTab"]
+            BaseTableTab --> CharsTab
+            BaseTableTab --> WordsTab
+            RefreshableTab --> CharsTab
+            RefreshableTab --> WordsTab
+            RefreshableTab --> SpecialTab
+            GeneralTableTab --> CharsTab
+            GeneralTableTab --> WordsTab
+        end
+
         SpecialTab --> add_special_batch_gui["add_batch()"]
         add_special_batch_gui --> AddBatchThread
-        AddBatchThread --> DictService.add_words
+        AddBatchThread --> DictService.add_special_chars
         add_special_batch_gui --> ProgressBarWidget
-        
+
+        SpecialTab --> auto_dedupe_gui["auto_dedupe()"]
+        auto_dedupe_gui --> AutoDedupeThread
+        AutoDedupeThread --> DictService.auto_dedupe
+
         WordsTab --> add_batch_words_gui["add_batch()"]
         add_batch_words_gui --> AddBatchThread
         AddBatchThread --> DictService.add_words
@@ -109,6 +130,7 @@ flowchart TD
         BaseBatchThread["BaseBatchThread"] --> AddBatchThread["AddBatchThread"]
         AddBatchThread --> WordsTab
         AddBatchThread --> CharsTab
+        AddBatchThread --> SpecialTab
         ImportThread["ImportThread"] --> ImportExportTab
         CalculateThread["CalculateThread"] --> WordsTab
         DeleteTableThread["DeleteTableThread"] --> SettingsTab
@@ -231,6 +253,9 @@ flowchart TD
         DictService --> delete_table["delete_table()"]
         DictService --> set_all_manual_to_false["set_all_manual_to_false()"]
         DictService --> auto_dedupe["auto_dedupe()"]
+        auto_dedupe --> WordRepository.count_by_type["count_by_type()"]
+        auto_dedupe --> WordRepository.get_all_by_type["get_all_by_type()"]
+        auto_dedupe --> WordRepository.bulk_delete["bulk_delete()"]
         
         DictService --> replace_code["replace_code()"]
         replace_code --> update_word
