@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import (QDialog, QFormLayout, QTextEdit, QMessageBox, QTableWidgetItem, 
+from PyQt6.QtWidgets import (QDialog, QFormLayout, QTextEdit, QMessageBox, QTableWidgetItem,
                              QLabel, QHBoxLayout, QVBoxLayout, QApplication)
 from PyQt6.QtCore import Qt
 from ..threads import AddBatchThread
@@ -6,8 +6,8 @@ from ..threads.refresh_data_thread import RefreshDataThread
 
 
 class RefreshableTab:
-    """可刷新标签页混入类，提供通用的刷新和批量添加功能"""
-    
+    table_type = None
+
     def init_refreshable_tab(self):
         """初始化可刷新标签页的属性"""
         self.refresh_thread = None
@@ -173,3 +173,56 @@ class RefreshableTab:
         self.add_batch_thread.finished.connect(on_finished)
         self.add_batch_thread.error.connect(on_error)
         self.add_batch_thread.start()
+
+    def auto_dedupe(self):
+        if not self.dict_service:
+            QMessageBox.warning(self, "警告", "词典服务未初始化")
+            return
+
+        if hasattr(self, 'dedupe_thread') and self.dedupe_thread and self.dedupe_thread.isRunning():
+            QMessageBox.warning(self, "警告", "去重任务正在进行中，请稍后再试")
+            return
+
+        reply = QMessageBox.question(
+            self, "确认",
+            "是否自动去重？\n\n删除规则：\n1. 词相同，编码不同\n2. 较短的编码是较长编码的前缀\n3. 被删除项的manual必须为False",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            if self.parent and hasattr(self.parent, 'progress_bar'):
+                progress_bar = self.parent.progress_bar
+                progress_bar.start_progress("正在自动去重...")
+            else:
+                progress_bar = None
+
+            def update_progress(progress, message):
+                if progress_bar:
+                    progress_bar.update_progress(progress, message)
+
+            def on_finished(result):
+                if progress_bar:
+                    progress_bar.finish_progress(f"自动去重完成！分析 {result.get('analyzed', 0)} 条，删除 {result.get('deleted', 0)} 条", success=True)
+                if hasattr(self.parent, 'show_toast'):
+                    self.parent.show_toast(f"自动去重完成！\n分析: {result.get('analyzed', 0)}\n删除: {result.get('deleted', 0)}\n错误: {result.get('errors', 0)}")
+                self.refresh_data()
+                if self.dedupe_thread:
+                    self.dedupe_thread.cleanup()
+                    self.dedupe_thread = None
+
+            def on_error(error):
+                if progress_bar:
+                    progress_bar.error_progress(f"自动去重失败: {error}")
+                if hasattr(self.parent, 'show_toast'):
+                    self.parent.show_toast(f"自动去重失败: {error}")
+                if self.dedupe_thread:
+                    self.dedupe_thread.cleanup()
+                    self.dedupe_thread = None
+
+            from ..threads import AutoDedupeThread
+            self.dedupe_thread = AutoDedupeThread(self.dict_service, self.table_type)
+            self.dedupe_thread.progress.connect(update_progress)
+            self.dedupe_thread.finished.connect(on_finished)
+            self.dedupe_thread.error.connect(on_error)
+            self.dedupe_thread.start()

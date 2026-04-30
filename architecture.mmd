@@ -22,12 +22,18 @@ flowchart TD
         subgraph 表格基类
             BaseTableTab["BaseTableTab"] --> WordsTab
             BaseTableTab --> CharsTab
+            RefreshableTab["RefreshableTab"] --> WordsTab
+            RefreshableTab --> CharsTab
+            RefreshableTab --> SpecialTab
+            GeneralTableTab["GeneralTableTab"] --> WordsTab
+            GeneralTableTab --> CharsTab
         end
         
         subgraph 线程
             BaseBatchThread["BaseBatchThread"] --> AddBatchThread["AddBatchThread"]
             AddBatchThread --> WordsTab
             AddBatchThread --> CharsTab
+            AddBatchThread --> SpecialTab
             ImportThread["ImportThread"] --> ImportExportTab
             CalculateThread["CalculateThread"] --> WordsTab
             DeleteTableThread["DeleteTableThread"] --> SettingsTab
@@ -35,6 +41,9 @@ flowchart TD
             RefreshDataThread["RefreshDataThread"] --> WordsTab
             RefreshDataThread --> CharsTab
             RefreshDataThread --> SpecialTab
+            AutoDedupeThread["AutoDedupeThread"] --> WordsTab
+            AutoDedupeThread --> CharsTab
+            AutoDedupeThread --> SpecialTab
         end
         
         subgraph 性能优化机制
@@ -110,7 +119,7 @@ flowchart TD
     classDef thread fill:#ff9,stroke:#333,stroke-width:2px;
 
     class main main;
-    class VMTOOLPyQtApp,CharsTab,SpecialTab,WordsTab,StatsTab,ImportExportTab,CodeRulesTab,SettingsTab,BaseTableTab,ProgressBarWidget gui;
+    class VMTOOLPyQtApp,CharsTab,SpecialTab,WordsTab,StatsTab,ImportExportTab,CodeRulesTab,SettingsTab,BaseTableTab,GeneralTableTab,RefreshableTab,ProgressBarWidget gui;
     class CLI_Main,start_gui cli;
     class DictService,WeightCalculator,FilterService,StatsService,CodeGenerator service;
     class WordRepository,Word,get_db dal;
