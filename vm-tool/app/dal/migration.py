@@ -6,7 +6,7 @@ from typing import List, Dict, Any
 from sqlalchemy.orm import Session
 
 from app.dal.models import Word, DictConfig
-from app.dal.database import SessionLocal
+from app.dal.database import _get_session_factory
 from app.core.config import settings
 from app.core.errors import FileError, DictError
 
@@ -62,7 +62,7 @@ def migrate_old_data(old_file_path: str = None) -> Dict[str, Any]:
     logger.info(f"共导入 {len(words)} 条数据")
     
     # 保存到数据库
-    db = SessionLocal()
+    db = _get_session_factory()()
     try:
         # 批量插入
         batch_size = 1000
@@ -114,7 +114,7 @@ def export_to_old_format(output_file: str = None) -> int:
     
     logger.info(f"开始导出数据到 {output_file}...")
     
-    db = SessionLocal()
+    db = _get_session_factory()()
     try:
         # 获取所有词
         words = db.query(Word).filter(Word.is_active == True).all()
@@ -137,7 +137,7 @@ def migrate_config() -> Dict[str, Any]:
     """迁移配置"""
     logger.info("开始迁移配置...")
     
-    db = SessionLocal()
+    db = _get_session_factory()()
     try:
         # 检查是否已有配置
         if db.query(DictConfig).count() == 0:
@@ -169,7 +169,7 @@ def validate_data() -> Dict[str, Any]:
     """验证数据"""
     logger.info("开始验证数据...")
     
-    db = SessionLocal()
+    db = _get_session_factory()()
     try:
         issues = {
             "empty_word": [],
@@ -221,7 +221,7 @@ def fix_data() -> Dict[str, Any]:
     """修复数据"""
     logger.info("开始修复数据...")
     
-    db = SessionLocal()
+    db = _get_session_factory()()
     try:
         fixes = {
             "empty_word": 0,
