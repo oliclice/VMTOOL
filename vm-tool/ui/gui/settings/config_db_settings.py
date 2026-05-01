@@ -82,8 +82,13 @@ def load_database_path_settings(settings_content_layout, section_widgets, parent
     default_db_path = os.path.join(config_dir, "vm_tool.db")
     
     path_edit.setText(config_manager.get("database_path", default_db_path))
-    # 连接信号，自动保存
-    path_edit.textChanged.connect(lambda text: config_manager.set("database_path", text))
+
+    def on_path_changed(text: str):
+        config_manager.set("database_path", text)
+        from app.dal.database import recreate_engine
+        recreate_engine()
+
+    path_edit.editingFinished.connect(on_path_changed)
     
     # 连接浏览按钮点击事件
     def browse_database_path():
@@ -105,6 +110,8 @@ def load_database_path_settings(settings_content_layout, section_widgets, parent
                 if file_path:
                     path_edit.setText(file_path)
                     config_manager.set("database_path", file_path)
+                    from app.dal.database import recreate_engine
+                    recreate_engine()
                 return
         except Exception:
             pass
@@ -117,6 +124,8 @@ def load_database_path_settings(settings_content_layout, section_widgets, parent
         if file_path:
             path_edit.setText(file_path)
             config_manager.set("database_path", file_path)
+            from app.dal.database import recreate_engine
+            recreate_engine()
     
     browse_button = QPushButton("浏览")
     browse_button.clicked.connect(browse_database_path)
