@@ -757,38 +757,32 @@ class DictService:
             logger.error(f"自动去重失败: {e}")
             raise DictError(f"自动去重失败: {e}")
 
-    def export_data(self, output_file: str, format: str = "txt", encoding: str = "utf-8", table: str = None) -> int:
-        """导出数据"""
+    def export_data(self, output_file: str, format: str = "txt", encoding: str = "utf-8", table: str = None, tables: list = None) -> int:
+        """导出数据
+
+        Args:
+            output_file: 输出文件路径
+            format: 导出格式 (txt/csv/json)
+            encoding: 文件编码
+            table: 单个表名 (words/chars/special)，与 tables 二选一
+            tables: 多个表名列表，合并导出到同一文件
+        """
         try:
             from app.services.filter import FilterService
             filter_service = FilterService(self.db)
-            
-            # 获取指定表的数据
-            if table:
-                if table == "words":
-                    # 只获取词表数据
-                    words = self.get_words()
-                elif table == "chars":
-                    # 只获取字表数据
-                    chars = self.get_characters()
-                    words = [{
-                        "word": char["word"],
-                        "code": char["code"],
-                        "weight": char["weight"]
-                    } for char in chars]
-                elif table == "special":
-                    # 只获取特殊字符表数据
-                    special_chars = self.get_special_chars()
-                    words = [{
-                        "word": char["word"],
-                        "code": char["code"],
-                        "weight": char["weight"]
-                    } for char in special_chars]
-                else:
-                    raise DictError(f"不支持的表名: {table}")
+
+            words = None
+
+            if tables:
+                # 多表合并导出：按顺序拼接所有选中表的数据
+                words = []
+                for t in tables:
+                    words.extend(self._get_table_data(t))
+            elif table:
+                words = self._get_table_data(table)
             else:
                 words = None
-            
+
             if format == "txt":
                 return filter_service.export_to_txt(output_file, words=words, encoding=encoding)
             elif format == "csv":
@@ -800,3 +794,16 @@ class DictService:
         except Exception as e:
             logger.error(f"导出数据失败: {e}")
             raise DictError(f"导出数据失败: {e}")
+
+    def _get_table_data(self, table: str) -> list:
+        """获取指定表的数据，统一返回 dict 列表"""
+        if table == "words":
+            return self.get_words()
+        elif table == "chars":
+            chars = self.get_characters()
+            return [{"word": c["word"], "code": c["code"], "weight": c["weight"]} for c in chars]
+        elif table == "special":
+            special_chars = self.get_special_chars()
+            return [{"word": c["word"], "code": c["code"], "weight": c["weight"]} for c in special_chars]
+        else:
+            raise DictError(f"不支持的表名: {table}")

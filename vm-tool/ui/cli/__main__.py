@@ -348,17 +348,24 @@ def import_data(
 
 
 @app.command("export")
-def export_data(output_file: Optional[str] = None, format: Optional[str] = None):
-    """导出数据"""
+def export_data(output_file: Optional[str] = None, format: Optional[str] = None,
+                tables: Optional[str] = None):
+    """导出数据
+
+    Args:
+        output_file: 输出文件路径
+        format: 导出格式 (txt/csv/json)
+        tables: 要导出的表，逗号分隔 (words,chars,special)。不指定则使用配置值
+    """
     try:
         dict_service, _, _, _, _ = get_services()
         from app.core.config_manager import config_manager
         import os
-        
+
         # 获取导出配置
         export_path = config_manager.get("default_export_path", "./")
         default_format = config_manager.get("default_export_format", "txt")
-        
+
         # 如果没有指定输出文件，使用默认配置
         if not output_file:
             # 确保导出路径存在
@@ -368,7 +375,7 @@ def export_data(output_file: Optional[str] = None, format: Optional[str] = None)
                 except Exception as e:
                     console.print(f"[red]创建导出目录失败:[/red] {e}")
                     return
-            
+
             # 使用默认格式
             if not format:
                 format = default_format
@@ -377,136 +384,98 @@ def export_data(output_file: Optional[str] = None, format: Optional[str] = None)
             if not format:
                 _, ext = os.path.splitext(output_file)
                 format = ext[1:].lower() if ext else "txt"
-            
+
             # 从输出文件路径中提取导出路径
             export_path = os.path.dirname(output_file)
-        
+
         # 确保格式是有效的
         if format not in ["txt", "csv", "json"]:
             console.print(f"[red]不支持的格式:[/red] {format}")
             return
-        
-        # 检查是否只导出词表
-        only_export_words = config_manager.get("only_export_words", False)
-        
-        # 检查是否启用分表导出
-        if config_manager.get("split_export_enabled", False) and not only_export_words:
-            # 分表导出（不启用只导出词表时）
+
+        # 解析要导出的表
+        if tables:
+            # 从 CLI 参数解析
+            export_tables = [t.strip() for t in tables.split(",") if t.strip()]
+        else:
+            # 从配置读取（与 GUI 同步）
+            export_tables = config_manager.get("export_tables", ["words", "chars", "special"])
+
+        # 校验表名
+        valid_tables = {"words", "chars", "special"}
+        for t in export_tables:
+            if t not in valid_tables:
+                console.print(f"[red]不支持的表名:[/red] {t}（可选: words, chars, special）")
+                return
+
+        if not export_tables:
+            console.print("[red]请至少指定一个要导出的表[/red]")
+            return
+
+        table_names = {"words": "词表", "chars": "字表", "special": "特殊字符表"}
+        split_export = config_manager.get("split_export_enabled", False)
+
+        if split_export and len(export_tables) > 1:
+            # 分表导出（选中的表各自导出为单独文件）
             total_exported = 0
-            
-            # 导出词表
-            words_export_name = config_manager.get("words_export_name", "vmtool_words")
-            words_file_path = os.path.join(export_path, f"{words_export_name}.{format}")
-            words_result = dict_service.export_data(words_file_path, format, table="words")
-            total_exported += words_result
-            console.print(f"[green]词表导出成功:[/green] 共导出 {words_result} 条数据")
-            
-            # 导出字表
-            chars_export_name = config_manager.get("chars_export_name", "vmtool_chars")
-            chars_file_path = os.path.join(export_path, f"{chars_export_name}.{format}")
-            chars_result = dict_service.export_data(chars_file_path, format, table="chars")
-            total_exported += chars_result
-            console.print(f"[green]字表导出成功:[/green] 共导出 {chars_result} 条数据")
-            
-            # 导出特殊字符表
-            special_export_name = config_manager.get("special_export_name", "vmtool_special")
-            special_file_path = os.path.join(export_path, f"{special_export_name}.{format}")
-            special_result = dict_service.export_data(special_file_path, format, table="special")
-            total_exported += special_result
-            console.print(f"[green]特殊字符表导出成功:[/green] 共导出 {special_result} 条数据")
-            
-            # 检查是否需要自动导出到 Rime 目录
-            if config_manager.get("auto_export_ibus_rime", False):
-                ibus_rime_path = os.path.expanduser("~/.config/ibus/rime")
-                if os.path.exists(ibus_rime_path):
-                    # 复制文件到 ibus/rime 目录
-                    try:
-                        import shutil
-                        shutil.copy(words_file_path, ibus_rime_path)
-                        console.print(f"[green]自动导出到 ibus/rime 目录成功[/green]")
-                    except Exception as e:
-                        console.print(f"[yellow]自动导出到 ibus/rime 目录失败:[/yellow] {e}")
-            
-            if config_manager.get("auto_export_fcitx5_rime", False):
-                fcitx5_rime_path = os.path.expanduser("~/.local/share/fcitx5/rime")
-                if os.path.exists(fcitx5_rime_path):
-                    # 复制文件到 fcitx5/rime 目录
-                    try:
-                        import shutil
-                        shutil.copy(words_file_path, fcitx5_rime_path)
-                        console.print(f"[green]自动导出到 fcitx5/rime 目录成功[/green]")
-                    except Exception as e:
-                        console.print(f"[yellow]自动导出到 fcitx5/rime 目录失败:[/yellow] {e}")
-            
+            default_names = {"words": "vmtool_words", "chars": "vmtool_chars", "special": "vmtool_special"}
+
+            for table in export_tables:
+                export_name_key = f"{table}_export_name"
+                export_name = config_manager.get(export_name_key, default_names[table])
+                file_path = os.path.join(export_path, f"{export_name}.{format}")
+
+                result = dict_service.export_data(file_path, format, table=table)
+                total_exported += result
+                console.print(f"[green]{table_names[table]}导出成功:[/green] 共导出 {result} 条数据")
+
+            # 自动导出到 Rime 目录（取词表文件，若无则取第一个）
+            rime_file = None
+            if "words" in export_tables:
+                rime_file = os.path.join(export_path, f"{config_manager.get('words_export_name', 'vmtool_words')}.{format}")
+            else:
+                rime_file = os.path.join(export_path, f"{config_manager.get(f'{export_tables[0]}_export_name', default_names[export_tables[0]])}.{format}")
+
+            _copy_to_rime(rime_file)
             console.print(f"[green]分表导出完成:[/green] 共导出 {total_exported} 条数据")
         else:
-            # 普通导出
+            # 合并导出模式：将选中的表合并导出到一个文件
             if not output_file:
-                if config_manager.get("only_export_words", False):
-                    # 只导出词表
-                    words_export_name = config_manager.get("words_export_name", "vmtool_words")
-                    output_file = os.path.join(export_path, f"{words_export_name}.{format}")
-                else:
-                    # 导出所有数据
-                    default_export_name = config_manager.get("default_export_name", "vmtool_export")
-                    output_file = os.path.join(export_path, f"{default_export_name}.{format}")
-            
-            if config_manager.get("only_export_words", False):
-                # 只导出词表
-                result = dict_service.export_data(output_file, format, table="words")
-                
-                # 检查是否需要自动导出到 Rime 目录
-                if config_manager.get("auto_export_ibus_rime", False):
-                    ibus_rime_path = os.path.expanduser("~/.config/ibus/rime")
-                    if os.path.exists(ibus_rime_path):
-                        # 复制文件到 ibus/rime 目录
-                        try:
-                            import shutil
-                            shutil.copy(output_file, ibus_rime_path)
-                            console.print(f"[green]自动导出到 ibus/rime 目录成功[/green]")
-                        except Exception as e:
-                            console.print(f"[yellow]自动导出到 ibus/rime 目录失败:[/yellow] {e}")
-                
-                if config_manager.get("auto_export_fcitx5_rime", False):
-                    fcitx5_rime_path = os.path.expanduser("~/.local/share/fcitx5/rime")
-                    if os.path.exists(fcitx5_rime_path):
-                        # 复制文件到 fcitx5/rime 目录
-                        try:
-                            import shutil
-                            shutil.copy(output_file, fcitx5_rime_path)
-                            console.print(f"[green]自动导出到 fcitx5/rime 目录成功[/green]")
-                        except Exception as e:
-                            console.print(f"[yellow]自动导出到 fcitx5/rime 目录失败:[/yellow] {e}")
-            else:
-                # 导出所有数据
-                result = dict_service.export_data(output_file, format)
-                
-                # 检查是否需要自动导出到 Rime 目录
-                if config_manager.get("auto_export_ibus_rime", False):
-                    ibus_rime_path = os.path.expanduser("~/.config/ibus/rime")
-                    if os.path.exists(ibus_rime_path):
-                        # 复制文件到 ibus/rime 目录
-                        try:
-                            import shutil
-                            shutil.copy(output_file, ibus_rime_path)
-                            console.print(f"[green]自动导出到 ibus/rime 目录成功[/green]")
-                        except Exception as e:
-                            console.print(f"[yellow]自动导出到 ibus/rime 目录失败:[/yellow] {e}")
-                
-                if config_manager.get("auto_export_fcitx5_rime", False):
-                    fcitx5_rime_path = os.path.expanduser("~/.local/share/fcitx5/rime")
-                    if os.path.exists(fcitx5_rime_path):
-                        # 复制文件到 fcitx5/rime 目录
-                        try:
-                            import shutil
-                            shutil.copy(output_file, fcitx5_rime_path)
-                            console.print(f"[green]自动导出到 fcitx5/rime 目录成功[/green]")
-                        except Exception as e:
-                            console.print(f"[yellow]自动导出到 fcitx5/rime 目录失败:[/yellow] {e}")
-            
+                default_export_name = config_manager.get("default_export_name", "vmtool_export")
+                output_file = os.path.join(export_path, f"{default_export_name}.{format}")
+
+            # 使用 tables 参数一次性合并导出
+            result = dict_service.export_data(output_file, format, tables=export_tables)
+
+            _copy_to_rime(output_file)
             console.print(f"[green]导出成功:[/green] 共导出 {result} 条数据")
     except Exception as e:
         console.print(f"[red]导出失败:[/red] {e}")
+
+
+def _copy_to_rime(file_path: str):
+    """复制导出文件到 Rime 目录"""
+    import os
+    import shutil
+    from app.core.config_manager import config_manager
+
+    if config_manager.get("auto_export_ibus_rime", False):
+        ibus_rime_path = os.path.expanduser("~/.config/ibus/rime")
+        if os.path.exists(ibus_rime_path):
+            try:
+                shutil.copy(file_path, ibus_rime_path)
+                console.print(f"[green]自动导出到 ibus/rime 目录成功[/green]")
+            except Exception as e:
+                console.print(f"[yellow]自动导出到 ibus/rime 目录失败:[/yellow] {e}")
+
+    if config_manager.get("auto_export_fcitx5_rime", False):
+        fcitx5_rime_path = os.path.expanduser("~/.local/share/fcitx5/rime")
+        if os.path.exists(fcitx5_rime_path):
+            try:
+                shutil.copy(file_path, fcitx5_rime_path)
+                console.print(f"[green]自动导出到 fcitx5/rime 目录成功[/green]")
+            except Exception as e:
+                console.print(f"[yellow]自动导出到 fcitx5/rime 目录失败:[/yellow] {e}")
 
 
 

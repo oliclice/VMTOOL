@@ -1,6 +1,6 @@
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, 
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit,
                              QLabel, QComboBox, QMessageBox, QFileDialog,
-                             QGroupBox, QFormLayout, QRadioButton, QButtonGroup, QFrame)
+                             QGroupBox, QFormLayout, QRadioButton, QButtonGroup, QFrame, QCheckBox)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 from app.services.filter import FilterService
@@ -84,7 +84,50 @@ class ImportExportTab(QWidget):
         export_path_form.addRow(QLabel("导出格式:"), self.export_format_combo)
         
         export_layout.addLayout(export_path_form)
-        
+
+        # 导出表选择
+        export_tables_group = QGroupBox("📋 导出表选择")
+        export_tables_layout = QVBoxLayout(export_tables_group)
+
+        tables_tip_label = QLabel("选择要导出的表（不勾选则不导出该表）:")
+        tables_tip_label.setStyleSheet("QLabel { color: #666; }")
+        export_tables_layout.addWidget(tables_tip_label)
+
+        # 从配置加载已选表，默认全选
+        saved_tables = config_manager.get("export_tables", ["words", "chars", "special"])
+
+        tables_checkbox_layout = QHBoxLayout()
+        self.words_checkbox = QCheckBox("词表 (words)")
+        self.chars_checkbox = QCheckBox("字表 (chars)")
+        self.special_checkbox = QCheckBox("特殊字符表 (special)")
+
+        self.words_checkbox.setChecked("words" in saved_tables)
+        self.chars_checkbox.setChecked("chars" in saved_tables)
+        self.special_checkbox.setChecked("special" in saved_tables)
+
+        def on_table_checkbox_changed():
+            selected = []
+            if self.words_checkbox.isChecked():
+                selected.append("words")
+            if self.chars_checkbox.isChecked():
+                selected.append("chars")
+            if self.special_checkbox.isChecked():
+                selected.append("special")
+            config_manager.set("export_tables", selected)
+            self.update_export_full_path()
+
+        self.words_checkbox.stateChanged.connect(on_table_checkbox_changed)
+        self.chars_checkbox.stateChanged.connect(on_table_checkbox_changed)
+        self.special_checkbox.stateChanged.connect(on_table_checkbox_changed)
+
+        tables_checkbox_layout.addWidget(self.words_checkbox)
+        tables_checkbox_layout.addWidget(self.chars_checkbox)
+        tables_checkbox_layout.addWidget(self.special_checkbox)
+        tables_checkbox_layout.addStretch()
+
+        export_tables_layout.addLayout(tables_checkbox_layout)
+        export_layout.addWidget(export_tables_group)
+
         # 完整导出路径显示
         path_display_group = QGroupBox("📍 完整导出路径")
         path_display_layout = QVBoxLayout(path_display_group)
@@ -305,13 +348,13 @@ class ImportExportTab(QWidget):
         if not self.dict_service:
             QMessageBox.warning(self, "警告", "词典服务未初始化")
             return
-        
+
         # 获取导出路径和格式
         export_path = self.export_path_edit.text().strip()
         if not export_path:
             QMessageBox.warning(self, "警告", "请输入导出路径")
             return
-        
+
         # 确保导出路径存在
         if not os.path.exists(export_path):
             try:
@@ -319,63 +362,54 @@ class ImportExportTab(QWidget):
             except Exception as e:
                 QMessageBox.critical(self, "错误", f"创建导出目录失败: {e}")
                 return
-        
+
         format_text = self.export_format_combo.currentText()
         # 映射显示文本到实际格式代码
         format_map = {"TXT 文本文件": "txt", "CSV 表格文件": "csv", "JSON 数据文件": "json"}
         export_format = format_map.get(format_text, "txt")
-        
-        # 构造默认导出文件名
-        default_export_name = config_manager.get("default_export_name", "vmtool_export")
-        file_path = os.path.join(export_path, f"{default_export_name}.{export_format}")
-        
+
+        # 获取用户选择的导出表
+        export_tables = config_manager.get("export_tables", ["words", "chars", "special"])
+        if not export_tables:
+            QMessageBox.warning(self, "警告", "请至少选择一个要导出的表")
+            return
+
         try:
-            # 检查是否只导出词表
-            only_export_words = config_manager.get("only_export_words", False)
-            
-            # 检查是否启用分表导出
-            if config_manager.get("split_export_enabled", False) and not only_export_words:
-                # 分表导出（不启用只导出词表时）
-                total_exported = 0
-                words_file_path = None
-                
-                # 导出词表
-                words_export_name = config_manager.get("words_export_name", "vmtool_words")
-                words_result, words_file_path = self._export_table(export_path, export_format, "words", words_export_name)
-                total_exported += words_result
-                
-                # 导出字表
-                chars_export_name = config_manager.get("chars_export_name", "vmtool_chars")
-                chars_result, _ = self._export_table(export_path, export_format, "chars", chars_export_name)
-                total_exported += chars_result
-                
-                # 导出特殊字符表
-                special_export_name = config_manager.get("special_export_name", "vmtool_special")
-                special_result, _ = self._export_table(export_path, export_format, "special", special_export_name)
-                total_exported += special_result
-                
-                # 导出到 Rime 目录
-                if words_file_path:
-                    self._export_to_rime(words_file_path)
-                
+            total_exported = 0
+            export_names = []  # 用于记录导出的文件路径
+
+            # 分表导出模式：每个表单独导出为一个文件
+            # 或者：合并导出模式：选中的表合并到一个文件
+            split_export = config_manager.get("split_export_enabled", False)
+
+            if split_export and len(export_tables) > 1:
+                # 分表导出（选中的表各自导出为单独文件）
+                for table in export_tables:
+                    table_names = {"words": "词表", "chars": "字表", "special": "特殊字符表"}
+                    export_name_key = f"{table}_export_name"
+                    default_names = {"words": "vmtool_words", "chars": "vmtool_chars", "special": "vmtool_special"}
+                    export_name = config_manager.get(export_name_key, default_names[table])
+
+                    result, file_path = self._export_table(export_path, export_format, table, export_name)
+                    total_exported += result
+                    export_names.append(file_path)
+
+                # 导出到 Rime 目录（取第一个文件）
+                if export_names:
+                    self._export_to_rime(export_names[0])
+
                 QMessageBox.information(self, "成功", f"分表导出成功，共导出 {total_exported} 条数据")
             else:
-                # 普通导出
-                if config_manager.get("only_export_words", False):
-                    # 只导出词表
-                    words_export_name = config_manager.get("words_export_name", "vmtool_words")
-                    result, words_file_path = self._export_table(export_path, export_format, "words", words_export_name)
-                    
-                    # 导出到 Rime 目录
-                    if words_file_path:
-                        self._export_to_rime(words_file_path)
-                else:
-                    # 导出所有数据
-                    result = self.dict_service.export_data(file_path, export_format)
-                    
-                    # 导出到 Rime 目录
-                    self._export_to_rime(file_path)
-                
+                # 合并导出模式：将选中的表合并导出到一个文件
+                default_export_name = config_manager.get("default_export_name", "vmtool_export")
+                file_path = os.path.join(export_path, f"{default_export_name}.{export_format}")
+
+                # 使用 tables 参数一次性合并导出
+                result = self.dict_service.export_data(file_path, export_format, tables=export_tables)
+
+                # 导出到 Rime 目录
+                self._export_to_rime(file_path)
+
                 QMessageBox.information(self, "成功", f"导出成功，共导出 {result} 条数据")
         except Exception as e:
             QMessageBox.critical(self, "错误", f"导出失败: {e}")
@@ -423,48 +457,49 @@ class ImportExportTab(QWidget):
         format_text = self.export_format_combo.currentText()
         format_map = {"TXT 文本文件": "txt", "CSV 表格文件": "csv", "JSON 数据文件": "json"}
         export_format = format_map.get(format_text, "txt")
-        
+
+        # 获取用户选择的导出表
+        export_tables = config_manager.get("export_tables", ["words", "chars", "special"])
+
         # 收集所有导出路径
         all_paths = []
-        
+
+        table_names = {"words": "词表", "chars": "字表", "special": "特殊字符表"}
+        default_names = {"words": "vmtool_words", "chars": "vmtool_chars", "special": "vmtool_special"}
+
         # 检查是否启用分表导出
-        if config_manager.get("split_export_enabled", False):
-            # 分表导出路径
+        split_export = config_manager.get("split_export_enabled", False)
+
+        if split_export and len(export_tables) > 1:
+            # 分表导出路径（只显示选中的表）
             if config_manager.get("export_path_enabled", True):
-                # 词表导出路径
-                words_export_name = config_manager.get("words_export_name", "vmtool_words")
-                words_full_path = os.path.join(export_path, f"{words_export_name}.{export_format}")
-                all_paths.append(f"📁 词表导出：{words_full_path}")
-                
-                # 字表导出路径
-                chars_export_name = config_manager.get("chars_export_name", "vmtool_chars")
-                chars_full_path = os.path.join(export_path, f"{chars_export_name}.{export_format}")
-                all_paths.append(f"📁 字表导出：{chars_full_path}")
-                
-                # 特殊字符表导出路径
-                special_export_name = config_manager.get("special_export_name", "vmtool_special")
-                special_full_path = os.path.join(export_path, f"{special_export_name}.{export_format}")
-                all_paths.append(f"📁 特殊字符表导出：{special_full_path}")
+                for table in export_tables:
+                    export_name_key = f"{table}_export_name"
+                    export_name = config_manager.get(export_name_key, default_names[table])
+                    full_path = os.path.join(export_path, f"{export_name}.{export_format}")
+                    all_paths.append(f"📁 {table_names[table]}导出：{full_path}")
             else:
                 all_paths.append("⚠️ 默认导出路径已禁用")
-            
+
             # 添加 Rime 导出路径
-            only_export_words = config_manager.get("only_export_words", False)
-            self._add_rime_paths(all_paths, export_format, use_words_name=only_export_words)
+            self._add_rime_paths(all_paths, export_format, use_words_name=False)
         else:
-            # 普通导出路径
+            # 合并导出路径
             default_export_name = config_manager.get("default_export_name", "vmtool_export")
-            
+
+            # 显示选中的表
+            selected_names = " + ".join([table_names.get(t, t) for t in export_tables])
+
             # 添加默认导出路径（如果启用）
             if config_manager.get("export_path_enabled", True):
                 full_path = os.path.join(export_path, f"{default_export_name}.{export_format}")
-                all_paths.append(f"📁 默认导出：{full_path}")
+                all_paths.append(f"📁 默认导出 ({selected_names})：{full_path}")
             else:
                 all_paths.append("⚠️ 默认导出路径已禁用")
-            
+
             # 添加 Rime 导出路径
             self._add_rime_paths(all_paths, export_format, use_words_name=False)
-        
+
         # 显示所有导出路径
         paths_text = "\n".join(all_paths)
         self.full_export_path_value.setText(paths_text)
