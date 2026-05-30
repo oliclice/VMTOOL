@@ -3,24 +3,56 @@
 import sys
 import subprocess
 import os
-from ui.cli.__main__ import app
 
 if __name__ == "__main__":
     # 检查是否执行 --install 命令
     if "--install" in sys.argv:
-        # 执行 pip install -e . 命令
+        import importlib.metadata
+
+        # 需要检查的依赖（与 pyproject.toml [project].dependencies 对齐）
+        REQUIRED_DEPS = [
+            "pydantic", "pydantic-settings", "sqlalchemy", "alembic",
+            "typer", "rich", "fastapi", "uvicorn", "jinja2", "PyQt6",
+        ]
+
+        def _check_dep(pkg_name: str) -> bool:
+            """检查依赖是否已安装"""
+            try:
+                importlib.metadata.distribution(pkg_name)
+                return True
+            except importlib.metadata.PackageNotFoundError:
+                return False
+
+        # 1) 检测缺失的依赖
+        missing = [p for p in REQUIRED_DEPS if not _check_dep(p)]
+
+        if missing:
+            print(f"检测到缺失依赖: {', '.join(missing)}")
+            print("正在安装缺失依赖...")
+            result = subprocess.run(
+                [sys.executable, "-m", "pip", "install", *missing],
+                cwd=sys.path[0],
+                capture_output=False,
+            )
+            if result.returncode != 0:
+                print("依赖安装失败")
+                sys.exit(1)
+        else:
+            print("所有依赖已安装，跳过依赖安装")
+
+        # 2) 以 editable 模式安装项目本身（--no-deps 跳过依赖解析）
         print("正在安装项目...")
         result = subprocess.run(
-            [sys.executable, "-m", "pip", "install", "-e", "."],
+            [sys.executable, "-m", "pip", "install", "-e", ".", "--no-deps"],
             cwd=sys.path[0],
             capture_output=True,
-            text=True
+            text=True,
         )
         if result.returncode == 0:
             print("项目安装成功！")
         else:
             print(f"项目安装失败: {result.stderr}")
-        
+
         # 直接退出，避免执行其他命令
         sys.exit(0)
     
@@ -67,5 +99,6 @@ if __name__ == "__main__":
             print(f"补全生成失败: {e}")
             sys.exit(1)
     
-    # 执行原有的命令
+    # 执行原有的命令（延迟导入，避免 --install 时加载全部依赖）
+    from ui.cli.__main__ import app
     app()
