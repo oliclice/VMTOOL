@@ -82,7 +82,12 @@ def get_services():
 
 
 @app.command("add")
-def add_word(word: str, code: Optional[str] = None, weight: float = 1.0, is_character: Optional[bool] = None):
+def add_word(
+    word: str = typer.Argument(help="要添加的词条"),
+    code: Optional[str] = typer.Option(None, help="词条编码（不指定则自动计算）"),
+    weight: float = typer.Option(1.0, help="词条权重"),
+    is_character: Optional[bool] = typer.Option(None, help="是否为单字词条"),
+):
     """添加词条"""
     try:
         dict_service, _, _, _, _ = get_services()
@@ -99,7 +104,7 @@ def add_word(word: str, code: Optional[str] = None, weight: float = 1.0, is_char
 
 
 @app.command("delete")
-def delete_word(word: str):
+def delete_word(word: str = typer.Argument(help="要删除的词条")):
     """删除词条"""
     try:
         dict_service, _, _, _, _ = get_services()
@@ -113,7 +118,7 @@ def delete_word(word: str):
 
 
 @app.command("delete-batch")
-def delete_batch(words: List[str]):
+def delete_batch(words: List[str] = typer.Argument(help="要删除的词条列表")):
     """批量删除词条"""
     try:
         dict_service, _, _, _, _ = get_services()
@@ -126,7 +131,7 @@ def delete_batch(words: List[str]):
 
 
 @app.command("query")
-def query_word(keyword: str):
+def query_word(keyword: str = typer.Argument(help="查询关键词")):
     """查询词条"""
     try:
         dict_service, _, _, _, _ = get_services()
@@ -148,7 +153,10 @@ def query_word(keyword: str):
 
 
 @app.command("set-weight")
-def set_weight(word: str, weight: float):
+def set_weight(
+    word: str = typer.Argument(help="要设置权重的词条"),
+    weight: float = typer.Argument(help="目标权重值"),
+):
     """设置词条权重"""
     try:
         _, weight_calc, _, _, _ = get_services()
@@ -159,7 +167,10 @@ def set_weight(word: str, weight: float):
 
 
 @app.command("replace-code")
-def replace_code(word: str, new_code: str):
+def replace_code(
+    word: str = typer.Argument(help="要替换编码的词条"),
+    new_code: str = typer.Argument(help="新的编码"),
+):
     """替换词条编码"""
     try:
         dict_service, _, _, _, _ = get_services()
@@ -170,14 +181,12 @@ def replace_code(word: str, new_code: str):
 
 
 @app.command("calculate-all-codes")
-def calculate_all_codes(rule: str = "first_letter", separator: str = "", max_length: int = 10):
-    """计算所有未手动修改过编码的词条的编码
-    
-    Args:
-        rule: 编码规则 (first_letter, all_letters, custom)
-        separator: 编码分隔符
-        max_length: 最大编码长度
-    """
+def calculate_all_codes(
+    rule: str = typer.Option("first_letter", help="编码规则: first_letter, all_letters, custom"),
+    separator: str = typer.Option("", help="编码分隔符"),
+    max_length: int = typer.Option(10, help="最大编码长度"),
+):
+    """计算所有未手动修改过编码的词条的编码"""
     try:
         dict_service, _, _, _, _ = get_services()
         # 设置编码生成配置
@@ -268,15 +277,10 @@ def show_stats():
 
 @app.command("import")
 def import_data(
-    file: Optional[str] = typer.Option(None, help="导入文件路径（当导入文件时使用）"),
-    words: Optional[List[str]] = typer.Argument(None)
+    file: Optional[str] = typer.Option(None, help="导入文件路径（支持 txt/csv/json 格式）"),
+    words: Optional[List[str]] = typer.Argument(None, help="批量导入的词条列表"),
 ):
-    """导入数据
-    
-    Args:
-        file: 导入文件路径（当导入文件时使用）
-        words: 批量导入的词条列表（当直接导入词条时使用）
-    """
+    """导入数据"""
     try:
         dict_service, _, filter_service, _, _ = get_services()
         from rich.progress import Progress, TextColumn, BarColumn, TimeRemainingColumn
@@ -348,15 +352,12 @@ def import_data(
 
 
 @app.command("export")
-def export_data(output_file: Optional[str] = None, format: Optional[str] = None,
-                tables: Optional[str] = None):
-    """导出数据
-
-    Args:
-        output_file: 输出文件路径
-        format: 导出格式 (txt/csv/json)
-        tables: 要导出的表，逗号分隔 (words,chars,special)。不指定则使用配置值
-    """
+def export_data(
+    output_file: Optional[str] = typer.Option(None, help="输出文件路径"),
+    format: Optional[str] = typer.Option(None, help="导出格式: txt, csv, json"),
+    tables: Optional[str] = typer.Option(None, help="要导出的表，逗号分隔: words, chars, special"),
+):
+    """导出数据"""
     try:
         dict_service, _, _, _, _ = get_services()
         from app.core.config_manager import config_manager
