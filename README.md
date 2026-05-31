@@ -6,15 +6,16 @@
 
 ### 核心功能
 - **码表管理**：词条/字/特殊符号的增删改查，支持批量操作
-- **权重计算**：基于 THUOCL 词频数据，使用 log₁₀(词频) 自动计算权重
+- **权重计算**：基于词频数据，使用 log₁₀(词频) 自动计算权重
 - **过滤去重**：批量过滤不需要的词条，智能去重
 - **编码生成**：基于自定义编码规则自动生成编码
 - **导入导出**：支持 TXT/CSV/JSON 格式导入导出，支持分表导出
 - **统计功能**：高频编码统计、词条分布分析
 - **自动导出**：支持自动导出到 ibus/rime 和 fcitx5/rime 目录
 
-引用了[清华大学开放中文词库](https://github.com/thunlp/THUOCL)
-韩世依, 张钰晖, 马云山, 涂存超, 郭志芃, 刘知远, 孙茂松. THUOCL：清华大学开放中文词库. 2016.
+引用了
+- [清华大学开放中文词库](https://github.com/thunlp/THUOCL)（韩世依, 张钰晖, 马云山, 涂存超, 郭志芃, 刘知远, 孙茂松. THUOCL：清华大学开放中文词库. 2016.）
+- [chinese-frequency-word-list](https://github.com/liangqi/chinese-frequency-word-list) 
 
 ### 数据库支持
 - SQLite + SQLAlchemy ORM
@@ -96,7 +97,7 @@ VMtool/
 │   │   │   ├── filter.py       # 过滤服务
 │   │   │   ├── stats.py        # 统计服务
 │   │   │   └── code_generator.py # 编码生成器
-│   │   │   │   ├── thuocl.py       # THUOCL 词频数据加载
+│   │   │   ├── thuocl.py       # 词频数据加载
 │   │   └── plugins/            # 插件系统
 │   │       ├── base.py         # 插件基类
 │   │       └── manager.py      # 插件管理器
@@ -143,7 +144,7 @@ VMtool/
 │   ├── vmtool.py               # CLI入口
 │   ├── pyproject.toml          # 项目配置
 │   ├── requirements.txt        # 依赖列表
-│   ├── THUOCL-data/             # THUOCL 词频数据（清华开源中文词频）
+│   ├── data/                    # 词频数据
 │   └── vm_tool.db              # SQLite数据库文件
 ├── architecture.mmd            # 架构图（Mermaid）
 ├── architecture_detailed.mmd   # 详细架构图

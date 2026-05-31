@@ -168,7 +168,7 @@ def set_weight(
 
 @app.command("calculate-weight")
 def calculate_weight():
-    """基于 THUOCL 词频数据重新计算所有词条权重"""
+    """基于词频数据重新计算所有词条权重"""
     try:
         _, weight_calc, _, _, _ = get_services()
 

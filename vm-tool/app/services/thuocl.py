@@ -1,4 +1,4 @@
-"""THUOCL 词频数据加载服务"""
+"""词频数据加载服务"""
 import math
 import os
 from typing import Dict, Optional
@@ -12,9 +12,10 @@ _data_dir: Optional[str] = None
 
 
 def load_thuocl_data(data_dir: str) -> Dict[str, int]:
-    """加载 THUOCL 词频数据
+    """加载词频数据
 
-    扫描 data_dir 下所有 THUOCL_*.txt 文件，格式为 每行 "词\t词频"。
+    优先加载 xiandaihaiyuchangyongcibiao.txt（三列格式：词\t拼音\t词频），
+    再加载 THUOCL_*.txt 文件（两列格式：词\t词频）作为补充。
     返回 {word: frequency} 字典。
     """
     global _freq_cache, _data_dir
@@ -26,11 +27,33 @@ def load_thuocl_data(data_dir: str) -> Dict[str, int]:
     freq_dict: Dict[str, int] = {}
 
     if not os.path.isdir(data_dir):
-        logger.warning(f"THUOCL 数据目录不存在: {data_dir}")
+        logger.warning(f"词频数据目录不存在: {data_dir}")
         _freq_cache = freq_dict
         _data_dir = data_dir
         return freq_dict
 
+    # 1. 优先加载 xiandaihaiyuchangyongcibiao.txt
+    priority_file = os.path.join(data_dir, "xiandaihaiyuchangyongcibiao.txt")
+    if os.path.isfile(priority_file):
+        try:
+            with open(priority_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    parts = line.split("\t")
+                    if len(parts) >= 3:
+                        word = parts[0].strip()
+                        try:
+                            freq = int(parts[2].strip())
+                            freq_dict[word] = freq
+                        except ValueError:
+                            continue
+            logger.info(f"已加载 xiandaihaiyuchangyongcibiao.txt: {len(freq_dict)} 条")
+        except Exception as e:
+            logger.error(f"加载 xiandaihaiyuchangyongcibiao.txt 失败: {e}")
+
+    # 2. 补充加载 THUOCL_*.txt 文件
     for filename in os.listdir(data_dir):
         if not filename.startswith("THUOCL_") or not filename.endswith(".txt"):
             continue
@@ -44,6 +67,8 @@ def load_thuocl_data(data_dir: str) -> Dict[str, int]:
                     parts = line.split("\t")
                     if len(parts) >= 2:
                         word = parts[0].strip()
+                        if word in freq_dict:
+                            continue  # 已存在，跳过
                         try:
                             freq = int(parts[1].strip())
                             freq_dict[word] = freq
@@ -52,7 +77,7 @@ def load_thuocl_data(data_dir: str) -> Dict[str, int]:
         except Exception as e:
             logger.error(f"加载 THUOCL 文件失败 {filename}: {e}")
 
-    logger.info(f"已加载 THUOCL 词频数据: {len(freq_dict)} 条")
+    logger.info(f"已加载词频数据: {len(freq_dict)} 条")
     _freq_cache = freq_dict
     _data_dir = data_dir
     return freq_dict

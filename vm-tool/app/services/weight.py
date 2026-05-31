@@ -24,14 +24,14 @@ class WeightCalculator:
     def calculate_weight(self, word: str, base_weight: float = 1.0) -> float:
         """计算单个词的权重
 
-        使用 THUOCL 词频数据: weight = base_weight * (1 + log10(词频))
+        使用词频数据: weight = base_weight * (1 + log10(词频))
         不在词频表中的词，log 部分为 0，权重等于 base_weight。
         """
         try:
-            # 加载 THUOCL 词频数据
+            # 加载词频数据
             # __file__ = vm-tool/app/services/weight.py，向上两级到 vm-tool/
             import os
-            data_dir = os.path.join(os.path.dirname(__file__), "..", "..", "THUOCL-data")
+            data_dir = os.path.join(os.path.dirname(__file__), "..", "..", "data")
             data_dir = os.path.abspath(data_dir)
             freq_dict = load_thuocl_data(data_dir)
 
@@ -95,16 +95,18 @@ class WeightCalculator:
     def recalculate_all_weights(self, progress_callback=None) -> Dict[str, Any]:
         """重新计算所有词条的权重
 
-        使用 base_weight=1.0，基于 THUOCL 词频对数重新计算。
+        使用 base_weight=1.0，基于词频对数重新计算。
+        只计算词表（is_character=False, is_special=False），不计算字表和特殊表。
         每 1000 条批量提交一次事务。
         """
         try:
             import os
-            data_dir = os.path.join(os.path.dirname(__file__), "..", "..", "THUOCL-data")
+            data_dir = os.path.join(os.path.dirname(__file__), "..", "..", "data")
             data_dir = os.path.abspath(data_dir)
             freq_dict = load_thuocl_data(data_dir)  # 预加载缓存
 
-            all_words = self.repo.get_all()
+            # 只获取词表（非单字、非特殊字符）
+            all_words = self.repo.get_all_by_type("words")
             total = len(all_words)
             updated = 0
             batch_size = 1000
