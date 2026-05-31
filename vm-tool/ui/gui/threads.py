@@ -84,7 +84,28 @@ class CalculateThread(QThread):
             
             # 调用计算方法，传递进度回调
             result = self.dict_service.calculate_all_codes(progress_callback)
-            
+
+            self.finished.emit(result)
+        except Exception as e:
+            self.error.emit(str(e))
+
+
+class CalculateWeightThread(QThread):
+    """批量计算权重线程"""
+    progress = pyqtSignal(int, str)
+    finished = pyqtSignal(dict)
+    error = pyqtSignal(str)
+
+    def __init__(self, weight_calc):
+        super().__init__()
+        self.weight_calc = weight_calc
+
+    def run(self):
+        try:
+            def progress_callback(progress, message):
+                self.progress.emit(progress, message)
+
+            result = self.weight_calc.recalculate_all_weights(progress_callback)
             self.finished.emit(result)
         except Exception as e:
             self.error.emit(str(e))

@@ -166,6 +166,44 @@ def set_weight(
         console.print(f"[red]设置权重失败:[/red] {e}")
 
 
+@app.command("calculate-weight")
+def calculate_weight():
+    """基于 THUOCL 词频数据重新计算所有词条权重"""
+    try:
+        _, weight_calc, _, _, _ = get_services()
+
+        from app.dal.models import Word
+        total = weight_calc.db.query(Word).count()
+
+        if total == 0:
+            console.print("[yellow]数据库中没有词条[/yellow]")
+            return
+
+        from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeRemainingColumn
+
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            TimeRemainingColumn(),
+            console=console
+        ) as progress:
+            task = progress.add_task("[cyan]计算权重中...", total=total)
+
+            def progress_callback(percentage: int, message: str):
+                completed = int(total * percentage / 100)
+                progress.update(task, completed=completed, description=f"[cyan]{message}[/cyan]")
+
+            result = weight_calc.recalculate_all_weights(progress_callback)
+
+        console.print(f"[green]权重计算完成:[/green]")
+        console.print(f"  总词条数: {result['total']}")
+        console.print(f"  更新数: {result['updated']}")
+    except Exception as e:
+        console.print(f"[red]计算权重失败:[/red] {e}")
+
+
 @app.command("replace-code")
 def replace_code(
     word: str = typer.Argument(help="要替换编码的词条"),
