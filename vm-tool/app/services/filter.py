@@ -448,7 +448,88 @@ class FilterService:
         except Exception as e:
             logger.error(f"导出到JSON文件失败: {e}")
             raise FileError(f"导出到JSON文件失败: {e}")
-    
+
+    def import_from_thuocl(self, data_dir: str, progress_callback: Optional[Callable[[int, str], None]] = None) -> Dict[str, Any]:
+        """从 THUOCL 词频数据目录导入
+
+        读取 THUOCL-data/ 下所有 THUOCL_*.txt 文件，格式为 "词\t词频"。
+        词频取对数 log10(词频) 作为权重，code 自动生成。
+        """
+        import time
+        import math
+        import pathlib
+
+        start_time = time.time()
+
+        try:
+            data_dir = str(pathlib.Path(data_dir).resolve())
+            if not os.path.isdir(data_dir):
+                raise FileError(f"目录不存在: {data_dir}")
+
+            if progress_callback:
+                progress_callback(5, "加载 THUOCL 词频数据...")
+
+            # 加载所有词频数据
+            from app.services.thuocl import load_thuocl_data
+            freq_dict = load_thuocl_data(data_dir)
+
+            if not freq_dict:
+                return {"added": 0, "existing": 0, "existing_pairs": []}
+
+            if progress_callback:
+                progress_callback(20, f"已加载 {len(freq_dict)} 条词频数据")
+
+            # 构造词条列表：word + code(自动生成) + weight(log10(词频))
+            words = []
+            for word, freq in freq_dict.items():
+                if freq <= 0:
+                    continue
+                weight = math.log10(freq)
+                words.append({
+                    "word": word,
+                    "code": None,  # 自动生成
+                    "weight": weight
+                })
+
+            if progress_callback:
+                progress_callback(30, f"准备导入 {len(words)} 个词条...")
+
+            # 批量添加
+            from app.services.dict import DictService
+            db = self.db or next(get_db())
+            dict_service = DictService(db)
+
+            def batch_progress_callback(progress: int, message: str) -> None:
+                adjusted_progress = 30 + int(progress * 0.65)
+                if progress_callback:
+                    progress_callback(adjusted_progress, message)
+
+            result = dict_service.add_words(words, progress_callback=batch_progress_callback)
+
+            end_time = time.time()
+            total_time = end_time - start_time
+            added_count = result.get("added", 0)
+            result["total_time"] = total_time
+            result["avg_time_per_1000"] = (total_time / added_count * 1000) if added_count > 0 else 0
+            result["total_count"] = len(words)
+
+            if progress_callback:
+                progress_callback(95, "THUOCL 导入完成")
+
+            from app.dal.init_db import create_indexes, optimize_database
+            create_indexes()
+            optimize_database()
+
+            if progress_callback:
+                progress_callback(100, "数据库优化完成")
+
+            return result
+        except FileError:
+            raise
+        except Exception as e:
+            logger.error(f"从 THUOCL 导入失败: {e}")
+            raise FileError(f"从 THUOCL 导入失败: {e}")
+
     def batch_import(self, directory: str, progress_callback: Optional[Callable[[int, str], None]] = None) -> Dict[str, Any]:
         """批量导入目录中的文件"""
         import pathlib

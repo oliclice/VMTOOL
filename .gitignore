@@ -1,5 +1,7 @@
 # other
 .claude/
+*.mmd
+tests/
 
 # Worktree directories
 .worktrees/

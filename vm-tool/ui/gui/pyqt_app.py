@@ -32,7 +32,7 @@ from .theme_utils import create_palette_from_theme, apply_theme_to_widget, clear
 from .theme_manager import theme_manager
 from .settings_tab import SettingsTab
 from .code_rules_tab import CodeRulesTab
-from .threads import ImportThread, AddBatchThread, CalculateThread
+from .threads import ImportThread, AddBatchThread, CalculateThread, CalculateWeightThread
 from .tabs.chars_tab import CharsTab
 from .tabs.special_tab import SpecialTab
 from .tabs.words_tab import WordsTab
@@ -231,9 +231,44 @@ class VMTOOLPyQtApp(QMainWindow):
         self.import_export_tab.export_data()
     
     def calculate_weight(self):
-        """计算权重"""
-        # 这里可以添加计算权重的逻辑
-        pass
+        """计算权重 - 基于 THUOCL 词频对数重新计算所有词条权重"""
+        reply = QMessageBox.question(
+            self, "确认", "将基于 THUOCL 词频数据重新计算所有词条权重，是否继续？",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        progress_bar = self.progress_bar
+        if progress_bar:
+            progress_bar.start_progress("正在计算权重...")
+
+        self.calc_weight_thread = CalculateWeightThread(self.weight_calc)
+
+        def update_progress(progress, message):
+            if progress_bar:
+                progress_bar.update_progress(progress, message)
+
+        def on_finished(result):
+            updated = result.get("updated", 0)
+            total = result.get("total", 0)
+            msg = f"权重计算完成，共 {total} 条，更新 {updated} 条"
+            if progress_bar:
+                progress_bar.finish_progress(msg, success=True)
+            else:
+                self.status_bar.showMessage(msg, 5000)
+
+        def on_error(error):
+            msg = f"权重计算失败：{error}"
+            if progress_bar:
+                progress_bar.error_progress(msg)
+            else:
+                QMessageBox.critical(self, "错误", msg)
+
+        self.calc_weight_thread.progress.connect(update_progress)
+        self.calc_weight_thread.finished.connect(on_finished)
+        self.calc_weight_thread.error.connect(on_error)
+        self.calc_weight_thread.start()
     
     def detect_conflicts(self):
         """检测编码冲突"""

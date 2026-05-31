@@ -1,11 +1,12 @@
 """权重计算服务"""
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 import logging
 
 from app.dal.repositories import WordRepository
 from app.dal.database import get_db
 from app.core.errors import WeightError
+from app.services.thuocl import load_thuocl_data, get_log_weight
 
 logger = logging.getLogger(__name__)
 
@@ -21,24 +22,25 @@ class WeightCalculator:
         self.repo = WordRepository(self.db)
     
     def calculate_weight(self, word: str, base_weight: float = 1.0) -> float:
-        """计算单个词的权重"""
+        """计算单个词的权重
+
+        使用 THUOCL 词频数据: weight = base_weight * (1 + log10(词频))
+        不在词频表中的词，log 部分为 0，权重等于 base_weight。
+        """
         try:
-            # 基于词长的权重调整
-            length_factor = 1.0
-            if len(word) == 1:
-                length_factor = 1.5  # 单字权重更高
-            elif len(word) > 4:
-                length_factor = 0.8  # 长词权重降低
-            
-            # 基于词频的权重调整（这里需要实际的词频数据）
-            frequency_factor = 1.0
-            
-            # 基于使用频率的权重调整（这里需要实际的使用数据）
-            usage_factor = 1.0
-            
+            # 加载 THUOCL 词频数据
+            # __file__ = vm-tool/app/services/weight.py，向上两级到 vm-tool/
+            import os
+            data_dir = os.path.join(os.path.dirname(__file__), "..", "..", "THUOCL-data")
+            data_dir = os.path.abspath(data_dir)
+            freq_dict = load_thuocl_data(data_dir)
+
+            # 获取对数权重
+            log_freq = get_log_weight(word, freq_dict)
+
             # 计算最终权重
-            weight = base_weight * length_factor * frequency_factor * usage_factor
-            
+            weight = base_weight * (1 + log_freq)
+
             # 限制权重范围
             return max(0.1, min(weight, 100.0))
         except Exception as e:
@@ -89,7 +91,49 @@ class WeightCalculator:
         except Exception as e:
             logger.error(f"批量更新权重失败: {e}")
             raise WeightError(f"批量更新权重失败: {e}")
-    
+
+    def recalculate_all_weights(self, progress_callback=None) -> Dict[str, Any]:
+        """重新计算所有词条的权重
+
+        使用 base_weight=1.0，基于 THUOCL 词频对数重新计算。
+        每 1000 条批量提交一次事务。
+        """
+        try:
+            import os
+            data_dir = os.path.join(os.path.dirname(__file__), "..", "..", "THUOCL-data")
+            data_dir = os.path.abspath(data_dir)
+            freq_dict = load_thuocl_data(data_dir)  # 预加载缓存
+
+            all_words = self.repo.get_all()
+            total = len(all_words)
+            updated = 0
+            batch_size = 1000
+
+            for i, db_word in enumerate(all_words):
+                log_freq = get_log_weight(db_word.word, freq_dict)
+                new_weight = 1.0 * (1 + log_freq)
+                new_weight = max(0.1, min(new_weight, 100.0))
+
+                if abs(db_word.weight - new_weight) > 0.01:
+                    db_word.weight = new_weight
+                    updated += 1
+
+                # 每 batch_size 条提交一次
+                if (i + 1) % batch_size == 0 or (i + 1) == total:
+                    self.db.commit()
+
+                if progress_callback and total > 0:
+                    pct = int((i + 1) / total * 100)
+                    progress_callback(pct, f"计算权重: {i + 1}/{total}")
+
+            return {
+                "total": total,
+                "updated": updated
+            }
+        except Exception as e:
+            logger.error(f"重新计算权重失败: {e}")
+            raise WeightError(f"重新计算权重失败: {e}")
+
     def adjust_same_code_weights(self, code: str) -> List[Dict[str, Any]]:
         """调整同码词的权重"""
         try:
