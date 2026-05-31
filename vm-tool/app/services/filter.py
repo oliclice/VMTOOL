@@ -450,9 +450,9 @@ class FilterService:
             raise FileError(f"导出到JSON文件失败: {e}")
 
     def import_from_thuocl(self, data_dir: str, progress_callback: Optional[Callable[[int, str], None]] = None) -> Dict[str, Any]:
-        """从 THUOCL 词频数据目录导入
+        """从词频数据目录导入
 
-        读取 THUOCL-data/ 下所有 THUOCL_*.txt 文件，格式为 "词\t词频"。
+        读取 data/ 下所有词频文件，格式为 "词\t词频"。
         词频取对数 log10(词频) 作为权重，code 自动生成。
         """
         import time
@@ -467,7 +467,7 @@ class FilterService:
                 raise FileError(f"目录不存在: {data_dir}")
 
             if progress_callback:
-                progress_callback(5, "加载 THUOCL 词频数据...")
+                progress_callback(5, "加载词频数据...")
 
             # 加载所有词频数据
             from app.services.thuocl import load_thuocl_data
@@ -514,7 +514,7 @@ class FilterService:
             result["total_count"] = len(words)
 
             if progress_callback:
-                progress_callback(95, "THUOCL 导入完成")
+                progress_callback(95, "词频导入完成")
 
             from app.dal.init_db import create_indexes, optimize_database
             create_indexes()
@@ -527,8 +527,8 @@ class FilterService:
         except FileError:
             raise
         except Exception as e:
-            logger.error(f"从 THUOCL 导入失败: {e}")
-            raise FileError(f"从 THUOCL 导入失败: {e}")
+            logger.error(f"从词频数据导入失败: {e}")
+            raise FileError(f"从词频数据导入失败: {e}")
 
     def batch_import(self, directory: str, progress_callback: Optional[Callable[[int, str], None]] = None) -> Dict[str, Any]:
         """批量导入目录中的文件"""

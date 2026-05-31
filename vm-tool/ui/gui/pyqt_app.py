@@ -231,9 +231,9 @@ class VMTOOLPyQtApp(QMainWindow):
         self.import_export_tab.export_data()
     
     def calculate_weight(self):
-        """计算权重 - 基于 THUOCL 词频对数重新计算所有词条权重"""
+        """计算权重 - 基于词频对数重新计算所有词条权重"""
         reply = QMessageBox.question(
-            self, "确认", "将基于 THUOCL 词频数据重新计算所有词条权重，是否继续？",
+            self, "确认", "将基于词频数据重新计算所有词条权重，是否继续？",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
         if reply != QMessageBox.StandardButton.Yes:
