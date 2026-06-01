@@ -158,14 +158,17 @@ def query_word(keyword: str = typer.Argument(help="查询关键词")):
         dict_service, _, _, _, _ = get_services()
         results = dict_service.search_words(keyword)
         if results:
+            # 先按字数排序（少的在前），再按权重排序（高的在前）
+            results.sort(key=lambda x: (len(x["word"]), -x["weight"]))
+
             table = Table(title="查询结果")
             table.add_column("词", style="cyan")
             table.add_column("编码", style="green")
             table.add_column("权重", style="yellow")
-            
+
             for result in results:
                 table.add_row(result["word"], result["code"], str(result["weight"]))
-            
+
             console.print(table)
         else:
             console.print(f"[yellow]未找到匹配的词条:[/yellow] {keyword}")
@@ -300,36 +303,43 @@ def show_stats():
     try:
         _, _, _, stats_service, _ = get_services()
         report = stats_service.generate_report()
-        
-        # 显示词长统计
-        console.print("[bold cyan]词长统计[/bold cyan]")
+
+        from rich.panel import Panel
+        from rich.table import Table as RichTable
+        from rich.text import Text
+
+        # 词长统计
         length_stats = report["word_length_stats"]
-        console.print(f"总词条数: {length_stats['total_words']}")
-        console.print(f"平均词长: {length_stats['average_length']:.2f}")
-        console.print("词长分布:")
+        length_text = Text()
+        length_text.append("总词条数: ", style="bold")
+        length_text.append(f"{length_stats['total_words']}\n", style="cyan")
+        length_text.append("平均词长: ", style="bold")
+        length_text.append(f"{length_stats['average_length']:.2f}\n", style="cyan")
+        length_text.append("词长分布:\n", style="bold")
         for length, count in length_stats['length_distribution'].items():
-            console.print(f"  {length}字: {count}条")
-        
-        # 显示编码统计
-        console.print("\n[bold cyan]编码统计[/bold cyan]")
+            length_text.append(f"  {length}字: {count}条\n", style="green")
+        console.print(Panel(length_text, title="[bold cyan]词长统计[/bold cyan]", border_style="cyan"))
+
+        # 编码统计
         code_stats = report["code_stats"]
-        console.print(f"总编码数: {code_stats['total_codes']}")
-        console.print(f"编码冲突数: {code_stats['conflict_count']}")
-        
-        # 显示高频词
-        console.print("\n[bold cyan]高频词前20名[/bold cyan]")
+        code_text = Text()
+        code_text.append("总编码数: ", style="bold")
+        code_text.append(f"{code_stats['total_codes']}\n", style="cyan")
+        code_text.append("编码冲突数: ", style="bold")
+        code_text.append(f"{code_stats['conflict_count']}", style="yellow" if code_stats['conflict_count'] > 0 else "green")
+        console.print(Panel(code_text, title="[bold cyan]编码统计[/bold cyan]", border_style="cyan"))
+
+        # 高频词
         high_freq_words = report["high_frequency_words"]
-        table = Table()
+        table = RichTable(title="[bold cyan]高频词前20名[/bold cyan]", border_style="cyan")
         table.add_column("排名", style="cyan")
         table.add_column("词", style="green")
         table.add_column("编码", style="yellow")
         table.add_column("权重", style="magenta")
-        
         for i, word in enumerate(high_freq_words[:20], 1):
             table.add_row(str(i), word["word"], word["code"], str(word["weight"]))
-        
         console.print(table)
-        
+
     except Exception as e:
         console.print(f"[red]获取统计信息失败:[/red] {e}")
 
