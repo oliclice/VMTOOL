@@ -6,6 +6,7 @@ import sys
 from rich.console import Console
 from rich.table import Table
 from rich.prompt import Prompt, IntPrompt
+from rich.progress import SpinnerColumn, BarColumn, TaskProgressColumn, TimeRemainingColumn
 from typing import List, Optional
 
 from app.services.dict import DictService
@@ -85,14 +86,34 @@ def get_services():
 def add_word(
     word: str = typer.Argument(help="要添加的词条"),
     code: Optional[str] = typer.Option(None, help="词条编码（不指定则自动计算）"),
-    weight: float = typer.Option(1.0, help="词条权重"),
+    weight: Optional[float] = typer.Option(None, help="词条权重（不指定则自动计算）"),
     is_character: Optional[bool] = typer.Option(None, help="是否为单字词条"),
 ):
     """添加词条"""
     try:
-        dict_service, _, _, _, _ = get_services()
-        result = dict_service.add_word(word, code, weight, is_character)
+        dict_service, weight_calc, _, _, _ = get_services()
+
+        # 确定是否为手动设置权重
+        manual = weight is not None
+
+        # 如果没有指定权重且不是单字，自动计算权重
+        if weight is None and not is_character and len(word) > 1:
+            try:
+                weight = weight_calc.calculate_weight(word, 1.0)
+            except Exception as e:
+                console.print(f"[yellow]权重计算失败，使用默认权重:[/yellow] {e}")
+                weight = 1.0
+        elif weight is None:
+            weight = 1.0
+
+        result = dict_service.add_word(word, code, weight, is_character, False, manual)
         console.print(f"[green]添加成功:[/green] {result}")
+
+        # 显示权重信息
+        if manual:
+            console.print(f"[cyan]手动设置权重:[/cyan] {weight:.2f}")
+        elif not result.get('is_character'):
+            console.print(f"[cyan]自动计算权重:[/cyan] {weight:.2f}")
     except Exception as e:
         console.print(f"[red]添加失败:[/red] {e}")
 
@@ -317,19 +338,20 @@ def show_stats():
 def import_data(
     file: Optional[str] = typer.Option(None, help="导入文件路径（支持 txt/csv/json 格式）"),
     words: Optional[List[str]] = typer.Argument(None, help="批量导入的词条列表"),
+    auto_weight: bool = typer.Option(True, help="导入后自动计算权重"),
 ):
     """导入数据"""
     try:
-        dict_service, _, filter_service, _, _ = get_services()
+        dict_service, weight_calc, filter_service, _, _ = get_services()
         from rich.progress import Progress, TextColumn, BarColumn, TimeRemainingColumn
-        
+
         # 处理批量导入词条的情况
         if words:
             word_data = []
             for word in words:
                 # 简单处理，实际应用中可能需要更复杂的解析
                 word_data.append({"word": word, "code": None, "weight": 1.0})
-            
+
             with Progress(
                 TextColumn("[bold cyan]{task.description}[/bold cyan]"),
                 BarColumn(),
@@ -337,12 +359,12 @@ def import_data(
                 TimeRemainingColumn(),
             ) as progress:
                 progress_task = progress.add_task("开始批量添加...", total=100)
-                
+
                 def progress_callback(progress_val, message):
                     progress.update(progress_task, completed=progress_val, description=message)
-                
+
                 result = dict_service.add_words(word_data, progress_callback=progress_callback)
-            
+
             console.print(f"[green]批量添加完成:[/green] 添加了 {result['added']} 条，跳过了 {result['existing']} 条")
         # 处理从文件导入的情况
         elif file:
@@ -350,7 +372,7 @@ def import_data(
             # 自动识别文件格式
             _, ext = os.path.splitext(file)
             format = ext[1:].lower() if ext else "txt"
-            
+
             with Progress(
                 TextColumn("[bold cyan]{task.description}[/bold cyan]"),
                 BarColumn(),
@@ -358,10 +380,10 @@ def import_data(
                 TimeRemainingColumn(),
             ) as progress:
                 progress_task = progress.add_task("开始导入...", total=100)
-                
+
                 def progress_callback(progress_val, message):
                     progress.update(progress_task, completed=progress_val, description=message)
-                
+
                 if format == "txt":
                     result = filter_service.import_from_txt(file, progress_callback=progress_callback)
                 elif format == "csv":
@@ -371,12 +393,12 @@ def import_data(
                 else:
                     console.print(f"[red]不支持的格式:[/red] {format}")
                     return
-            
+
             # 显示导入数据条数和用时
             total_time = result.get('total_time', 0)
             avg_time_per_1000 = result.get('avg_time_per_1000', 0)
             total_count = result.get('total_count', 0)
-            
+
             console.print(f"[green]导入成功:[/green]")
             console.print(f"  添加了: {result['added']} 条")
             console.print(f"  跳过了: {result['existing']} 条")
@@ -385,6 +407,33 @@ def import_data(
             console.print(f"  每千条平均耗时: {avg_time_per_1000:.2f} 秒")
         else:
             console.print(f"[red]错误: 请提供文件路径或词条列表[/red]")
+            return
+
+        # 导入后自动计算权重
+        if auto_weight and result.get('added', 0) > 0:
+            console.print(f"\n[cyan]正在自动计算导入词条的权重...[/cyan]")
+            try:
+                # 重新计算所有非手动词条的权重
+                with Progress(
+                    SpinnerColumn(),
+                    TextColumn("[progress.description]{task.description}"),
+                    BarColumn(),
+                    TaskProgressColumn(),
+                    TimeRemainingColumn(),
+                    console=console
+                ) as progress:
+                    task = progress.add_task("[cyan]计算权重中...", total=100)
+
+                    def weight_progress_callback(percentage: int, message: str):
+                        progress.update(task, completed=percentage, description=f"[cyan]{message}[/cyan]")
+
+                    weight_result = weight_calc.recalculate_all_weights(progress_callback=weight_progress_callback)
+
+                console.print(f"[green]权重计算完成:[/green]")
+                console.print(f"  总词条数: {weight_result['total']}")
+                console.print(f"  更新数: {weight_result['updated']}")
+            except Exception as e:
+                console.print(f"\n[yellow]权重计算失败:[/yellow] {e}")
     except Exception as e:
         console.print(f"[red]导入失败:[/red] {e}")
 
