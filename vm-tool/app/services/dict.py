@@ -319,8 +319,8 @@ class DictService:
             if not db_word:
                 raise DictError(f"词条 '{word}' 不存在")
             
-            # 如果更新编码，设置manual为True
-            if "code" in kwargs:
+            # 如果更新编码或权重，设置manual为True
+            if "code" in kwargs or "weight" in kwargs:
                 kwargs["manual"] = True
             
             # 更新词条
