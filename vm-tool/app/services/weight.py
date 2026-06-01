@@ -97,6 +97,7 @@ class WeightCalculator:
 
         使用 base_weight=1.0，基于词频对数重新计算。
         只计算词表（is_character=False, is_special=False），不计算字表和特殊表。
+        跳过手动设置的词条（manual=True）。
         每 1000 条批量提交一次事务。
         """
         try:
@@ -112,6 +113,10 @@ class WeightCalculator:
             batch_size = 1000
 
             for i, db_word in enumerate(all_words):
+                # 跳过手动设置的词条
+                if db_word.manual:
+                    continue
+
                 log_freq = get_log_weight(db_word.word, freq_dict)
                 new_weight = 1.0 * (1 + log_freq)
                 new_weight = max(0.1, min(new_weight, 100.0))
@@ -174,7 +179,10 @@ class WeightCalculator:
             raise WeightError(f"调整同码词权重失败: {e}")
     
     def set_weight_directly(self, word: str, weight: float) -> Dict[str, Any]:
-        """直接设置权重"""
+        """直接设置权重
+
+        手动设置权重会将manual标记为True，这样在重新计算权重时会被跳过。
+        """
         try:
             db_word = self.repo.get_by_word(word)
             if not db_word:
@@ -186,9 +194,9 @@ class WeightCalculator:
             
             # 保存旧权重（在更新之前）
             old_weight = db_word.weight
-            
-            # 更新权重
-            updated = self.repo.update(db_word.id, weight=weight)
+
+            # 更新权重，同时设置manual为True
+            updated = self.repo.update(db_word.id, weight=weight, manual=True)
             return {
                 "word": updated.word,
                 "old_weight": old_weight,

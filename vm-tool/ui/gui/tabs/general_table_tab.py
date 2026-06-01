@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import (QDialog, QFormLayout, QLineEdit, QMessageBox, QTableWidgetItem, QPushButton)
+from PyQt6.QtWidgets import (QDialog, QFormLayout, QHBoxLayout, QLineEdit, QMessageBox, QTableWidgetItem, QPushButton)
 from PyQt6.QtCore import Qt
 from .base_table_tab import BaseTableTab
 from .refreshable_tab import RefreshableTab
@@ -210,7 +210,7 @@ class GeneralTableTab(BaseTableTab, RefreshableTab):
             new_weight = float(weight_edit.text().strip())
 
             try:
-                self.update_method(name, new_code, new_weight)
+                self.update_method(name, code=new_code, weight=new_weight)
                 QMessageBox.information(self, "成功", f"{self.item_type_name} '{name}' 更新成功")
                 self.refresh_data()
                 dialog.accept()
@@ -245,7 +245,7 @@ class GeneralTableTab(BaseTableTab, RefreshableTab):
                 weight_item = self.table.item(row, 2)
                 if weight_item:
                     weight = float(weight_item.text())
-                    self.update_method(name, new_value, weight)
+                    self.update_method(name, code=new_value, weight=weight)
                     if hasattr(self.parent, 'show_toast'):
                         self.parent.show_toast(f"{self.item_type_name} '{name}' 编码更新成功")
             elif column == 2:
@@ -253,7 +253,7 @@ class GeneralTableTab(BaseTableTab, RefreshableTab):
                 if code_item:
                     code = code_item.text()
                     weight = float(new_value)
-                    self.update_method(name, code, weight)
+                    self.update_method(name, code=code, weight=weight)
                     if hasattr(self.parent, 'show_toast'):
                         self.parent.show_toast(f"{self.item_type_name} '{name}' 权重更新成功")
         except Exception as e:

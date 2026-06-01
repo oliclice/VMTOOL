@@ -293,7 +293,7 @@ class SpecialTab(QWidget, RefreshableTab):
             new_weight = float(weight_edit.text().strip())
 
             try:
-                self.dict_service.update_special_char(char, new_code, new_weight)
+                self.dict_service.update_word(char, code=new_code, weight=new_weight)
                 QMessageBox.information(self, "成功", f"特殊字符 '{char}' 更新成功")
                 self.refresh_special()
                 dialog.accept()
@@ -328,7 +328,7 @@ class SpecialTab(QWidget, RefreshableTab):
                 weight_item = self.special_table.item(row, 2)
                 if weight_item:
                     weight = float(weight_item.text())
-                    self.dict_service.update_special_char(char, new_value, weight)
+                    self.dict_service.update_word(char, code=new_value, weight=weight)
                     if hasattr(self.parent, 'show_toast'):
                         self.parent.show_toast(f"特殊字符 '{char}' 编码更新成功")
             elif column == 2:
@@ -336,7 +336,7 @@ class SpecialTab(QWidget, RefreshableTab):
                 if code_item:
                     code = code_item.text()
                     weight = float(new_value)
-                    self.dict_service.update_special_char(char, code, weight)
+                    self.dict_service.update_word(char, code=code, weight=weight)
                     if hasattr(self.parent, 'show_toast'):
                         self.parent.show_toast(f"特殊字符 '{char}' 权重更新成功")
         except Exception as e:
