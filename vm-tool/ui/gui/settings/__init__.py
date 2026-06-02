@@ -6,6 +6,7 @@ from .cache_settings import load_cache_settings
 from .delete_table_settings import load_delete_table_settings
 from .file_config_settings import load_file_config_settings
 from .stats_settings import load_stats_settings
+from .weight_settings import load_weight_settings
 
 __all__ = [
     'load_theme_settings',
@@ -16,5 +17,6 @@ __all__ = [
     'load_cache_settings',
     'load_delete_table_settings',
     'load_file_config_settings',
-    'load_stats_settings'
+    'load_stats_settings',
+    'load_weight_settings'
 ]
