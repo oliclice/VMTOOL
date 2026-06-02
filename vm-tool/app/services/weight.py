@@ -96,18 +96,32 @@ class WeightCalculator:
         """重新计算所有词条的权重
 
         使用 base_weight=1.0，基于词频对数重新计算。
-        只计算词表（is_character=False, is_special=False），不计算字表和特殊表。
+        根据配置选择要计算的码表范围（词表、字表、特殊表）。
         跳过手动设置的词条（manual=True）。
         每 1000 条批量提交一次事务。
         """
         try:
             import os
+            from app.core.config_manager import config_manager
+
             data_dir = os.path.join(os.path.dirname(__file__), "..", "..", "data")
             data_dir = os.path.abspath(data_dir)
             freq_dict = load_thuocl_data(data_dir)  # 预加载缓存
 
-            # 只获取词表（非单字、非特殊字符）
-            all_words = self.repo.get_all_by_type("words")
+            # 根据配置获取要计算的码表类型
+            calc_words = config_manager.get("weight_calc_words", True)
+            calc_chars = config_manager.get("weight_calc_chars", False)
+            calc_special = config_manager.get("weight_calc_special", False)
+
+            # 收集所有要计算的词条
+            all_words = []
+            if calc_words:
+                all_words.extend(self.repo.get_all_by_type("words"))
+            if calc_chars:
+                all_words.extend(self.repo.get_all_by_type("chars"))
+            if calc_special:
+                all_words.extend(self.repo.get_all_by_type("special"))
+
             total = len(all_words)
             updated = 0
             batch_size = 1000

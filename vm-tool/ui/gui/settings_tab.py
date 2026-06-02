@@ -16,7 +16,8 @@ from .settings import (
     load_cache_settings,
     load_delete_table_settings,
     load_file_config_settings,
-    load_stats_settings
+    load_stats_settings,
+    load_weight_settings
 )
 
 class SettingsTab(QWidget):
@@ -47,8 +48,8 @@ class SettingsTab(QWidget):
         settings_types.setDragDropMode(QTreeWidget.DragDropMode.InternalMove)
         
         # 从配置中加载设置类型顺序，如果没有则使用默认顺序
-        default_sections = ["主题设置", "字体设置", "语言设置", 
-                          "配置目录", "数据库路径", "缓存设置", "统计设置", "删除表", "文件配置"]
+        default_sections = ["主题设置", "字体设置", "语言设置",
+                          "配置目录", "数据库路径", "缓存设置", "统计设置", "删除表", "文件配置", "权重计算"]
         sections = config_manager.get("settings_order", default_sections)
         
         # 添加设置类型
@@ -124,7 +125,10 @@ class SettingsTab(QWidget):
         
         # 统计设置
         load_stats_settings(self.settings_content_layout, self.section_widgets, self.parent())
-    
+
+        # 权重计算
+        load_weight_settings(self.settings_content_layout, self.section_widgets, self.parent())
+
 
     
 
@@ -176,7 +180,7 @@ class SettingsTab(QWidget):
         
         # 从配置中加载设置类型顺序
         default_sections = ["主题设置", "语言设置", "编码规则",
-                          "配置目录", "数据库路径", "缓存设置", "统计设置", "删除表", "文件配置"]
+                          "配置目录", "数据库路径", "缓存设置", "统计设置", "删除表", "文件配置", "权重计算"]
         sections = config_manager.get("settings_order", default_sections)
         
         # 按照新的顺序加载设置
@@ -199,6 +203,8 @@ class SettingsTab(QWidget):
                 load_delete_table_settings(self.settings_content_layout, self.section_widgets, self.parent(), self.dict_service)
             elif section == "文件配置":
                 load_file_config_settings(self.settings_content_layout, self.section_widgets, self.parent())
+            elif section == "权重计算":
+                load_weight_settings(self.settings_content_layout, self.section_widgets, self.parent())
     
     def on_settings_type_clicked(self, tree_item, column):
         """设置类型点击事件"""
