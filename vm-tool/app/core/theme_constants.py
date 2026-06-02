@@ -8,6 +8,7 @@ THEME_MODE_DARK = "dark"
 # 主题名称常量
 THEME_NAME_CLASSIC = "经典"
 THEME_NAME_MATERIAL3 = "Material3"
+THEME_NAME_LINEAR = "Linear"
 
 # 主题颜色常量
 THEME_COLOR_BLUE = "蓝色"

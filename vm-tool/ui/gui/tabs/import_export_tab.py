@@ -7,6 +7,7 @@ from app.services.filter import FilterService
 from app.core.config_manager import config_manager
 import os
 from ..threads import ImportThread
+from ..theme_colors import get_hint_color, get_info_box_style, get_button_style
 
 class ImportExportTab(QWidget):
     """导入导出标签页"""
@@ -90,7 +91,8 @@ class ImportExportTab(QWidget):
         export_tables_layout = QVBoxLayout(export_tables_group)
 
         tables_tip_label = QLabel("选择要导出的表（不勾选则不导出该表）:")
-        tables_tip_label.setStyleSheet("QLabel { color: #666; }")
+        hint_color = get_hint_color()
+        tables_tip_label.setStyleSheet(f"QLabel {{ color: {hint_color}; }}")
         export_tables_layout.addWidget(tables_tip_label)
 
         # 从配置加载已选表，默认全选
@@ -134,7 +136,8 @@ class ImportExportTab(QWidget):
         
         self.full_export_path_value = QLabel("")
         self.full_export_path_value.setWordWrap(True)
-        self.full_export_path_value.setStyleSheet("QLabel { color: #1976D2; padding: 8px; background-color: #E3F2FD; border-radius: 4px; }")
+        info_style = get_info_box_style()
+        self.full_export_path_value.setStyleSheet(info_style)
         self.full_export_path_value.setMinimumHeight(40)
         path_display_layout.addWidget(self.full_export_path_value)
         
@@ -142,7 +145,8 @@ class ImportExportTab(QWidget):
         
         # 导出按钮
         export_button = QPushButton("🚀 开始导出")
-        export_button.setStyleSheet("QPushButton { background-color: #4CAF50; color: white; font-weight: bold; padding: 10px; border-radius: 5px; } QPushButton:hover { background-color: #45a049; }")
+        export_style = get_button_style("success")
+        export_button.setStyleSheet(export_style)
         export_button.setMinimumHeight(40)
         export_button.clicked.connect(self.export_data)
         export_layout.addWidget(export_button)
@@ -211,7 +215,8 @@ class ImportExportTab(QWidget):
         
         # 导入按钮
         import_button = QPushButton("🚀 开始导入")
-        import_button.setStyleSheet("QPushButton { background-color: #2196F3; color: white; font-weight: bold; padding: 10px; border-radius: 5px; } QPushButton:hover { background-color: #0b7dda; }")
+        import_style = get_button_style("primary")
+        import_button.setStyleSheet(import_style)
         import_button.setMinimumHeight(40)
         import_button.clicked.connect(self.import_data)
         import_layout.addWidget(import_button)
