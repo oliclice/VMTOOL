@@ -6,21 +6,35 @@ from typing import Set
 from app.core.theme_constants import (
     THEME_MODE_DARK, THEME_MODE_LIGHT, THEME_MODE_AUTO,
     THEME_COLOR_BLUE, THEME_COLOR_GREEN, THEME_COLOR_RED,
-    THEME_COLOR_PURPLE, THEME_COLOR_ORANGE, COLOR_RGB_MAP
+    THEME_COLOR_PURPLE, THEME_COLOR_ORANGE, COLOR_RGB_MAP,
+    THEME_NAME_LINEAR
 )
+from .styles import load_linear_theme_qss
 
 
-def create_palette_from_theme(theme_mode: str, theme_color: str) -> QPalette:
-    """根据主题模式和颜色创建调色板"""
+def create_palette_from_theme(theme_mode: str, theme_color: str, theme_name: str = None) -> QPalette:
+    """根据主题模式、颜色和名称创建调色板"""
     # 根据主题模式设置基础颜色
-    if theme_mode == THEME_MODE_DARK:
-        # 深色模式
+    if theme_name == THEME_NAME_LINEAR:
+        # Linear 主题：极简、干净的线条感
+        if theme_mode == THEME_MODE_DARK:
+            background_color = QColor(24, 24, 27)       # 深灰近黑
+            text_color = QColor(230, 230, 235)          # 亮灰白
+            widget_color = QColor(32, 32, 36)           # 略浅的深灰
+            accent_color = QColor(*COLOR_RGB_MAP.get(THEME_COLOR_BLUE, (50, 150, 250)))
+        else:
+            background_color = QColor(255, 255, 255)    # 纯白
+            text_color = QColor(23, 23, 28)             # 近黑
+            widget_color = QColor(250, 250, 252)        # 极浅灰
+            accent_color = QColor(*COLOR_RGB_MAP.get(THEME_COLOR_BLUE, (50, 150, 250)))
+    elif theme_mode == THEME_MODE_DARK:
+        # 经典/Material3 深色模式
         background_color = QColor(30, 30, 30)
         text_color = QColor(240, 240, 240)
         widget_color = QColor(40, 40, 40)
         accent_color = QColor(*COLOR_RGB_MAP.get(THEME_COLOR_BLUE, (50, 150, 250)))
     else:
-        # 浅色模式（包括auto和light）
+        # 经典/Material3 浅色模式（包括auto和light）
         background_color = QColor(240, 240, 240)
         text_color = QColor(30, 30, 30)
         widget_color = QColor(250, 250, 250)
@@ -113,3 +127,21 @@ def get_accent_color(theme_color: str) -> QColor:
     """根据颜色名称返回QColor对象"""
     rgb = COLOR_RGB_MAP.get(theme_color, COLOR_RGB_MAP[THEME_COLOR_BLUE])
     return QColor(*rgb)
+
+
+def get_theme_stylesheet(theme_mode: str, theme_color: str, theme_name: str = None) -> str:
+    """获取主题的 QSS 样式表
+
+    Args:
+        theme_mode: 主题模式 (light/dark/auto)
+        theme_color: 主题颜色
+        theme_name: 主题名称
+
+    Returns:
+        QSS 字符串，非 Linear 主题返回空字符串
+    """
+    if theme_name == THEME_NAME_LINEAR:
+        # 将 auto 映射为 light
+        effective_mode = THEME_MODE_LIGHT if theme_mode == THEME_MODE_AUTO else theme_mode
+        return load_linear_theme_qss(effective_mode, theme_color)
+    return ""

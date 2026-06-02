@@ -5,9 +5,9 @@ from typing import Tuple
 
 from app.core.theme_constants import (
     THEME_MODE_AUTO, THEME_MODE_LIGHT, THEME_MODE_DARK,
-    THEME_NAME_CLASSIC, THEME_COLOR_BLUE
+    THEME_NAME_CLASSIC, THEME_NAME_LINEAR, THEME_COLOR_BLUE
 )
-from .theme_utils import create_palette_from_theme
+from .theme_utils import create_palette_from_theme, get_theme_stylesheet
 
 
 class ThemeManager(QObject):
@@ -47,14 +47,23 @@ class ThemeManager(QObject):
         app = QApplication.instance()
         if not app:
             return
-        
+
         palette = create_palette_from_theme(
-            self.current_theme_mode, 
-            self.current_theme_color
+            self.current_theme_mode,
+            self.current_theme_color,
+            self.current_theme_name
         )
-        
+
         app.setPalette(palette)
-        
+
+        # Linear 主题使用 QSS 样式表
+        qss = get_theme_stylesheet(
+            self.current_theme_mode,
+            self.current_theme_color,
+            self.current_theme_name
+        )
+        app.setStyleSheet(qss)
+
         for window in app.topLevelWidgets():
             if hasattr(window, 'setPalette'):
                 window.setPalette(palette)

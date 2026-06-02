@@ -4,7 +4,8 @@ from PyQt6.QtGui import QFont
 from app.core.config_manager import config_manager
 from app.core.theme_constants import (
     THEME_MODE_AUTO, THEME_MODE_LIGHT, THEME_MODE_DARK,
-    THEME_NAME_CLASSIC, THEME_NAME_MATERIAL3, THEME_COLOR_BLUE, THEME_COLOR_GREEN,
+    THEME_NAME_CLASSIC, THEME_NAME_MATERIAL3, THEME_NAME_LINEAR,
+    THEME_COLOR_BLUE, THEME_COLOR_GREEN,
     THEME_COLOR_RED, THEME_COLOR_PURPLE, THEME_COLOR_ORANGE,
     MODE_DISPLAY_MAP, MODE_DISPLAY_REVERSE_MAP
 )
@@ -19,7 +20,7 @@ def load_theme_settings(settings_content_layout, section_widgets, parent):
     
     theme_label = QLabel("主题:")
     theme_combo = QComboBox()
-    theme_combo.addItems([THEME_NAME_CLASSIC, THEME_NAME_MATERIAL3])
+    theme_combo.addItems([THEME_NAME_CLASSIC, THEME_NAME_MATERIAL3, THEME_NAME_LINEAR])
 
     # 模式设置
     mode_label = QLabel("模式:")

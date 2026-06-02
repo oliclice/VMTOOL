@@ -1,7 +1,8 @@
-from PyQt6.QtWidgets import (QGroupBox, QVBoxLayout, QFormLayout, QLabel, QComboBox, QHBoxLayout, QPushButton, QLineEdit, QTextEdit, QWidget) 
+from PyQt6.QtWidgets import (QGroupBox, QVBoxLayout, QFormLayout, QLabel, QComboBox, QHBoxLayout, QPushButton, QLineEdit, QTextEdit, QWidget)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 from app.core.config_manager import config_manager
+from ..theme_colors import get_status_color
 
 def load_code_rules(settings_content_layout, section_widgets, parent):
     """加载编码规则设置"""
@@ -131,7 +132,8 @@ def load_code_rules(settings_content_layout, section_widgets, parent):
     syntax_label = QLabel("语法说明:")
     syntax_button = QPushButton("?")
     syntax_button.setFixedSize(20, 20)
-    syntax_button.setStyleSheet("QPushButton { border-radius: 10px; background-color: #4CAF50; color: white; }")
+    success_color = get_status_color("success")
+    syntax_button.setStyleSheet(f"QPushButton {{ border-radius: 10px; background-color: {success_color}; color: white; }}")
     
     def show_syntax_help():
         help_text = """编码规则语法说明：
