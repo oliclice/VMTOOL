@@ -4,6 +4,9 @@ import os
 import sys
 import subprocess
 import argparse
+import logging
+
+logger = logging.getLogger(__name__)
 
 # 切换到项目根目录（vm-tool/ 目录）
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -65,26 +68,26 @@ def _build_common_args(name: str, distpath: str, workpath: str, windowed: bool =
 
 def build_linux():
     """构建 Linux 版本"""
-    print("构建 Linux 版本...")
+    logger.info("构建 Linux 版本...")
     subprocess.run(_build_common_args("vmtool", "dist/linux", "build/linux"), check=True)
     subprocess.run(_build_common_args("vmtool-gui", "dist/linux", "build/linux", windowed=True), check=True)
-    print("Linux 版本构建完成")
+    logger.info("Linux 版本构建完成")
 
 
 def build_windows():
     """构建 Windows 版本"""
-    print("构建 Windows 版本...")
+    logger.info("构建 Windows 版本...")
     subprocess.run(_build_common_args("vmtool", "dist/windows", "build/windows"), check=True)
     subprocess.run(_build_common_args("vmtool-gui", "dist/windows", "build/windows", windowed=True), check=True)
-    print("Windows 版本构建完成")
+    logger.info("Windows 版本构建完成")
 
 
 def build_macos():
     """构建 macOS 版本"""
-    print("构建 macOS 版本...")
+    logger.info("构建 macOS 版本...")
     subprocess.run(_build_common_args("vmtool", "dist/macos", "build/macos"), check=True)
     subprocess.run(_build_common_args("vmtool-gui", "dist/macos", "build/macos", windowed=True), check=True)
-    print("macOS 版本构建完成")
+    logger.info("macOS 版本构建完成")
 
 
 def build_all():

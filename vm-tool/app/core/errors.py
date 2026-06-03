@@ -1,5 +1,8 @@
 from typing import Dict, Any, Optional
 import traceback
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class VMToolError(Exception):
@@ -75,8 +78,8 @@ def safe_execute(func):
             return func(*args, **kwargs)
         except Exception as e:
             error_info = handle_error(e)
-            print(f"错误: {error_info['message']}")
+            logger.error(f"错误: {error_info['message']}")
             if error_info.get('details', {}).get('traceback'):
-                print(f"详细信息: {error_info['details']['traceback']}")
+                logger.debug(f"详细信息: {error_info['details']['traceback']}")
             return None
     return wrapper
