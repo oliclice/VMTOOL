@@ -133,9 +133,10 @@ def load_linear_theme_qss(theme_mode: str, theme_color: str) -> str:
     except FileNotFoundError:
         return ""
 
-    # 替换颜色变量
+    # 替换颜色变量 - 按变量名长度降序排序，避免短变量名替换长变量名的一部分
+    # 例如 @accent 在 @accent_hover 之前被替换会导致 #22c55e_hover
     variables = _get_color_variables(theme_mode, theme_color)
-    for var_name, color_value in variables.items():
+    for var_name, color_value in sorted(variables.items(), key=lambda x: len(x[0]), reverse=True):
         qss = qss.replace(var_name, color_value)
 
     return qss
