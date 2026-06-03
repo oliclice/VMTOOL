@@ -85,23 +85,6 @@ vmtool-gui.spec      # GUI 版本
 - `config_manager` 读取 `database_path` 可能产生循环依赖
 - 服务注册表存在但实际未使用
 
-## GitNexus 集成
-
-项目已通过 GitNexus 索引（720 符号，2028 关系，58 执行流）。修改代码前必须：
-
-1. 运行 `gitnexus_impact({target: "symbolName", direction: "upstream"})` 分析影响范围
-2. 修改后运行 `gitnexus_detect_changes()` 验证变更范围
-3. 重新提交后运行 `npx gitnexus analyze` 更新索引
-
-### GitNexus 工具快速参考
-
-| 工具 | 用途 |
-|------|------|
-| `gitnexus_query` | 按概念查找代码 |
-| `gitnexus_context` | 获取符号完整上下文 |
-| `gitnexus_impact` | 编辑前影响分析 |
-| `gitnexus_rename` | 安全重命名 |
-
 ## grep 或 glob 搜索时
 
 过滤掉 `.venv` 和 `.git` 文件，避免结果截断。
