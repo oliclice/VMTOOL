@@ -3,6 +3,7 @@ import typer
 import click
 import io
 import sys
+import logging
 from rich.console import Console
 from rich.table import Table
 from rich.prompt import Prompt, IntPrompt
@@ -14,6 +15,8 @@ from app.services.weight import WeightCalculator
 from app.services.filter import FilterService
 from app.services.stats import StatsService
 from app.core.compatibility import CompatibilityLayer
+
+logger = logging.getLogger(__name__)
 
 console = Console()
 app = typer.Typer(
@@ -606,72 +609,72 @@ def start_gui():
     if hasattr(sys_module.stdout, 'reconfigure'):
         sys_module.stdout.reconfigure(line_buffering=True)
     
-    print("[CLI-GUI] ===== 开始启动 GUI =====", flush=True)
+    logger.debug("[CLI-GUI] ===== 开始启动 GUI =====")
     try:
         console.print("[green]正在启动图形界面...[/green]")
-        print("[CLI-GUI] [1/5] 导入 PyQt6 模块...", flush=True)
+        logger.debug("[CLI-GUI] [1/5] 导入 PyQt6 模块...")
         # 导入并启动PyQt应用
         import sys as sys_module
         sys_module.path.insert(0, ".")
         from PyQt6.QtWidgets import QApplication
-        print("[CLI-GUI] ✓ PyQt6 导入成功", flush=True)
+        logger.debug("[CLI-GUI] ✓ PyQt6 导入成功")
         
         # 检查是否已经有 QApplication 实例
-        print("[CLI-GUI] [2/5] 检查 QApplication 实例...", flush=True)
+        logger.debug("[CLI-GUI] [2/5] 检查 QApplication 实例...")
         qapp = QApplication.instance()
         if qapp is None:
             # 创建 QApplication 实例
-            print("[CLI-GUI] 创建新的 QApplication 实例", flush=True)
+            logger.debug("[CLI-GUI] 创建新的 QApplication 实例")
             qapp = QApplication(sys_module.argv)
         else:
-            print("[CLI-GUI] 使用已存在的 QApplication 实例", flush=True)
-        print("[CLI-GUI] ✓ QApplication 就绪", flush=True)
+            logger.debug("[CLI-GUI] 使用已存在的 QApplication 实例")
+        logger.debug("[CLI-GUI] ✓ QApplication 就绪")
         
         # 导入并创建主窗口
-        print("[CLI-GUI] [3/5] 导入 VMTOOLPyQtApp...", flush=True)
+        logger.debug("[CLI-GUI] [3/5] 导入 VMTOOLPyQtApp...")
         from ui.gui.pyqt_app import VMTOOLPyQtApp
-        print("[CLI-GUI] ✓ VMTOOLPyQtApp 导入成功", flush=True)
+        logger.debug("[CLI-GUI] ✓ VMTOOLPyQtApp 导入成功")
         
-        print("[CLI-GUI] [4/5] 创建主窗口...", flush=True)
-        print("[CLI-GUI] 开始创建 VMTOOLPyQtApp 实例...", flush=True)
+        logger.debug("[CLI-GUI] [4/5] 创建主窗口...")
+        logger.debug("[CLI-GUI] 开始创建 VMTOOLPyQtApp 实例...")
         window = VMTOOLPyQtApp()
-        print(f"[CLI-GUI] ✓ 主窗口创建成功", flush=True)
-        print(f"[CLI-GUI] 窗口对象: {window}", flush=True)
-        print(f"[CLI-GUI] 窗口属性:", flush=True)
-        print(f"[CLI-GUI]   - windowTitle: {window.windowTitle()}", flush=True)
-        print(f"[CLI-GUI]   - size: {window.size().width()}x{window.size().height()}", flush=True)
-        print(f"[CLI-GUI]   - centralWidget: {window.centralWidget()}", flush=True)
-        print(f"[CLI-GUI]   - layout: {window.layout()}", flush=True)
-        print(f"[CLI-GUI]   - isVisible: {window.isVisible()}", flush=True)
-        print(f"[CLI-GUI]   - isMinimized: {window.isMinimized()}", flush=True)
-        print(f"[CLI-GUI]   - isMaximized: {window.isMaximized()}", flush=True)
+        logger.debug(f"[CLI-GUI] ✓ 主窗口创建成功")
+        logger.debug(f"[CLI-GUI] 窗口对象: {window}")
+        logger.debug(f"[CLI-GUI] 窗口属性:")
+        logger.debug(f"[CLI-GUI]   - windowTitle: {window.windowTitle()}", flush=True)
+        logger.debug(f"[CLI-GUI]   - size: {window.size().width()}x{window.size().height()}", flush=True)
+        logger.debug(f"[CLI-GUI]   - centralWidget: {window.centralWidget()}", flush=True)
+        logger.debug(f"[CLI-GUI]   - layout: {window.layout()}", flush=True)
+        logger.debug(f"[CLI-GUI]   - isVisible: {window.isVisible()}", flush=True)
+        logger.debug(f"[CLI-GUI]   - isMinimized: {window.isMinimized()}", flush=True)
+        logger.debug(f"[CLI-GUI]   - isMaximized: {window.isMaximized()}", flush=True)
         
-        print("[CLI-GUI] [5/5] 显示窗口...", flush=True)
-        print("[CLI-GUI] 调用 window.show()...", flush=True)
+        logger.debug("[CLI-GUI] [5/5] 显示窗口...")
+        logger.debug("[CLI-GUI] 调用 window.show()...", flush=True)
         window.show()
-        print(f"[CLI-GUI] ✓ window.show() 调用完成", flush=True)
-        print(f"[CLI-GUI] 窗口状态检查:", flush=True)
-        print(f"[CLI-GUI]   - isVisible: {window.isVisible()}", flush=True)
-        print(f"[CLI-GUI]   - isActiveWindow: {window.isActiveWindow()}", flush=True)
-        print(f"[CLI-GUI]   - isHidden: {window.isHidden()}", flush=True)
-        print(f"[CLI-GUI]   - isMinimized: {window.isMinimized()}", flush=True)
-        print(f"[CLI-GUI] 窗口大小: {window.size().width()}x{window.size().height()}", flush=True)
-        print(f"[CLI-GUI] 窗口标题: {window.windowTitle()}", flush=True)
+        logger.debug(f"[CLI-GUI] ✓ window.show() 调用完成", flush=True)
+        logger.debug(f"[CLI-GUI] 窗口状态检查:")
+        logger.debug(f"[CLI-GUI]   - isVisible: {window.isVisible()}", flush=True)
+        logger.debug(f"[CLI-GUI]   - isActiveWindow: {window.isActiveWindow()}", flush=True)
+        logger.debug(f"[CLI-GUI]   - isHidden: {window.isHidden()}", flush=True)
+        logger.debug(f"[CLI-GUI]   - isMinimized: {window.isMinimized()}", flush=True)
+        logger.debug(f"[CLI-GUI] 窗口大小: {window.size().width()}x{window.size().height()}", flush=True)
+        logger.debug(f"[CLI-GUI] 窗口标题: {window.windowTitle()}", flush=True)
         
         # 启动事件循环
-        print("[CLI-GUI] 准备启动 Qt 事件循环...", flush=True)
+        logger.debug("[CLI-GUI] 准备启动 Qt 事件循环...")
         
         # 在启动事件循环前，确保窗口可见
-        print("[CLI-GUI] 最终窗口状态检查:", flush=True)
-        print(f"[CLI-GUI]   - isVisible: {window.isVisible()}", flush=True)
-        print(f"[CLI-GUI]   - isHidden: {window.isHidden()}", flush=True)
-        print(f"[CLI-GUI]   - isMinimized: {window.isMinimized()}", flush=True)
-        print(f"[CLI-GUI]   - geometry: {window.geometry()}", flush=True)
-        print(f"[CLI-GUI]   - pos: {window.pos().x()},{window.pos().y()}", flush=True)
+        logger.debug("[CLI-GUI] 最终窗口状态检查:")
+        logger.debug(f"[CLI-GUI]   - isVisible: {window.isVisible()}", flush=True)
+        logger.debug(f"[CLI-GUI]   - isHidden: {window.isHidden()}", flush=True)
+        logger.debug(f"[CLI-GUI]   - isMinimized: {window.isMinimized()}", flush=True)
+        logger.debug(f"[CLI-GUI]   - geometry: {window.geometry()}", flush=True)
+        logger.debug(f"[CLI-GUI]   - pos: {window.pos().x()},{window.pos().y()}", flush=True)
         
         # 如果窗口不可见，强制显示
         if not window.isVisible():
-            print("[CLI-GUI] ⚠️  窗口不可见，强制调用 show()", flush=True)
+            logger.debug("[CLI-GUI] ⚠️  窗口不可见，强制调用 show()", flush=True)
             window.show()
             window.raise_()  # 提升到顶层
             window.activateWindow()  # 激活窗口
@@ -680,29 +683,29 @@ def start_gui():
         from PyQt6.QtGui import QGuiApplication
         screen = QGuiApplication.primaryScreen().geometry()
         win_geometry = window.geometry()
-        print(f"[CLI-GUI] 屏幕大小: {screen.width()}x{screen.height()}", flush=True)
-        print(f"[CLI-GUI] 窗口位置: ({win_geometry.x()}, {win_geometry.y()}), 大小: {win_geometry.width()}x{win_geometry.height()}", flush=True)
+        logger.debug(f"[CLI-GUI] 屏幕大小: {screen.width()}x{screen.height()}", flush=True)
+        logger.debug(f"[CLI-GUI] 窗口位置: ({win_geometry.x()}, {win_geometry.y()}), 大小: {win_geometry.width()}x{win_geometry.height()}", flush=True)
         
         # 如果窗口位置在屏幕外，移动到屏幕中心
         if (win_geometry.x() < -100 or win_geometry.y() < -100 or 
             win_geometry.x() > screen.width() + 100 or win_geometry.y() > screen.height() + 100):
-            print("[CLI-GUI] ⚠️  窗口在屏幕外，移动到屏幕中心", flush=True)
+            logger.debug("[CLI-GUI] ⚠️  窗口在屏幕外，移动到屏幕中心")
             window.move(
                 (screen.width() - win_geometry.width()) // 2,
                 (screen.height() - win_geometry.height()) // 2
             )
         
-        print("[CLI-GUI] 调用 app.exec()...", flush=True)
-        print("[CLI-GUI] ===== GUI 启动完成，进入事件循环 =====", flush=True)
+        logger.debug("[CLI-GUI] 调用 app.exec()...", flush=True)
+        logger.debug("[CLI-GUI] ===== GUI 启动完成，进入事件循环 =====")
         
         # 这里会阻塞，直到应用退出
         exit_code = qapp.exec()
-        print(f"[CLI-GUI] Qt 事件循环结束，退出码: {exit_code}", flush=True)
+        logger.debug(f"[CLI-GUI] Qt 事件循环结束，退出码: {exit_code}")
         sys_module.exit(exit_code)
     except Exception as e:
-        print(f"[CLI-GUI] ✗ 启动图形界面失败: {e}")
+        logger.debug(f"[CLI-GUI] ✗ 启动图形界面失败: {e}")
         import traceback
-        print(f"[CLI-GUI] 错误堆栈:")
+        logger.debug(f"[CLI-GUI] 错误堆栈:")
         traceback.print_exc()
         console.print(f"[red]启动图形界面失败:[/red] {e}")
         console.print(f"[red]{traceback.format_exc()}[/red]")

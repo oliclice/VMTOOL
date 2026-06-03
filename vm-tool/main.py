@@ -61,14 +61,14 @@ def handle_cli_args():
     """处理命令行参数"""
     logger.info(f"命令行参数: {sys.argv[1:]}")
     # 这里将在后续实现中处理命令行参数
-    print(f"命令行模式: {sys.argv[1:]}")
+    logger.info(f"命令行模式: {sys.argv[1:]}")
 
 
 def show_menu():
     """显示菜单"""
     logger.info("显示交互式菜单")
     # 这里将在后续实现中显示交互式菜单
-    print("交互式菜单模式")
+    logger.info("交互式菜单模式")
 
 
 if __name__ == '__main__':

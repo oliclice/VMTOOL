@@ -306,20 +306,20 @@ if __name__ == "__main__":
     # 测试编码生成器
     generator = CodeGenerator()
     # 测试默认规则
-    print("测试默认规则:")
-    print(generator.generate_code("测试", ["ce", "shi"]))
+    logger.info("测试默认规则:")
+    logger.info(generator.generate_code("测试", ["ce", "shi"]))
     # 测试自定义规则
-    print("\n测试自定义规则:")
+    logger.info("\n测试自定义规则:")
     # 模拟自定义规则，使用1-based索引
     from ..core.config_manager import config_manager
     config_manager.set("custom_rules", {
         "测试规则": "v[2] = s[1][1] + s[1][2] + s[2][1] + s[2][2]"
     })
     config_manager.set("code_rule", "测试规则")
-    print(generator.generate_code("测试", ["ce", "shi"]))
+    logger.info(generator.generate_code("测试", ["ce", "shi"]))
     # 测试v[4+]语法
-    print("\n测试v[4+]语法:")
+    logger.info("\n测试v[4+]语法:")
     config_manager.set("custom_rules", {
         "测试规则": "v[4+] = s[1][1] + s[2][1] + s[3][1] + s[4][1]"
     })
-    print(generator.generate_code("测试测试", ["ce", "shi", "ce", "shi"]))
+    logger.info(generator.generate_code("测试测试", ["ce", "shi", "ce", "shi"]))

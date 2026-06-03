@@ -1,9 +1,12 @@
 """配置管理模块"""
 import json
 import os
+import logging
 from typing import Dict, Any
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 from app.core.theme_constants import (
     DEFAULT_THEME_MODE, DEFAULT_THEME_NAME, DEFAULT_THEME_COLOR,
     THEME_MODE_DARK, THEME_MODE_LIGHT, THEME_MODE_AUTO,
@@ -75,7 +78,7 @@ class ConfigManager:
             else:
                 return self.default_config
         except Exception as e:
-            print(f"加载配置失败: {e}")
+            logger.error(f"加载配置失败: {e}")
             return self.default_config
     
     def save_config(self) -> bool:
@@ -85,7 +88,7 @@ class ConfigManager:
                 json.dump(self.config, f, indent=2, ensure_ascii=False)
             return True
         except Exception as e:
-            print(f"保存配置失败: {e}")
+            logger.error(f"保存配置失败: {e}")
             return False
     
     def get(self, key: str, default: Any = None) -> Any:

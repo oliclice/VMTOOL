@@ -293,4 +293,4 @@ def full_migration() -> Dict[str, Any]:
 if __name__ == "__main__":
     # 示例用法
     result = full_migration()
-    print(json.dumps(result, ensure_ascii=False, indent=2))
+    logger.info(json.dumps(result, ensure_ascii=False, indent=2))

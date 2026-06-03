@@ -198,31 +198,31 @@ class CompatibilityLayer:
         for word in words:
             try:
                 result = self.dict_service.add_word(word)
-                print(f"添加成功: {result}")
+                logger.info(f"添加成功: {result}")
             except Exception as e:
-                print(f"添加失败: {e}")
+                logger.error(f"添加失败: {e}")
         return True
     
     def _handle_delete(self, words: List[str]) -> bool:
         """处理删除词"""
         result = self.dict_service.delete_words(words)
-        print(f"删除结果: {result}")
+        logger.info(f"删除结果: {result}")
         return True
     
     def _handle_query(self, query: str) -> None:
         """处理查询"""
         results = self.dict_service.search_words(query)
         for result in results:
-            print(f"{result['word']}: {result['code']} (权重: {result['weight']})")
+            logger.info(f"{result['word']}: {result['code']} (权重: {result['weight']})")
     
     def _handle_update_weight(self, words: List[str]) -> bool:
         """处理更新权重"""
         for word in words:
             try:
                 result = self.weight_calc.update_word_weight(word)
-                print(f"更新权重: {result}")
+                logger.info(f"更新权重: {result}")
             except Exception as e:
-                print(f"更新失败: {e}")
+                logger.error(f"更新失败: {e}")
         return True
     
     def _handle_set_weight(self, args: List[str]) -> bool:
@@ -230,9 +230,9 @@ class CompatibilityLayer:
         word, value = args
         try:
             result = self.weight_calc.set_weight_directly(word, float(value))
-            print(f"设置权重: {result}")
+            logger.info(f"设置权重: {result}")
         except Exception as e:
-            print(f"设置失败: {e}")
+            logger.error(f"设置失败: {e}")
         return True
     
     def _handle_replace(self, args: List[str]) -> None:
@@ -240,9 +240,9 @@ class CompatibilityLayer:
         word, new_code = args
         try:
             result = self.dict_service.replace_code(word, new_code)
-            print(f"替换编码: {result}")
+            logger.info(f"替换编码: {result}")
         except Exception as e:
-            print(f"替换失败: {e}")
+            logger.error(f"替换失败: {e}")
     
     def _handle_high_key(self, args: List[str]) -> None:
         """处理高频统计"""
@@ -250,17 +250,17 @@ class CompatibilityLayer:
         try:
             results = self._count_high_keys(int(min_length), int(min_count))
             for result in results:
-                print(f"{result['word']}: {result['code']} (权重: {result['weight']})")
+                logger.info(f"{result['word']}: {result['code']} (权重: {result['weight']})")
         except Exception as e:
-            print(f"统计失败: {e}")
+            logger.error(f"统计失败: {e}")
     
     def _handle_clear(self, confirm: str) -> None:
         """处理清理备份"""
         result = self._clear_backups(confirm)
         if result:
-            print("备份文件清理成功")
+            logger.info("备份文件清理成功")
         else:
-            print("备份文件清理取消")
+            logger.info("备份文件清理取消")
     
     def _handle_choices(self, choices: List[str]) -> bool:
         """处理选择功能"""
@@ -270,7 +270,7 @@ class CompatibilityLayer:
                 choice_id = int(choice)
                 self._run_old_function(choice_id)
             except Exception as e:
-                print(f"执行功能失败: {e}")
+                logger.error(f"执行功能失败: {e}")
         return True
     
     def _run_old_function(self, function_id: int) -> None:
@@ -288,41 +288,41 @@ class CompatibilityLayer:
         if function_id in function_map:
             function_map[function_id]()
         else:
-            print(f"不支持的功能ID: {function_id}")
+            logger.warning(f"不支持的功能ID: {function_id}")
     
     def _filter_dict(self) -> None:
         """过滤码表"""
-        print("执行过滤码表功能")
+        logger.info("执行过滤码表功能")
         # 这里需要实现过滤码表的逻辑
     
     def _calculate_weight(self) -> None:
         """计算权重"""
-        print("执行计算权重功能")
+        logger.info("执行计算权重功能")
         # 这里需要实现计算权重的逻辑
     
     def _add_words(self) -> None:
         """补充新词"""
-        print("执行补充新词功能")
+        logger.info("执行补充新词功能")
         # 这里需要实现补充新词的逻辑
     
     def _write_dict(self) -> None:
         """写入码表"""
-        print("执行写入码表功能")
+        logger.info("执行写入码表功能")
         # 这里需要实现写入码表的逻辑
     
     def _refresh_dict(self) -> None:
         """刷新字表"""
-        print("执行刷新字表功能")
+        logger.info("执行刷新字表功能")
         # 这里需要实现刷新字表的逻辑
     
     def _auto_complete(self) -> None:
         """自动补码"""
-        print("执行自动补码功能")
+        logger.info("执行自动补码功能")
         # 这里需要实现自动补码的逻辑
     
     def _count_high_frequency(self) -> None:
         """统计高频词"""
-        print("执行统计高频词功能")
+        logger.info("执行统计高频词功能")
         # 这里需要实现统计高频词的逻辑
     
     def convert_old_config(self, old_config_path: str) -> Dict[str, Any]:
