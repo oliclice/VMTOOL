@@ -44,23 +44,23 @@ def get_status_color(status: str, theme_color: Optional[str] = None) -> str:
     is_dark = _is_dark_mode()
 
     if is_linear:
-        # Linear 主题使用更柔和的颜色
+        # Linear 设计系统状态色
         colors = {
             "info": {
-                "light": "#3b82f6",
-                "dark": "#60a5fa",
+                "light": "#5e6ad2",   # 品牌靛蓝
+                "dark": "#7170ff",     # 交互靛蓝
             },
             "success": {
-                "light": "#16a34a",
-                "dark": "#4ade80",
+                "light": "#27a644",   # Linear 成功绿
+                "dark": "#10b981",    # 翡翠绿
             },
             "error": {
-                "light": "#dc2626",
-                "dark": "#f87171",
+                "light": "#ef4444",   # 红色
+                "dark": "#f87171",    # 亮红
             },
             "warning": {
-                "light": "#d97706",
-                "dark": "#fbbf24",
+                "light": "#d97706",   # 琥珀色
+                "dark": "#fbbf24",    # 亮琥珀
             },
         }
     else:
@@ -92,8 +92,8 @@ def get_hint_color() -> str:
     """获取提示文字颜色"""
     if _is_linear_theme():
         if _is_dark_mode():
-            return "#a1a1aa"
-        return "#71717a"
+            return "#8a8f98"   # Tertiary Text
+        return "#62666d"       # Quaternary Text
     return "#666666"
 
 
@@ -101,8 +101,8 @@ def get_info_box_style() -> str:
     """获取信息框样式"""
     if _is_linear_theme():
         if _is_dark_mode():
-            return "QLabel { color: #60a5fa; padding: 8px; background-color: #1e293b; border-radius: 4px; }"
-        return "QLabel { color: #3b82f6; padding: 8px; background-color: #eff6ff; border-radius: 4px; }"
+            return "QLabel { color: #7170ff; padding: 8px; background-color: #191a1b; border-radius: 6px; }"
+        return "QLabel { color: #5e6ad2; padding: 8px; background-color: #f3f4f5; border-radius: 6px; }"
     return "QLabel { color: #1976D2; padding: 8px; background-color: #E3F2FD; border-radius: 4px; }"
 
 
@@ -115,20 +115,20 @@ def get_button_style(button_type: str = "primary") -> str:
     if _is_linear_theme():
         if button_type == "primary":
             if _is_dark_mode():
-                return ("QPushButton { background-color: #3b82f6; color: white; font-weight: 600; "
-                        "padding: 10px; border-radius: 4px; border: none; } "
-                        "QPushButton:hover { background-color: #2563eb; }")
-            return ("QPushButton { background-color: #3b82f6; color: white; font-weight: 600; "
-                    "padding: 10px; border-radius: 4px; border: none; } "
-                    "QPushButton:hover { background-color: #2563eb; }")
+                return ("QPushButton { background-color: #5e6ad2; color: #f7f8f8; font-weight: 600; "
+                        "padding: 10px; border-radius: 6px; border: 1px solid #5e6ad2; } "
+                        "QPushButton:hover { background-color: #7170ff; border-color: #7170ff; }")
+            return ("QPushButton { background-color: #5e6ad2; color: #f7f8f8; font-weight: 600; "
+                    "padding: 10px; border-radius: 6px; border: 1px solid #5e6ad2; } "
+                    "QPushButton:hover { background-color: #7170ff; border-color: #7170ff; }")
         elif button_type == "success":
             if _is_dark_mode():
-                return ("QPushButton { background-color: #22c55e; color: white; font-weight: 600; "
-                        "padding: 10px; border-radius: 4px; border: none; } "
-                        "QPushButton:hover { background-color: #16a34a; }")
-            return ("QPushButton { background-color: #22c55e; color: white; font-weight: 600; "
-                    "padding: 10px; border-radius: 4px; border: none; } "
-                    "QPushButton:hover { background-color: #16a34a; }")
+                return ("QPushButton { background-color: #27a644; color: #f7f8f8; font-weight: 600; "
+                        "padding: 10px; border-radius: 6px; border: 1px solid #27a644; } "
+                        "QPushButton:hover { background-color: #10b981; border-color: #10b981; }")
+            return ("QPushButton { background-color: #27a644; color: #f7f8f8; font-weight: 600; "
+                    "padding: 10px; border-radius: 6px; border: 1px solid #27a644; } "
+                    "QPushButton:hover { background-color: #10b981; border-color: #10b981; }")
     else:
         if button_type == "primary":
             return ("QPushButton { background-color: #2196F3; color: white; font-weight: bold; "

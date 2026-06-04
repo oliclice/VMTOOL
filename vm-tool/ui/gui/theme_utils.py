@@ -11,22 +11,31 @@ from app.core.theme_constants import (
 )
 from .styles import load_linear_theme_qss
 
+# Linear 设计系统专属强调色 RGB 映射
+_LINEAR_COLOR_RGB = {
+    THEME_COLOR_BLUE: (94, 106, 210),     # #5e6ad2 Brand Indigo
+    THEME_COLOR_GREEN: (39, 166, 68),     # #27a644
+    THEME_COLOR_RED: (239, 68, 68),       # #ef4444
+    THEME_COLOR_PURPLE: (113, 112, 255),  # #7170ff
+    THEME_COLOR_ORANGE: (249, 115, 22),   # #f97316
+}
+
 
 def create_palette_from_theme(theme_mode: str, theme_color: str, theme_name: str = None) -> QPalette:
     """根据主题模式、颜色和名称创建调色板"""
     # 根据主题模式设置基础颜色
     if theme_name == THEME_NAME_LINEAR:
-        # Linear 主题：极简、干净的线条感
+        # Linear 设计系统：近黑画布 + 品牌靛蓝
         if theme_mode == THEME_MODE_DARK:
-            background_color = QColor(24, 24, 27)       # 深灰近黑
-            text_color = QColor(230, 230, 235)          # 亮灰白
-            widget_color = QColor(32, 32, 36)           # 略浅的深灰
-            accent_color = QColor(*COLOR_RGB_MAP.get(THEME_COLOR_BLUE, (50, 150, 250)))
+            background_color = QColor(8, 9, 10)         # #08090a Marketing Black
+            text_color = QColor(247, 248, 248)          # #f7f8f8 Primary Text
+            widget_color = QColor(15, 16, 17)           # #0f1011 Panel Dark
+            accent_color = QColor(94, 106, 210)         # #5e6ad2 Brand Indigo
         else:
-            background_color = QColor(255, 255, 255)    # 纯白
-            text_color = QColor(23, 23, 28)             # 近黑
-            widget_color = QColor(250, 250, 252)        # 极浅灰
-            accent_color = QColor(*COLOR_RGB_MAP.get(THEME_COLOR_BLUE, (50, 150, 250)))
+            background_color = QColor(247, 248, 248)    # #f7f8f8 Light Background
+            text_color = QColor(26, 27, 30)             # #1a1b1e Near Black
+            widget_color = QColor(255, 255, 255)        # #ffffff Pure White
+            accent_color = QColor(94, 106, 210)         # #5e6ad2 Brand Indigo
     elif theme_mode == THEME_MODE_DARK:
         # 经典/Material3 深色模式
         background_color = QColor(30, 30, 30)
@@ -41,14 +50,15 @@ def create_palette_from_theme(theme_mode: str, theme_color: str, theme_name: str
         accent_color = QColor(*COLOR_RGB_MAP.get(THEME_COLOR_BLUE, (50, 150, 250)))
 
     # 根据主题颜色调整强调色
+    color_map = _LINEAR_COLOR_RGB if theme_name == THEME_NAME_LINEAR else COLOR_RGB_MAP
     if theme_color == THEME_COLOR_GREEN:
-        accent_color = QColor(*COLOR_RGB_MAP.get(THEME_COLOR_GREEN, (50, 150, 100)))
+        accent_color = QColor(*color_map.get(THEME_COLOR_GREEN, (50, 150, 100)))
     elif theme_color == THEME_COLOR_RED:
-        accent_color = QColor(*COLOR_RGB_MAP.get(THEME_COLOR_RED, (200, 50, 50)))
+        accent_color = QColor(*color_map.get(THEME_COLOR_RED, (200, 50, 50)))
     elif theme_color == THEME_COLOR_PURPLE:
-        accent_color = QColor(*COLOR_RGB_MAP.get(THEME_COLOR_PURPLE, (150, 50, 200)))
+        accent_color = QColor(*color_map.get(THEME_COLOR_PURPLE, (150, 50, 200)))
     elif theme_color == THEME_COLOR_ORANGE:
-        accent_color = QColor(*COLOR_RGB_MAP.get(THEME_COLOR_ORANGE, (200, 100, 50)))
+        accent_color = QColor(*color_map.get(THEME_COLOR_ORANGE, (200, 100, 50)))
 
     # 创建并配置调色板
     palette = QPalette()
@@ -61,10 +71,10 @@ def create_palette_from_theme(theme_mode: str, theme_color: str, theme_name: str
     palette.setColor(QPalette.ColorRole.Text, text_color)
     palette.setColor(QPalette.ColorRole.Button, widget_color)
     palette.setColor(QPalette.ColorRole.ButtonText, text_color)
-    palette.setColor(QPalette.ColorRole.BrightText, QColor(255, 0, 0))
+    palette.setColor(QPalette.ColorRole.BrightText, QColor(239, 68, 68))
     palette.setColor(QPalette.ColorRole.Link, accent_color)
     palette.setColor(QPalette.ColorRole.Highlight, accent_color)
-    palette.setColor(QPalette.ColorRole.HighlightedText, QColor(255, 255, 255))
+    palette.setColor(QPalette.ColorRole.HighlightedText, QColor(247, 248, 248))
 
     return palette
 
