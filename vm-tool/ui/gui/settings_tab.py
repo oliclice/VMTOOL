@@ -100,9 +100,9 @@ class SettingsTab(QWidget):
         right_layout.addWidget(self.content_title)
 
         # 滚动区域
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setFrameShape(QScrollArea.Shape.NoFrame)
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setFrameShape(QScrollArea.Shape.NoFrame)
 
         self.content_widget = QWidget()
         self.content_layout = QVBoxLayout(self.content_widget)
@@ -114,8 +114,8 @@ class SettingsTab(QWidget):
 
         self.content_layout.addStretch()
 
-        scroll_area.setWidget(self.content_widget)
-        right_layout.addWidget(scroll_area)
+        self.scroll_area.setWidget(self.content_widget)
+        right_layout.addWidget(self.scroll_area)
 
         # 添加到分割布局
         layout.addWidget(left_widget, 1)
@@ -150,10 +150,8 @@ class SettingsTab(QWidget):
             # 滚动到对应的面板
             if panel_name in self.panel_widgets:
                 panel = self.panel_widgets[panel_name]
-                # 确保面板可见
-                panel.show()
-                panel.raise_()
-                panel.setFocus()
+                # 滚动到面板位置
+                self.scroll_area.ensureWidgetVisible(panel, 0, 50)
 
     def _on_nav_order_changed(self, *args):
         """导航顺序改变"""
