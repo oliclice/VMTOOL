@@ -10,6 +10,7 @@ rich>=13.7.0
 
 # GUI 界面
 PyQt6==6.6.1
+PyQt6-charts>=6.6.0
 
 # 测试框架
 pytest==7.4.3
