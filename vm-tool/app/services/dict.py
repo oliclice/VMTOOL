@@ -272,7 +272,7 @@ class DictService:
             # 处理进度回调
             if progress_callback and total_words > 0:
                 progress_callback(50, "完成词条预处理")
-            
+
             # 批量创建
             if valid_words:
                 if progress_callback:
@@ -281,11 +281,12 @@ class DictService:
                 self.repo.bulk_create(valid_words)
                 if progress_callback:
                     progress_callback(100, "批量创建完成")
-                
+
             return {
                 "added": len(valid_words),
                 "existing": len(existing_pairs),
-                "existing_pairs": existing_pairs
+                "existing_pairs": existing_pairs,
+                "added_words": valid_words  # 返回实际添加的词条列表
             }
         except Exception as e:
             logger.error(f"批量添加词条失败: {e}")

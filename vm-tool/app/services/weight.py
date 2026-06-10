@@ -155,6 +155,66 @@ class WeightCalculator:
             logger.error(f"重新计算权重失败: {e}")
             raise WeightError(f"重新计算权重失败: {e}")
 
+    def calculate_weights_for_words(self, word_list: List[Dict[str, Any]], progress_callback=None) -> Dict[str, Any]:
+        """计算指定词条列表的权重
+
+        用于导入后只计算导入词条的权重，而不是重新计算所有词条。
+        使用 base_weight=1.0，基于词频对数重新计算。
+        跳过手动设置的词条（manual=True）。
+
+        Args:
+            word_list: 词条列表，每个词条包含 'word' 字段
+            progress_callback: 进度回调函数
+        """
+        try:
+            import os
+            from app.core.config_manager import config_manager
+
+            data_dir = os.path.join(os.path.dirname(__file__), "..", "..", "data")
+            data_dir = os.path.abspath(data_dir)
+            freq_dict = load_thuocl_data(data_dir)  # 预加载缓存
+
+            # 从数据库中获取这些词条的最新状态
+            word_names = [w.get("word") for w in word_list if w.get("word")]
+            if not word_names:
+                return {"total": 0, "updated": 0}
+
+            # 批量查询数据库中的词条
+            db_words = self.repo.get_by_words(word_names)
+
+            total = len(db_words)
+            updated = 0
+            batch_size = 1000
+
+            for i, db_word in enumerate(db_words):
+                # 跳过手动设置的词条
+                if db_word.manual:
+                    continue
+
+                log_freq = get_log_weight(db_word.word, freq_dict)
+                new_weight = 1.0 * (1 + log_freq)
+                new_weight = max(0.1, min(new_weight, 100.0))
+
+                if abs(db_word.weight - new_weight) > 0.01:
+                    db_word.weight = new_weight
+                    updated += 1
+
+                # 每 batch_size 条提交一次
+                if (i + 1) % batch_size == 0 or (i + 1) == total:
+                    self.db.commit()
+
+                if progress_callback and total > 0:
+                    pct = int((i + 1) / total * 100)
+                    progress_callback(pct, f"计算权重: {i + 1}/{total}")
+
+            return {
+                "total": total,
+                "updated": updated
+            }
+        except Exception as e:
+            logger.error(f"计算指定词条权重失败: {e}")
+            raise WeightError(f"计算指定词条权重失败: {e}")
+
     def adjust_same_code_weights(self, code: str) -> List[Dict[str, Any]]:
         """调整同码词的权重"""
         try:
