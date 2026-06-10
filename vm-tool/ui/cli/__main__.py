@@ -422,11 +422,11 @@ def import_data(
             console.print(f"[red]错误: 请提供文件路径或词条列表[/red]")
             return
 
-        # 导入后自动计算权重
+        # 导入后自动计算权重（只计算导入的词条）
         if auto_weight and result.get('added', 0) > 0:
-            console.print(f"\n[cyan]正在自动计算导入词条的权重...[/cyan]")
+            added_words = result.get('added_words', [])
+            console.print(f"\n[cyan]正在自动计算导入词条的权重（共 {len(added_words)} 条）...[/cyan]")
             try:
-                # 重新计算所有非手动词条的权重
                 with Progress(
                     SpinnerColumn(),
                     TextColumn("[progress.description]{task.description}"),
@@ -440,7 +440,10 @@ def import_data(
                     def weight_progress_callback(percentage: int, message: str):
                         progress.update(task, completed=percentage, description=f"[cyan]{message}[/cyan]")
 
-                    weight_result = weight_calc.recalculate_all_weights(progress_callback=weight_progress_callback)
+                    # 只计算导入的词条的权重
+                    weight_result = weight_calc.calculate_weights_for_words(
+                        added_words, progress_callback=weight_progress_callback
+                    )
 
                 console.print(f"[green]权重计算完成:[/green]")
                 console.print(f"  总词条数: {weight_result['total']}")

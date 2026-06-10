@@ -52,6 +52,21 @@ class WordRepository(BaseRepository):
     def get_by_code(self, code: str) -> List[Word]:
         """根据编码获取词条列表"""
         return self.db.query(Word).filter(Word.code == code).all()
+
+    def get_by_words(self, words: List[str]) -> List[Word]:
+        """批量根据词获取词条列表"""
+        if not words:
+            return []
+
+        all_words = []
+        # 分批次查询，每批处理100个，避免SQL语句过长
+        batch_size = 100
+        for i in range(0, len(words), batch_size):
+            batch = words[i:i+batch_size]
+            batch_words = self.db.query(Word).filter(Word.word.in_(batch)).all()
+            all_words.extend(batch_words)
+
+        return all_words
     
     def get_all(self, skip: int = 0, limit: int = None) -> List[Word]:
         """获取所有词条"""
