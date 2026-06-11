@@ -1,7 +1,6 @@
 from PyQt6.QtCore import QThread, pyqtSignal
 import logging
 
-logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 

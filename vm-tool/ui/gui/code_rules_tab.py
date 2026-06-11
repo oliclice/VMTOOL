@@ -7,7 +7,6 @@ from PyQt6.QtGui import QFont, QColor
 from app.core.config_manager import config_manager
 import logging
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class CodeRulesTab(QWidget):
