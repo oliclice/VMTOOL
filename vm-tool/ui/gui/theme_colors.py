@@ -1,10 +1,14 @@
-"""主题感知的颜色辅助函数"""
+"""主题感知的颜色辅助函数
+
+重构后使用 ThemeConfig 作为单一真相源。
+"""
 from typing import Optional
 
 from app.core.theme_constants import (
     THEME_MODE_DARK, THEME_MODE_LIGHT, THEME_MODE_AUTO,
     THEME_NAME_LINEAR, THEME_COLOR_BLUE
 )
+from app.core.theme_config import ThemeConfig
 
 
 def _is_linear_theme(theme_name: Optional[str] = None) -> bool:
@@ -36,74 +40,36 @@ def get_status_color(status: str, theme_color: Optional[str] = None) -> str:
     Returns:
         hex 颜色字符串
     """
+    from .theme_manager import theme_manager
+
     if theme_color is None:
-        from .theme_manager import theme_manager
         theme_color = theme_manager.current_theme_color
 
-    is_linear = _is_linear_theme()
-    is_dark = _is_dark_mode()
-
-    if is_linear:
-        # Linear 设计系统状态色
-        colors = {
-            "info": {
-                "light": "#5e6ad2",   # 品牌靛蓝
-                "dark": "#7170ff",     # 交互靛蓝
-            },
-            "success": {
-                "light": "#27a644",   # Linear 成功绿
-                "dark": "#10b981",    # 翡翠绿
-            },
-            "error": {
-                "light": "#ef4444",   # 红色
-                "dark": "#f87171",    # 亮红
-            },
-            "warning": {
-                "light": "#d97706",   # 琥珀色
-                "dark": "#fbbf24",    # 亮琥珀
-            },
-        }
-    else:
-        # 经典/Material3 主题
-        colors = {
-            "info": {
-                "light": "#1976D2",
-                "dark": "#2196F3",
-            },
-            "success": {
-                "light": "#4CAF50",
-                "dark": "#66BB6A",
-            },
-            "error": {
-                "light": "#F44336",
-                "dark": "#EF5350",
-            },
-            "warning": {
-                "light": "#FF9800",
-                "dark": "#FFA726",
-            },
-        }
-
-    mode = "dark" if is_dark else "light"
-    return colors.get(status, colors["info"])[mode]
+    return ThemeConfig.get_status_color(
+        status,
+        theme_manager.current_theme_name,
+        theme_manager.current_theme_mode,
+        theme_color
+    )
 
 
 def get_hint_color() -> str:
     """获取提示文字颜色"""
-    if _is_linear_theme():
-        if _is_dark_mode():
-            return "#8a8f98"   # Tertiary Text
-        return "#62666d"       # Quaternary Text
-    return "#666666"
+    from .theme_manager import theme_manager
+    return ThemeConfig.get_hint_color(
+        theme_manager.current_theme_name,
+        theme_manager.current_theme_mode
+    )
 
 
 def get_info_box_style() -> str:
     """获取信息框样式"""
-    if _is_linear_theme():
-        if _is_dark_mode():
-            return "QLabel { color: #7170ff; padding: 8px; background-color: #191a1b; border-radius: 6px; }"
-        return "QLabel { color: #5e6ad2; padding: 8px; background-color: #f3f4f5; border-radius: 6px; }"
-    return "QLabel { color: #1976D2; padding: 8px; background-color: #E3F2FD; border-radius: 4px; }"
+    from .theme_manager import theme_manager
+    return ThemeConfig.get_info_box_style(
+        theme_manager.current_theme_name,
+        theme_manager.current_theme_mode,
+        theme_manager.current_theme_color
+    )
 
 
 def get_button_style(button_type: str = "primary") -> str:
@@ -112,30 +78,10 @@ def get_button_style(button_type: str = "primary") -> str:
     Args:
         button_type: 按钮类型 (primary, success, default)
     """
-    if _is_linear_theme():
-        if button_type == "primary":
-            if _is_dark_mode():
-                return ("QPushButton { background-color: #5e6ad2; color: #f7f8f8; font-weight: 600; "
-                        "padding: 10px; border-radius: 6px; border: 1px solid #5e6ad2; } "
-                        "QPushButton:hover { background-color: #7170ff; border-color: #7170ff; }")
-            return ("QPushButton { background-color: #5e6ad2; color: #f7f8f8; font-weight: 600; "
-                    "padding: 10px; border-radius: 6px; border: 1px solid #5e6ad2; } "
-                    "QPushButton:hover { background-color: #7170ff; border-color: #7170ff; }")
-        elif button_type == "success":
-            if _is_dark_mode():
-                return ("QPushButton { background-color: #27a644; color: #f7f8f8; font-weight: 600; "
-                        "padding: 10px; border-radius: 6px; border: 1px solid #27a644; } "
-                        "QPushButton:hover { background-color: #10b981; border-color: #10b981; }")
-            return ("QPushButton { background-color: #27a644; color: #f7f8f8; font-weight: 600; "
-                    "padding: 10px; border-radius: 6px; border: 1px solid #27a644; } "
-                    "QPushButton:hover { background-color: #10b981; border-color: #10b981; }")
-    else:
-        if button_type == "primary":
-            return ("QPushButton { background-color: #2196F3; color: white; font-weight: bold; "
-                    "padding: 10px; border-radius: 5px; } "
-                    "QPushButton:hover { background-color: #0b7dda; }")
-        elif button_type == "success":
-            return ("QPushButton { background-color: #4CAF50; color: white; font-weight: bold; "
-                    "padding: 10px; border-radius: 5px; } "
-                    "QPushButton:hover { background-color: #45a049; }")
-    return ""
+    from .theme_manager import theme_manager
+    return ThemeConfig.get_button_style(
+        button_type,
+        theme_manager.current_theme_name,
+        theme_manager.current_theme_mode,
+        theme_manager.current_theme_color
+    )

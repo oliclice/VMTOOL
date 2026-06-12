@@ -133,7 +133,9 @@ class VMTOOLPyQtApp(QMainWindow):
         try:
             clear_hardcoded_stylesheets(self)
 
-            palette = create_palette_from_theme(theme_mode, theme_color)
+            # 使用 ThemeConfig 创建调色板
+            from app.core.theme_config import ThemeConfig
+            palette = ThemeConfig.get_qpalette(theme_name, theme_mode, theme_color)
 
             app = QApplication.instance()
             if app:
@@ -146,10 +148,7 @@ class VMTOOLPyQtApp(QMainWindow):
             self.setPalette(palette)
             apply_theme_to_widget(self, palette)
 
-            # 移除 repaint() 调用，避免在初始化时导致问题
-            # self.update()
-            # self.repaint()
-
+            # 更新主题管理器（这会触发 theme_changed 信号通知所有注册的组件）
             theme_manager.set_theme(theme_mode, theme_name, theme_color)
         except Exception as e:
             logger.error(f"[GUI-Theme] 主题设置失败: {e}", exc_info=True)

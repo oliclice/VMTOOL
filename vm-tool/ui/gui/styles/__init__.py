@@ -1,4 +1,7 @@
-"""Linear 主题样式加载器"""
+"""Linear 主题样式加载器
+
+重构后使用 ThemeConfig 作为颜色定义的单一真相源。
+"""
 import os
 from typing import Dict, Tuple
 
@@ -7,42 +10,11 @@ from app.core.theme_constants import (
     THEME_COLOR_BLUE, THEME_COLOR_GREEN, THEME_COLOR_RED,
     THEME_COLOR_PURPLE, THEME_COLOR_ORANGE
 )
+from app.core.theme_config import _ACCENT_RGB, _hex, _lighten, _darken
 
 # QSS 文件路径
 _QSS_DIR = os.path.dirname(os.path.abspath(__file__))
 _LINEAR_QSS_PATH = os.path.join(_QSS_DIR, "linear_theme.qss")
-
-# 强调色 RGB 映射 — Linear 设计系统品牌色
-_ACCENT_RGB: Dict[str, Tuple[int, int, int]] = {
-    THEME_COLOR_BLUE: (94, 106, 210),     # Linear 品牌靛蓝 #5e6ad2
-    THEME_COLOR_GREEN: (39, 166, 68),     # Linear 成功绿 #27a644
-    THEME_COLOR_RED: (239, 68, 68),       # 红色 #ef4444
-    THEME_COLOR_PURPLE: (113, 112, 255),  # Linear 紫色 #7170ff
-    THEME_COLOR_ORANGE: (249, 115, 22),   # 橙色 #f97316
-}
-
-
-def _hex(r: int, g: int, b: int) -> str:
-    """RGB 转 hex 颜色字符串"""
-    return f"#{r:02x}{g:02x}{b:02x}"
-
-
-def _lighten(r: int, g: int, b: int, factor: float = 0.15) -> Tuple[int, int, int]:
-    """颜色变亮"""
-    return (
-        min(255, int(r + (255 - r) * factor)),
-        min(255, int(g + (255 - g) * factor)),
-        min(255, int(b + (255 - b) * factor)),
-    )
-
-
-def _darken(r: int, g: int, b: int, factor: float = 0.15) -> Tuple[int, int, int]:
-    """颜色变暗"""
-    return (
-        max(0, int(r * (1 - factor))),
-        max(0, int(g * (1 - factor))),
-        max(0, int(b * (1 - factor))),
-    )
 
 
 def _get_color_variables(theme_mode: str, theme_color: str) -> Dict[str, str]:

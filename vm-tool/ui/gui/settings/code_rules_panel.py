@@ -395,3 +395,8 @@ class CodeRulesPanel(SettingsPanel):
     def reload(self):
         """重新加载设置值"""
         self._load_current_values()
+
+    def _on_theme_changed(self, _mode, _name, _color):
+        """主题变更时更新样式"""
+        # 重新设置 UI 以更新颜色
+        self._setup_ui()

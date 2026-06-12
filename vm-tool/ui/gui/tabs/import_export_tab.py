@@ -8,6 +8,7 @@ from app.core.config_manager import config_manager
 import os
 from ..threads import ImportThread
 from ..theme_colors import get_hint_color, get_info_box_style, get_button_style
+from ..theme_manager import theme_manager
 
 class ImportExportTab(QWidget):
     """导入导出标签页"""
@@ -17,6 +18,8 @@ class ImportExportTab(QWidget):
         self.dict_service = dict_service
         self.parent = parent
         self.init_ui()
+        # 注册到主题同步
+        theme_manager.register_widget(self, self._on_theme_changed)
     
     def init_ui(self):
         """初始化 UI"""
@@ -513,3 +516,11 @@ class ImportExportTab(QWidget):
         """当标签页显示时自动更新导出路径"""
         super().showEvent(event)
         self.update_export_full_path()
+
+    def _on_theme_changed(self, _mode, _name, _color):
+        """主题变更时更新样式"""
+        # 更新提示文字颜色
+        hint_color = get_hint_color()
+        for label in self.findChildren(QLabel):
+            if label.styleSheet() and "color:" in label.styleSheet():
+                label.setStyleSheet(f"QLabel {{ color: {hint_color}; }}")

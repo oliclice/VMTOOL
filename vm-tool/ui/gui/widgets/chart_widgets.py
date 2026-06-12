@@ -13,7 +13,8 @@ from PyQt6.QtCharts import (
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QBrush, QColor, QFont, QPainter
 
-from ui.gui.theme_colors import _is_dark_mode, _is_linear_theme
+from ui.gui.theme_manager import theme_manager
+from app.core.theme_config import ThemeConfig
 
 
 # ── 图表调色板 ──────────────────────────────────────────────
@@ -29,32 +30,25 @@ _LIGHT_PALETTE = [
 
 def _chart_colors() -> Tuple[str, str, str, str]:
     """返回当前主题的 (背景, 文字, 网格, 边框) 颜色"""
-    is_dark = _is_dark_mode()
-    is_linear = _is_linear_theme()
-    if is_linear:
-        if is_dark:
-            bg = "#0f1011"
-            text = "#d0d6e0"
-            grid = "rgba(255,255,255,0.04)"
-            border = "rgba(255,255,255,0.06)"
-            return bg, text, grid, border
-        return (
-            "#f7f8f8", "#1a1a2e",
-            "rgba(0,0,0,0.04)", "rgba(0,0,0,0.06)",
-        )
-    if is_dark:
-        return (
-            "#1e1e1e", "#e0e0e0",
-            "rgba(255,255,255,0.08)", "rgba(255,255,255,0.1)",
-        )
+    palette = ThemeConfig.get_palette(
+        theme_manager.current_theme_name,
+        theme_manager.current_theme_mode,
+        theme_manager.current_theme_color
+    )
     return (
-        "#ffffff", "#333333",
-        "rgba(0,0,0,0.06)", "rgba(0,0,0,0.08)",
+        palette.bg_secondary,
+        palette.text_primary,
+        palette.rgba_border_disabled,
+        palette.rgba_border_standard,
     )
 
 
 def _palette() -> List[str]:
-    return _DARK_PALETTE if _is_dark_mode() else _LIGHT_PALETTE
+    from app.core.theme_constants import THEME_MODE_DARK, THEME_MODE_AUTO
+    is_dark = theme_manager.current_theme_mode == THEME_MODE_DARK
+    if theme_manager.current_theme_mode == THEME_MODE_AUTO:
+        is_dark = False  # 简单的自动检测
+    return _DARK_PALETTE if is_dark else _LIGHT_PALETTE
 
 
 def _contrast_text_color(bg_hex: str) -> QColor:
@@ -104,6 +98,32 @@ class BarChartWidget(QChartView):
         self._categories: List[str] = []
         self._axis_x: Optional[QBarCategoryAxis] = None
         self._axis_y: Optional[QValueAxis] = None
+
+        # 注册到主题同步
+        theme_manager.register_widget(self, self._on_theme_changed)
+
+    def _on_theme_changed(self, _mode, _name, _color):
+        """主题变更时更新图表"""
+        _configure_chart(self._chart)
+        # 重新应用颜色到现有数据
+        if self._series and self._categories:
+            self._apply_axis_colors()
+
+    def _apply_axis_colors(self):
+        """应用主题颜色到坐标轴"""
+        _, text, grid, _ = _chart_colors()
+        axis_font = QFont()
+        axis_font.setPixelSize(10)
+
+        if self._axis_x:
+            self._axis_x.setLabelsColor(QColor(text))
+            self._axis_x.setLabelsFont(axis_font)
+            self._axis_x.setGridLineColor(QColor(grid))
+
+        if self._axis_y:
+            self._axis_y.setLabelsColor(QColor(text))
+            self._axis_y.setLabelsFont(axis_font)
+            self._axis_y.setGridLineColor(QColor(grid))
 
     def update_data(
         self, data: Dict[str, int], color_index: int = 0
@@ -207,6 +227,13 @@ class PieChartWidget(QChartView):
         self.setRenderHint(QPainter.RenderHint.Antialiasing)
 
         self._series: Optional[QPieSeries] = None
+
+        # 注册到主题同步
+        theme_manager.register_widget(self, self._on_theme_changed)
+
+    def _on_theme_changed(self, _mode, _name, _color):
+        """主题变更时更新图表"""
+        _configure_chart(self._chart)
 
     def update_data(
         self, data: Dict[str, int], color_index: int = 0

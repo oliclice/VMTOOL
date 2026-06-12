@@ -3,6 +3,7 @@
 from PyQt6.QtWidgets import QGroupBox, QVBoxLayout
 from PyQt6.QtCore import pyqtSignal
 from app.core.config_manager import config_manager
+from app.core.theme_config import ThemeConfig
 
 
 class SettingsPanel(QGroupBox):
@@ -40,6 +41,10 @@ class SettingsPanel(QGroupBox):
         self._setup_ui()
         self._connect_signals()
 
+        # 注册到主题同步
+        from ..theme_manager import theme_manager
+        theme_manager.register_widget(self, self._on_theme_changed)
+
     def _setup_ui(self):
         """
         子类实现：构建 UI 布局
@@ -64,12 +69,19 @@ class SettingsPanel(QGroupBox):
         """
         raise NotImplementedError
 
+    def _on_theme_changed(self, _mode, _name, _color):
+        """
+        主题变更时调用，子类可以覆盖此方法以更新样式
+        默认实现为空
+        """
+        pass
+
     def _get_config(self, key, default=None):
         """从 config_manager 获取配置值"""
         return config_manager.get(key, default)
 
     def _set_config(self, key, value):
-        """设置配置值并发出变更信号"""
+        """设置 config_manager 值"""
         config_manager.set(key, value)
         self.settings_changed.emit(key, value)
 

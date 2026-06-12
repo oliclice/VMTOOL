@@ -3,6 +3,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QProgress
 from PyQt6.QtCore import Qt, pyqtSignal
 
 from .theme_colors import get_status_color, get_hint_color
+from .theme_manager import theme_manager
 
 
 class ProgressBarWidget(QWidget):
@@ -24,6 +25,8 @@ class ProgressBarWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setup_ui()
+        # 注册到主题同步
+        theme_manager.register_widget(self, self._on_theme_changed)
 
     def setup_ui(self):
         """设置 UI"""
@@ -141,3 +144,7 @@ class ProgressBarWidget(QWidget):
     def set_cancel_enabled(self, enabled):
         """设置取消按钮是否可用"""
         self.cancel_button.setEnabled(enabled)
+
+    def _on_theme_changed(self, _mode, _name, _color):
+        """主题变更时更新样式"""
+        self._set_hint_style()

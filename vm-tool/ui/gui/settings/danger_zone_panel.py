@@ -5,6 +5,8 @@ from PyQt6.QtCore import Qt
 
 from .base_panel import SettingsPanel
 from ..threads.delete_table_thread import DeleteTableThread, SetAllManualToFalseThread
+from app.core.theme_config import ThemeConfig
+from ..theme_manager import theme_manager
 
 
 class DangerZonePanel(SettingsPanel):
@@ -16,33 +18,47 @@ class DangerZonePanel(SettingsPanel):
     def __init__(self, parent=None, dict_service=None):
         self.dict_service = dict_service
         super().__init__(parent)
-        # 设置红色警示样式
-        self.setStyleSheet("""
-            QGroupBox {
-                border: 2px solid #ff4444;
+        # 设置警示样式
+        self._apply_danger_style()
+
+    def _apply_danger_style(self):
+        """应用危险区域样式"""
+        palette = ThemeConfig.get_palette(
+            theme_manager.current_theme_name,
+            theme_manager.current_theme_mode,
+            theme_manager.current_theme_color
+        )
+        self.setStyleSheet(f"""
+            QGroupBox {{
+                border: 2px solid {palette.danger};
                 border-radius: 6px;
                 margin-top: 12px;
                 padding-top: 8px;
                 font-weight: bold;
-            }
-            QGroupBox::title {
+            }}
+            QGroupBox::title {{
                 subcontrol-origin: margin;
                 left: 12px;
                 padding: 0 6px;
-                color: #ff4444;
-            }
+                color: {palette.danger};
+            }}
         """)
 
     def _setup_ui(self):
         # 警告说明
         warning_label = QLabel("⚠️ 以下操作不可逆，请谨慎使用！")
-        warning_label.setStyleSheet("color: #ff4444; font-weight: bold; padding: 8px;")
+        palette = ThemeConfig.get_palette(
+            theme_manager.current_theme_name,
+            theme_manager.current_theme_mode,
+            theme_manager.current_theme_color
+        )
+        warning_label.setStyleSheet(f"color: {palette.danger}; font-weight: bold; padding: 8px;")
         warning_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._main_layout.addWidget(warning_label)
 
         # 删除表区域
         delete_label = QLabel("删除表数据:")
-        delete_label.setStyleSheet("font-weight: bold; margin-top: 8px;")
+        delete_label.setStyleSheet(f"font-weight: bold; margin-top: 8px; color: {palette.text_primary};")
         self._main_layout.addWidget(delete_label)
 
         self.delete_chars_button = QPushButton("删除字表")
@@ -50,25 +66,7 @@ class DangerZonePanel(SettingsPanel):
         self.delete_special_button = QPushButton("删除特殊字符表")
 
         # 设置删除按钮样式
-        delete_button_style = """
-            QPushButton {
-                background-color: #ff4444;
-                color: white;
-                border: none;
-                padding: 8px 16px;
-                border-radius: 4px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #cc0000;
-            }
-            QPushButton:pressed {
-                background-color: #990000;
-            }
-        """
-        self.delete_chars_button.setStyleSheet(delete_button_style)
-        self.delete_words_button.setStyleSheet(delete_button_style)
-        self.delete_special_button.setStyleSheet(delete_button_style)
+        self._apply_delete_button_style()
 
         self.delete_chars_button.clicked.connect(
             lambda: self._delete_table("chars", "字表")
@@ -87,12 +85,12 @@ class DangerZonePanel(SettingsPanel):
         # 分隔线
         separator = QLabel("")
         separator.setFixedHeight(1)
-        separator.setStyleSheet("background-color: #ff4444;")
+        separator.setStyleSheet(f"background-color: {palette.danger};")
         self._main_layout.addWidget(separator)
 
         # 手动全部为否区域
         manual_label = QLabel("重置手动标记:")
-        manual_label.setStyleSheet("font-weight: bold; margin-top: 8px;")
+        manual_label.setStyleSheet(f"font-weight: bold; margin-top: 8px; color: {palette.text_primary};")
         self._main_layout.addWidget(manual_label)
 
         self.manual_chars_button = QPushButton("字表手动全部为否")
@@ -100,25 +98,7 @@ class DangerZonePanel(SettingsPanel):
         self.manual_special_button = QPushButton("特殊字符表手动全部为否")
 
         # 设置重置按钮样式
-        reset_button_style = """
-            QPushButton {
-                background-color: #ff8800;
-                color: white;
-                border: none;
-                padding: 8px 16px;
-                border-radius: 4px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #cc6600;
-            }
-            QPushButton:pressed {
-                background-color: #995500;
-            }
-        """
-        self.manual_chars_button.setStyleSheet(reset_button_style)
-        self.manual_words_button.setStyleSheet(reset_button_style)
-        self.manual_special_button.setStyleSheet(reset_button_style)
+        self._apply_reset_button_style()
 
         self.manual_chars_button.clicked.connect(
             lambda: self._set_all_manual_to_false("chars", "字表")
@@ -136,9 +116,66 @@ class DangerZonePanel(SettingsPanel):
 
         # 说明信息
         info_label = QLabel("说明: '手动全部为否'会将所有词条的manual标记重置为False，但不会删除数据。")
-        info_label.setStyleSheet("color: gray; font-size: 11px; margin-top: 8px;")
+        info_label.setStyleSheet(f"color: {palette.text_secondary}; font-size: 11px; margin-top: 8px;")
         info_label.setWordWrap(True)
         self._main_layout.addWidget(info_label)
+
+    def _apply_delete_button_style(self):
+        """应用删除按钮样式"""
+        palette = ThemeConfig.get_palette(
+            theme_manager.current_theme_name,
+            theme_manager.current_theme_mode,
+            theme_manager.current_theme_color
+        )
+        delete_button_style = f"""
+            QPushButton {{
+                background-color: {palette.danger};
+                color: {palette.text_tooltip};
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {palette.danger_hover};
+            }}
+            QPushButton:pressed {{
+                background-color: {palette.danger};
+                opacity: 0.8;
+            }}
+        """
+        self.delete_chars_button.setStyleSheet(delete_button_style)
+        self.delete_words_button.setStyleSheet(delete_button_style)
+        self.delete_special_button.setStyleSheet(delete_button_style)
+
+    def _apply_reset_button_style(self):
+        """应用重置按钮样式"""
+        palette = ThemeConfig.get_palette(
+            theme_manager.current_theme_name,
+            theme_manager.current_theme_mode,
+            theme_manager.current_theme_color
+        )
+        # 使用 accent_hover 作为警告按钮的颜色
+        reset_button_style = f"""
+            QPushButton {{
+                background-color: {palette.accent_hover};
+                color: {palette.text_tooltip};
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {palette.accent};
+            }}
+            QPushButton:pressed {{
+                background-color: {palette.accent_hover};
+                opacity: 0.8;
+            }}
+        """
+        self.manual_chars_button.setStyleSheet(reset_button_style)
+        self.manual_words_button.setStyleSheet(reset_button_style)
+        self.manual_special_button.setStyleSheet(reset_button_style)
 
     def _connect_signals(self):
         # 危险操作面板不需要连接配置信号
@@ -269,6 +306,12 @@ class DangerZonePanel(SettingsPanel):
             thread.finished.connect(on_finished)
             thread.error.connect(on_error)
             thread.start()
+
+    def _on_theme_changed(self, _mode, _name, _color):
+        """主题变更时更新样式"""
+        self._apply_danger_style()
+        self._apply_delete_button_style()
+        self._apply_reset_button_style()
 
     def reload(self):
         """危险操作面板不需要重新加载"""
