@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
 from PyQt6.QtCore import Qt
 
 from ui.gui.theme_manager import theme_manager
-from ui.gui.theme_colors import _is_dark_mode, _is_linear_theme
+from app.core.theme_config import ThemeConfig
 
 
 class StatCard(QWidget):
@@ -78,39 +78,19 @@ class StatCard(QWidget):
 
     def _apply_style(self):
         """应用主题感知的样式"""
-        is_dark = _is_dark_mode()
-        is_linear = _is_linear_theme()
+        palette = ThemeConfig.get_palette(
+            theme_manager.current_theme_name,
+            theme_manager.current_theme_mode,
+            theme_manager.current_theme_color
+        )
 
-        if is_linear:
-            if is_dark:
-                bg = "#191a1b"
-                border = "rgba(255, 255, 255, 0.06)"
-                title_color = "#8a8f98"
-                value_color = "#f7f8f8"
-                trend_pos_color = "#10b981"
-                trend_neg_color = "#f87171"
-            else:
-                bg = "#ffffff"
-                border = "rgba(0, 0, 0, 0.06)"
-                title_color = "#62666d"
-                value_color = "#1a1a2e"
-                trend_pos_color = "#27a644"
-                trend_neg_color = "#ef4444"
-        else:
-            if is_dark:
-                bg = "#2d2d2d"
-                border = "rgba(255, 255, 255, 0.1)"
-                title_color = "#aaaaaa"
-                value_color = "#ffffff"
-                trend_pos_color = "#66BB6A"
-                trend_neg_color = "#EF5350"
-            else:
-                bg = "#ffffff"
-                border = "rgba(0, 0, 0, 0.08)"
-                title_color = "#666666"
-                value_color = "#333333"
-                trend_pos_color = "#4CAF50"
-                trend_neg_color = "#F44336"
+        bg = palette.bg_elevated
+        border = palette.rgba_border_standard
+        title_color = palette.text_secondary
+        value_color = palette.text_primary
+        trend_pos_color = palette.success
+        trend_neg_color = palette.danger
+        accent_color = palette.accent
 
         self.setStyleSheet(f"""
             StatCard {{
@@ -119,7 +99,7 @@ class StatCard(QWidget):
                 border-radius: 8px;
             }}
             StatCard:hover {{
-                border-color: rgba(94, 106, 210, 0.3);
+                border-color: {accent_color}40;
             }}
             #stat_card_title {{
                 color: {title_color};

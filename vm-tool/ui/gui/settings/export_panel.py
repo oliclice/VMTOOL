@@ -6,6 +6,8 @@ from PyQt6.QtCore import Qt
 
 from .base_panel import SettingsPanel
 from app.core.config_manager import config_manager
+from app.core.theme_config import ThemeConfig
+from ..theme_manager import theme_manager
 
 
 class ExportPanel(SettingsPanel):
@@ -44,9 +46,16 @@ class ExportPanel(SettingsPanel):
 
         self._main_layout.addLayout(main_form)
 
+        # 获取主题颜色
+        palette = ThemeConfig.get_palette(
+            theme_manager.current_theme_name,
+            theme_manager.current_theme_mode,
+            theme_manager.current_theme_color
+        )
+
         # 默认导出表（使用水平布局）
         export_tables_label = QLabel("默认导出表:")
-        export_tables_label.setStyleSheet("font-weight: bold;")
+        export_tables_label.setStyleSheet(f"font-weight: bold; color: {palette.text_primary};")
         self._main_layout.addWidget(export_tables_label)
 
         tables_layout = QHBoxLayout()
@@ -62,12 +71,12 @@ class ExportPanel(SettingsPanel):
         # 分隔线
         separator = QLabel("")
         separator.setFixedHeight(1)
-        separator.setStyleSheet("background-color: #ccc;")
+        separator.setStyleSheet(f"background-color: {palette.border_default};")
         self._main_layout.addWidget(separator)
 
         # 权重计算范围
         weight_label = QLabel("自动计算权重时的码表范围:")
-        weight_label.setStyleSheet("font-weight: bold;")
+        weight_label.setStyleSheet(f"font-weight: bold; color: {palette.text_primary};")
         self._main_layout.addWidget(weight_label)
 
         self.weight_words_checkbox = QCheckBox("词表 (常用词汇)")
@@ -79,7 +88,7 @@ class ExportPanel(SettingsPanel):
 
         # 说明信息
         info_label = QLabel("说明: 勾选的码表类型将在自动计算权重时被处理。手动设置权重的词条会被跳过。")
-        info_label.setStyleSheet("color: gray; font-size: 11px;")
+        info_label.setStyleSheet(f"color: {palette.text_secondary}; font-size: 11px;")
         info_label.setWordWrap(True)
         self._main_layout.addWidget(info_label)
 
@@ -233,3 +242,8 @@ class ExportPanel(SettingsPanel):
     def reload(self):
         """重新加载设置值"""
         self._load_current_values()
+
+    def _on_theme_changed(self, _mode, _name, _color):
+        """主题变更时更新样式"""
+        # 重新设置 UI 以更新颜色
+        self._setup_ui()

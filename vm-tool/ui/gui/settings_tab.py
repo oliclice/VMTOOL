@@ -6,7 +6,9 @@ from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QFont
 
 from app.core.config_manager import config_manager
+from app.core.theme_config import ThemeConfig
 from .settings import PANEL_MAP, DEFAULT_PANEL_ORDER
+from .theme_manager import theme_manager
 
 
 class SettingsTab(QWidget):
@@ -17,6 +19,8 @@ class SettingsTab(QWidget):
         self.dict_service = dict_service
         self.panel_widgets = {}  # 面板名称 -> 面板实例
         self.init_ui()
+        # 注册到主题同步
+        theme_manager.register_widget(self, self._on_theme_changed)
 
     def init_ui(self):
         """初始化 UI"""
@@ -29,8 +33,7 @@ class SettingsTab(QWidget):
         left_widget.setObjectName("settings_sidebar")
         left_widget.setStyleSheet("""
             #settings_sidebar {
-                background-color: #f5f5f5;
-                border-right: 1px solid #ddd;
+                border-right: 1px solid palette(mid);
             }
         """)
         left_layout = QVBoxLayout(left_widget)
@@ -56,11 +59,11 @@ class SettingsTab(QWidget):
                 border-left: 3px solid transparent;
             }
             #settings_nav_list::item:selected {
-                background-color: #e0e0e0;
-                border-left: 3px solid #1976d2;
+                background-color: palette(highlight);
+                border-left: 3px solid palette(link);
             }
             #settings_nav_list::item:hover {
-                background-color: #eeeeee;
+                background-color: palette(mid);
             }
         """)
         self.nav_list.setDragEnabled(True)
@@ -186,3 +189,17 @@ class SettingsTab(QWidget):
             parent = parent.parent() if hasattr(parent, 'parent') else None
         if parent and hasattr(parent, 'show_toast'):
             parent.show_toast("设置已保存")
+
+    def _on_theme_changed(self, _mode, _name, _color):
+        """主题变更时更新样式"""
+        # 更新左侧导航栏边框样式
+        palette = ThemeConfig.get_palette(
+            theme_manager.current_theme_name,
+            theme_manager.current_theme_mode,
+            theme_manager.current_theme_color
+        )
+        self.findChild(QWidget, "settings_sidebar").setStyleSheet(f"""
+            #settings_sidebar {{
+                border-right: 1px solid {palette.rgba_border_standard};
+            }}
+        """)

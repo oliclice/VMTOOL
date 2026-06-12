@@ -480,3 +480,29 @@ QFrame[frameShape="5"] {
     background-color: @rgba_border_subtle;
     max-height: 1px;
 }
+
+/* ==================== 设置界面 ==================== */
+#settings_sidebar {
+    background-color: @bg_secondary;
+    border-right: 1px solid @rgba_border_standard;
+}
+
+#settings_nav_list {
+    border: none;
+    background-color: transparent;
+}
+
+#settings_nav_list::item {
+    padding: 10px 16px;
+    border-left: 3px solid transparent;
+    color: @text_primary;
+}
+
+#settings_nav_list::item:selected {
+    background-color: @rgba_selection;
+    border-left: 3px solid @accent;
+}
+
+#settings_nav_list::item:hover {
+    background-color: @rgba_surface_hover;
+}

@@ -75,9 +75,9 @@ class AppearancePanel(SettingsPanel):
 
     def _connect_signals(self):
         # 主题相关信号
-        self.theme_combo.currentTextChanged.connect(self._on_theme_changed)
-        self.mode_combo.currentTextChanged.connect(self._on_theme_changed)
-        self.color_combo.currentTextChanged.connect(self._on_theme_changed)
+        self.theme_combo.currentTextChanged.connect(self._on_theme_selection_changed)
+        self.mode_combo.currentTextChanged.connect(self._on_theme_selection_changed)
+        self.color_combo.currentTextChanged.connect(self._on_theme_selection_changed)
 
         # 语言信号
         self.language_combo.currentTextChanged.connect(
@@ -111,8 +111,8 @@ class AppearancePanel(SettingsPanel):
         if current_font:
             self.font_combo.setCurrentText(current_font)
 
-    def _on_theme_changed(self):
-        """主题变更处理"""
+    def _on_theme_selection_changed(self):
+        """主题选择变更处理（UI 交互）"""
         theme = self.theme_combo.currentText()
         mode_display = self.mode_combo.currentText()
         color = self.color_combo.currentText()
@@ -150,6 +150,11 @@ class AppearancePanel(SettingsPanel):
             parent = parent.parent() if hasattr(parent, 'parent') else None
         if parent and hasattr(parent, 'show_toast'):
             parent.show_toast(f"字体已更改为: {font_family}")
+
+    def _on_theme_changed(self, mode, name, color):
+        """主题变更通知回调"""
+        # 重新加载当前值以反映外部主题变更
+        self._load_current_values()
 
     def reload(self):
         """重新加载设置值"""
