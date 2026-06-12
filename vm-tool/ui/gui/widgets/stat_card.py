@@ -24,8 +24,8 @@ class StatCard(QWidget):
         self._setup_ui()
         self.set_value(value)
         self._apply_style()
-        # 监听主题变更
-        theme_manager.theme_changed.connect(self._on_theme_changed)
+        # 注册到主题同步
+        theme_manager.register_widget(self, self._on_theme_changed)
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)

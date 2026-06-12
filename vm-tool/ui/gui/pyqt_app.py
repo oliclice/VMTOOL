@@ -154,8 +154,26 @@ class VMTOOLPyQtApp(QMainWindow):
             logger.error(f"[GUI-Theme] 主题设置失败: {e}", exc_info=True)
 
     def on_theme_changed(self, theme_mode, theme_name, theme_color):
-        """处理主题变更信号"""
-        self.set_theme(theme_mode, theme_name, theme_color)
+        """处理主题变更信号 - 仅应用主题，不重复调用 set_theme"""
+        try:
+            clear_hardcoded_stylesheets(self)
+
+            # 使用 ThemeConfig 创建调色板
+            from app.core.theme_config import ThemeConfig
+            palette = ThemeConfig.get_qpalette(theme_name, theme_mode, theme_color)
+
+            app = QApplication.instance()
+            if app:
+                app.setPalette(palette)
+
+                for window in app.topLevelWidgets():
+                    if hasattr(window, 'setPalette'):
+                        apply_theme_to_widget(window, palette)
+
+            self.setPalette(palette)
+            apply_theme_to_widget(self, palette)
+        except Exception as e:
+            logger.error(f"[GUI-Theme] 主题设置失败: {e}", exc_info=True)
 
     def import_data(self):
         """导入数据"""

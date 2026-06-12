@@ -113,28 +113,39 @@ class AppearancePanel(SettingsPanel):
 
     def _on_theme_selection_changed(self):
         """主题选择变更处理（UI 交互）"""
-        theme = self.theme_combo.currentText()
-        mode_display = self.mode_combo.currentText()
-        color = self.color_combo.currentText()
+        # 阻塞信号以防止循环调用
+        self.theme_combo.blockSignals(True)
+        self.mode_combo.blockSignals(True)
+        self.color_combo.blockSignals(True)
 
-        # 映射模式显示名称到内部值
-        internal_mode = MODE_DISPLAY_REVERSE_MAP.get(mode_display, THEME_MODE_AUTO)
+        try:
+            theme = self.theme_combo.currentText()
+            mode_display = self.mode_combo.currentText()
+            color = self.color_combo.currentText()
 
-        # 保存设置
-        self._set_config("theme_name", theme)
-        self._set_config("theme_mode", internal_mode)
-        self._set_config("theme_color", color)
+            # 映射模式显示名称到内部值
+            internal_mode = MODE_DISPLAY_REVERSE_MAP.get(mode_display, THEME_MODE_AUTO)
 
-        # 应用主题
-        from ..theme_manager import theme_manager
-        theme_manager.set_theme(internal_mode, theme, color)
+            # 保存设置
+            self._set_config("theme_name", theme)
+            self._set_config("theme_mode", internal_mode)
+            self._set_config("theme_color", color)
 
-        # 显示提示
-        parent = self.parent()
-        while parent and not hasattr(parent, 'show_toast'):
-            parent = parent.parent() if hasattr(parent, 'parent') else None
-        if parent and hasattr(parent, 'show_toast'):
-            parent.show_toast(f"主题已更改为：{theme} - {mode_display} - {color}")
+            # 应用主题
+            from ..theme_manager import theme_manager
+            theme_manager.set_theme(internal_mode, theme, color)
+
+            # 显示提示
+            parent = self.parent()
+            while parent and not hasattr(parent, 'show_toast'):
+                parent = parent.parent() if hasattr(parent, 'parent') else None
+            if parent and hasattr(parent, 'show_toast'):
+                parent.show_toast(f"主题已更改为：{theme} - {mode_display} - {color}")
+        finally:
+            # 恢复信号
+            self.theme_combo.blockSignals(False)
+            self.mode_combo.blockSignals(False)
+            self.color_combo.blockSignals(False)
 
     def _on_font_changed(self, font_family):
         """字体变更处理"""
