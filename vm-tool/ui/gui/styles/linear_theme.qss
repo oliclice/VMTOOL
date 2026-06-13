@@ -506,3 +506,29 @@ QFrame[frameShape="5"] {
 #settings_nav_list::item:hover {
     background-color: @rgba_surface_hover;
 }
+
+/* === Top TabBar (fallback for non-sidebar mode) === */
+QTabBar[position="north"] {
+    background: transparent;
+    border: none;
+}
+
+QTabBar[position="north"]::tab {
+    padding: 8px 16px;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: @secondary-text;
+    margin-right: 4px;
+}
+
+QTabBar[position="north"]::tab:selected {
+    color: @accent;
+    border-bottom: 2px solid @accent;
+    font-weight: 600;
+}
+
+QTabBar[position="north"]::tab:hover:!selected {
+    color: @primary-text;
+    background: rgba(128,128,128,0.08);
+    border-radius: 4px;
+}
