@@ -311,10 +311,6 @@ class VMTOOLPyQtApp(QMainWindow):
         self.tab_widget = QTabWidget()
         self.main_layout.addWidget(self.tab_widget, 1)
 
-        # 应用 tab 栏位置配置
-        tab_position = config_manager.get("tab_position", "top")
-        self._apply_tab_position(tab_position)
-
         tabs = [
             (CharsTab(parent=self, dict_service=self.dict_service), TAB_ICONS["chars"] + " 字表管理"),
             (SpecialTab(parent=self, dict_service=self.dict_service), TAB_ICONS["special"] + " 特殊表管理"),
@@ -340,13 +336,15 @@ class VMTOOLPyQtApp(QMainWindow):
         self._settings_tab_widget = settings_tab
         self.create_settings_tab(settings_tab)
 
-        # 存储 sidebar tab bar 引用
+        # 应用 tab 栏位置配置（必须在所有 tab 添加完成后调用）
         self._sidebar_tab_bar = None
+        tab_position = config_manager.get("tab_position", "top")
+        self._apply_tab_position(tab_position)
 
         # 连接设置变更信号
         self._connect_settings_signals()
 
-        # 初始主题同步
+        # 初始主题同步（需在所有 tab 添加完成后调用，此时 _apply_tab_position 已设置 _sidebar_tab_bar）
         self._sync_tab_theme()
 
     def _apply_tab_position(self, position: str):
@@ -368,6 +366,9 @@ class VMTOOLPyQtApp(QMainWindow):
 
         # 重新同步主题样式（TabBar 实例已变更）
         self._sync_tab_theme()
+        # 强制刷新布局和重绘
+        self.tab_widget.updateGeometry()
+        self.tab_widget.update()
 
     def _sync_tab_theme(self):
         """同步 tab 栏主题样式"""
