@@ -1,0 +1,116 @@
+<h2>最终设计方案概览</h2>
+<p class="subtitle">左侧 Tab 栏重设计 — 方案确认</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">浅色主题 — 左侧分组布局</div>
+    <div class="mockup-body">
+      <div style="display:flex;height:420px;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden">
+        <div style="width:152px;background:#f8f9fb;display:flex;flex-direction:column;padding:8px 0;font-family:system-ui;font-size:13px;border-right:1px solid #e8ecf1">
+          <!-- 分组标签 -->
+          <div style="padding:12px 0 6px 16px;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:#94a3b8;font-weight:600">数据管理</div>
+          <div style="display:flex;align-items:center;gap:8px;padding:9px 14px;background:rgba(94,106,210,0.1);color:#5e6ad2;font-weight:600;border-left:3px solid #5e6ad2;margin:1px 0;cursor:pointer;border-radius:0 4px 4px 0">
+            <span style="font-size:15px">Aa</span><span>字表管理</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:9px 14px;color:#64748b;border-left:3px solid transparent;margin:1px 0;cursor:pointer;border-radius:0 4px 4px 0">
+            <span style="font-size:15px">◆</span><span>特殊表管理</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:9px 14px;color:#64748b;border-left:3px solid transparent;margin:1px 0;cursor:pointer;border-radius:0 4px 4px 0">
+            <span style="font-size:15px">⬡</span><span>词表管理</span>
+          </div>
+          <!-- 分组标签 -->
+          <div style="padding:16px 0 6px 16px;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:#94a3b8;font-weight:600">工具</div>
+          <div style="display:flex;align-items:center;gap:8px;padding:9px 14px;color:#64748b;border-left:3px solid transparent;margin:1px 0;cursor:pointer;border-radius:0 4px 4px 0">
+            <span style="font-size:15px">📊</span><span>统计分析</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:9px 14px;color:#64748b;border-left:3px solid transparent;margin:1px 0;cursor:pointer;border-radius:0 4px 4px 0">
+            <span style="font-size:15px">⇄</span><span>导入导出</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:9px 14px;color:#64748b;border-left:3px solid transparent;margin:1px 0;cursor:pointer;border-radius:0 4px 4px 0">
+            <span style="font-size:15px">{ }</span><span>编码规则</span>
+          </div>
+          <!-- 设置固定在底部 -->
+          <div style="margin-top:auto;display:flex;align-items:center;gap:8px;padding:9px 16px;color:#94a3b8;border-left:3px solid transparent;border-top:1px solid #e8ecf1;padding-top:14px;cursor:pointer">
+            <span style="font-size:15px">⚙</span><span>设置</span>
+          </div>
+        </div>
+        <div style="flex:1;background:#fff;display:flex;align-items:center;justify-content:center;color:#d0d5dd">内容区域</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">深色主题 — 左侧分组布局</div>
+    <div class="mockup-body">
+      <div style="display:flex;height:420px;border:1px solid #2a2a3e;border-radius:8px;overflow:hidden">
+        <div style="width:152px;background:#13141f;display:flex;flex-direction:column;padding:8px 0;font-family:system-ui;font-size:13px;border-right:1px solid #222236">
+          <div style="padding:12px 0 6px 16px;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:#5c5c8a;font-weight:600">数据管理</div>
+          <div style="display:flex;align-items:center;gap:8px;padding:9px 14px;background:rgba(94,106,210,0.15);color:#b8c2ff;font-weight:600;border-left:3px solid #5e6ad2;margin:1px 0;cursor:pointer;border-radius:0 4px 4px 0">
+            <span style="font-size:15px">Aa</span><span>字表管理</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:9px 14px;color:rgba(255,255,255,0.45);border-left:3px solid transparent;margin:1px 0;cursor:pointer;border-radius:0 4px 4px 0">
+            <span style="font-size:15px">◆</span><span>特殊表管理</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:9px 14px;color:rgba(255,255,255,0.45);border-left:3px solid transparent;margin:1px 0;cursor:pointer;border-radius:0 4px 4px 0">
+            <span style="font-size:15px">⬡</span><span>词表管理</span>
+          </div>
+          <div style="padding:16px 0 6px 16px;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:#5c5c8a;font-weight:600">工具</div>
+          <div style="display:flex;align-items:center;gap:8px;padding:9px 14px;color:rgba(255,255,255,0.45);border-left:3px solid transparent;margin:1px 0;cursor:pointer;border-radius:0 4px 4px 0">
+            <span style="font-size:15px">📊</span><span>统计分析</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:9px 14px;color:rgba(255,255,255,0.45);border-left:3px solid transparent;margin:1px 0;cursor:pointer;border-radius:0 4px 4px 0">
+            <span style="font-size:15px">⇄</span><span>导入导出</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:9px 14px;color:rgba(255,255,255,0.45);border-left:3px solid transparent;margin:1px 0;cursor:pointer;border-radius:0 4px 4px 0">
+            <span style="font-size:15px">{ }</span><span>编码规则</span>
+          </div>
+          <div style="margin-top:auto;display:flex;align-items:center;gap:8px;padding:9px 16px;color:rgba(255,255,255,0.3);border-left:3px solid transparent;border-top:1px solid #222236;padding-top:14px;cursor:pointer">
+            <span style="font-size:15px">⚙</span><span>设置</span>
+          </div>
+        </div>
+        <div style="flex:1;background:#1a1b2e;display:flex;align-items:center;justify-content:center;color:#333">内容区域</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h3>技术方案要点</h3>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
+  <div style="background:var(--bg-secondary);border-radius:8px;padding:16px;border:1px solid var(--border)">
+    <h4 style="margin:0 0 8px 0">🏗 架构改进</h4>
+    <ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.8">
+      <li>废弃 paintEvent 手动绘制 → 使用 <b>QSS 样式表</b>，天然主题感知</li>
+      <li>位置切换不再销毁重建 → 仅调用 <b>setTabPosition()</b> + 重新设置样式</li>
+      <li>新建独立的 <b>SidebarTabBar</b> 类，继承 QTabBar，覆盖 QSS 样式</li>
+    </ul>
+  </div>
+  <div style="background:var(--bg-secondary);border-radius:8px;padding:16px;border:1px solid var(--border)">
+    <h4 style="margin:0 0 8px 0">🎨 视觉细节</h4>
+    <ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.8">
+      <li>分组标题 + 底部设置分隔线</li>
+      <li>左侧 3px 主题色选中指示条</li>
+      <li>Hover 时非选中项有微妙背景变化</li>
+      <li>Unicode 图标（无需额外资源文件）</li>
+      <li>宽度自适应内容（~140-160px）</li>
+    </ul>
+  </div>
+</div>
+
+<h3>待确认</h3>
+<div class="options">
+  <div class="option" data-choice="approve" onclick="toggleSelect(this)">
+    <div class="letter">✓</div>
+    <div class="content">
+      <h3>方案确认，开始撰写详细设计文档</h3>
+      <p>以上方案符合预期，可以进入 spec 编写阶段</p>
+    </div>
+  </div>
+  <div class="option" data-choice="tweak" onclick="toggleSelect(this)">
+    <div class="letter">~</div>
+    <div class="content">
+      <h3>需要调整</h3>
+      <p>有一些细节需要修改（请在终端说明）</p>
+    </div>
+  </div>
+</div>

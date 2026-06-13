@@ -71,7 +71,7 @@ TAB_ICONS: dict[str, str] = {
     "words": "词",        # 词表管理
     "stats": "📊",        # 统计分析
     "import_export": "⇄", # 导入导出
-    "code_rules": "{}",   # 编码规则
+    "code_rules": "{ }",  # 编码规则
     "settings": "⚙",     # 设置
 }
 
