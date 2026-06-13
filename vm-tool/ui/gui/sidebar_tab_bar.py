@@ -38,11 +38,21 @@ class SidebarTabBar(QTabBar):
 
     def tabSizeHint(self, index: int) -> QSize:
         base = super().tabSizeHint(index)
+        width = base.width()
         height = base.height()
+
+        # QTabBar 在 West 位置时可能返回负宽度，手动根据文字+图标计算
+        if width < 0:
+            fm = self.fontMetrics()
+            text = self.tabText(index)
+            # 文字宽度 + 左右 padding(28) + 图标间距
+            width = fm.horizontalAdvance(text) + 32
+
         # 分组第一个 tab 预留标题高度
         if index in TAB_GROUPS:
             height += self.GROUP_HEADER_HEIGHT + self.GROUP_HEADER_MARGIN_TOP
-        return QSize(base.width(), height)
+
+        return QSize(width, height)
 
     def minimumTabSizeHint(self, index: int) -> QSize:
         return self.tabSizeHint(index)
