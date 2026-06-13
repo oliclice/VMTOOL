@@ -357,46 +357,56 @@ class VMTOOLPyQtApp(QMainWindow):
         from PyQt6.QtWidgets import QTabBar
         from .sidebar_tab_bar import SidebarTabBar
 
-        # 保存当前页面数据
-        tab_data = []
-        current_idx = self.tab_widget.currentIndex()
-        for i in range(self.tab_widget.count()):
-            page = self.tab_widget.widget(i)
-            text = self.tab_widget.tabText(i)
-            # 断开 page 的父控件关联，防止被旧 QTabWidget 删除
-            page.setParent(None)
-            tab_data.append((page, text))
+        # 防止信号递归
+        if getattr(self, '_switching_tab_position', False):
+            return
+        self._switching_tab_position = True
 
-        # 从布局移除旧的 QTabWidget
-        self.main_layout.removeWidget(self.tab_widget)
-        self.tab_widget.hide()
+        try:
+            # 保存当前页面数据
+            tab_data = []
+            current_idx = self.tab_widget.currentIndex()
+            for i in range(self.tab_widget.count()):
+                page = self.tab_widget.widget(i)
+                if page is None:
+                    continue
+                text = self.tab_widget.tabText(i)
+                # 断开 page 的父控件关联，防止被旧 QTabWidget 删除
+                page.setParent(None)
+                tab_data.append((page, text))
 
-        # 创建新的 QTabWidget，先设置正确的 TabBar
-        self.tab_widget = QTabWidget()
-        self.main_layout.addWidget(self.tab_widget, 1)
-        self._sidebar_tab_bar = None
+            # 从布局移除旧的 QTabWidget
+            self.main_layout.removeWidget(self.tab_widget)
+            self.tab_widget.hide()
 
-        if position == "left":
-            sidebar = SidebarTabBar()
-            self.tab_widget.setTabBar(sidebar)
-            self.tab_widget.setTabPosition(QTabWidget.TabPosition.West)
-            self._sidebar_tab_bar = sidebar
-        else:
-            default_bar = QTabBar()
-            default_bar.setObjectName("topTabBar")
-            self.tab_widget.setTabBar(default_bar)
-            self.tab_widget.setTabPosition(QTabWidget.TabPosition.North)
+            # 创建新的 QTabWidget，先设置正确的 TabBar
+            self.tab_widget = QTabWidget()
+            self.main_layout.addWidget(self.tab_widget, 1)
+            self._sidebar_tab_bar = None
 
-        # 恢复所有页面
-        for page, text in tab_data:
-            self.tab_widget.addTab(page, text)
-        if 0 <= current_idx < len(tab_data):
-            self.tab_widget.setCurrentIndex(current_idx)
+            if position == "left":
+                sidebar = SidebarTabBar()
+                self.tab_widget.setTabBar(sidebar)
+                self.tab_widget.setTabPosition(QTabWidget.TabPosition.West)
+                self._sidebar_tab_bar = sidebar
+            else:
+                default_bar = QTabBar()
+                default_bar.setObjectName("topTabBar")
+                self.tab_widget.setTabBar(default_bar)
+                self.tab_widget.setTabPosition(QTabWidget.TabPosition.North)
 
-        # 重新同步主题样式
-        self._sync_tab_theme()
-        self.tab_widget.updateGeometry()
-        self.tab_widget.update()
+            # 恢复所有页面
+            for page, text in tab_data:
+                self.tab_widget.addTab(page, text)
+            if 0 <= current_idx < len(tab_data):
+                self.tab_widget.setCurrentIndex(current_idx)
+
+            # 重新同步主题样式
+            self._sync_tab_theme()
+            self.tab_widget.updateGeometry()
+            self.tab_widget.update()
+        finally:
+            self._switching_tab_position = False
 
     def _sync_tab_theme(self):
         """同步 tab 栏主题样式"""
