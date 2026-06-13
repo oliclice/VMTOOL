@@ -174,6 +174,8 @@ class VMTOOLPyQtApp(QMainWindow):
 
             self.setPalette(palette)
             apply_theme_to_widget(self, palette)
+            # 重新同步侧边栏 tab bar 样式（apply_theme_to_widget 会清除动态 QSS）
+            self._sync_tab_theme()
         except Exception as e:
             logger.error(f"[GUI-Theme] 主题设置失败: {e}", exc_info=True)
 
@@ -359,6 +361,7 @@ class VMTOOLPyQtApp(QMainWindow):
             self._sidebar_tab_bar = sidebar
         else:
             default_bar = QTabBar()
+            default_bar.setObjectName("topTabBar")
             self.tab_widget.setTabBar(default_bar)
             self.tab_widget.setTabPosition(QTabWidget.TabPosition.North)
             self._sidebar_tab_bar = None
