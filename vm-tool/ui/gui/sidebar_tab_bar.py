@@ -1,7 +1,7 @@
 """侧边栏 TabBar — QSS 驱动、主题感知、分组标题"""
 from PyQt6.QtWidgets import QTabBar, QStylePainter, QStyleOptionTab, QStyle
 from PyQt6.QtCore import QRect, QSize, Qt
-from PyQt6.QtGui import QPainter, QFont, QColor, QPen
+from PyQt6.QtGui import QPainter, QFont, QPen
 
 from app.core.theme_constants import TAB_GROUPS
 
@@ -83,7 +83,7 @@ class SidebarTabBar(QTabBar):
         font = QFont(self.font())
         font.setPointSizeF(font.pointSizeF() * 0.75)
         font.setBold(True)
-        font.setCapitalization(QFont.CapitalizeAllUppercase)
+        font.setCapitalization(QFont.Capitalization.AllUppercase)
         painter.save()
         painter.setFont(font)
         # 使用与未选中文字一致的颜色 (从 palette 的 placeholder 色近似)
