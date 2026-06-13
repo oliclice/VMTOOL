@@ -305,6 +305,10 @@ class VMTOOLPyQtApp(QMainWindow):
         self.tab_widget = QTabWidget()
         self.main_layout.addWidget(self.tab_widget, 1)  # 添加拉伸因子为1，让标签页占据剩余空间
 
+        # 应用 tab 栏位置配置
+        tab_position = config_manager.get("tab_position", "top")
+        self._apply_tab_position(tab_position)
+
         # 字表管理标签页
         chars_tab = CharsTab(parent=self, dict_service=self.dict_service)
         self.tab_widget.addTab(chars_tab, "字表管理")
@@ -339,3 +343,107 @@ class VMTOOLPyQtApp(QMainWindow):
         settings_tab = QWidget()
         self.tab_widget.addTab(settings_tab, "设置")
         self.create_settings_tab(settings_tab)
+
+        # 连接设置变更信号
+        self._connect_settings_signals()
+
+    def _apply_tab_position(self, position: str):
+        """应用 tab 栏位置 - 通过重新创建 TabWidget 实现"""
+        # 保存当前状态
+        current_index = self.tab_widget.currentIndex()
+        tab_data = []
+        for i in range(self.tab_widget.count()):
+            widget = self.tab_widget.widget(i)
+            text = self.tab_widget.tabText(i)
+            tab_data.append((widget, text))
+
+        # 从布局中移除旧的 TabWidget
+        self.main_layout.removeWidget(self.tab_widget)
+        self.tab_widget.hide()
+        self.tab_widget.deleteLater()
+
+        # 创建新的 TabWidget
+        from PyQt6.QtWidgets import QTabWidget as QTabWidgetClass, QTabBar
+        from PyQt6.QtCore import Qt, QRect
+        from PyQt6.QtGui import QPainter, QPen
+
+        self.tab_widget = QTabWidgetClass()
+        self.main_layout.addWidget(self.tab_widget, 1)
+
+        if position == "left":
+            # 先创建自定义 TabBar
+            class HorizontalTabBar(QTabBar):
+                def __init__(self, parent=None):
+                    super().__init__(parent)
+                    self.setExpanding(False)
+                    self.setDrawBase(False)
+                    self.setFixedWidth(120)
+
+                def paintEvent(self, event):
+                    painter = QPainter(self)
+                    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+                    # 填充整个背景为浅灰色
+                    from PyQt6.QtGui import QColor
+                    bg_color = QColor(240, 240, 240)
+                    painter.fillRect(self.rect(), bg_color)
+
+                    tab_height = self.height()
+                    tab_count = self.count()
+
+                    if tab_count > 0:
+                        tab_h = tab_height // tab_count
+                    else:
+                        tab_h = tab_height
+
+                    for i in range(tab_count):
+                        x = 0
+                        y = i * tab_h
+                        rect = QRect(x, y, self.width(), tab_h)
+                        isSelected = (i == self.currentIndex())
+
+                        if isSelected:
+                            # 选中项使用蓝色背景
+                            painter.fillRect(rect, self.palette().highlight())
+                            painter.setPen(QPen(self.palette().highlightedText(), 1))
+                        else:
+                            # 非选中项使用浅灰色背景（与整体一致）
+                            painter.fillRect(rect, bg_color)
+                            painter.setPen(QPen(self.palette().text(), 1))
+
+                        text = self.tabText(i)
+                        font = self.font()
+                        painter.setFont(font)
+                        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, text)
+
+                    painter.end()
+
+            # 使用自定义 TabBar
+            horizontal_tab_bar = HorizontalTabBar()
+            self.tab_widget.setTabBar(horizontal_tab_bar)
+            self.tab_widget.setTabPosition(QTabWidgetClass.TabPosition.West)
+        else:
+            self.tab_widget.setTabPosition(QTabWidgetClass.TabPosition.North)
+
+        # 重新添加所有 tab
+        for widget, text in tab_data:
+            self.tab_widget.addTab(widget, text)
+
+        # 恢复当前选中的 tab
+        if current_index >= 0 and current_index < len(tab_data):
+            self.tab_widget.setCurrentIndex(current_index)
+
+    def _connect_settings_signals(self):
+        """连接设置面板的信号"""
+        # 查找 AppearancePanel 并连接其 settings_changed 信号
+        settings_tab = self.tab_widget.widget(6)  # 设置标签页是第7个（索引6）
+        if settings_tab:
+            # 在 settings_tab 中查找 AppearancePanel
+            appearance_panel = settings_tab.findChild(QWidget, "外观设置")
+            if appearance_panel:
+                appearance_panel.settings_changed.connect(self._on_settings_changed)
+
+    def _on_settings_changed(self, key: str, value):
+        """设置变更处理"""
+        if key == "tab_position":
+            self._apply_tab_position(value)

@@ -1,0 +1,139 @@
+<h2>左侧 Tab 栏重设计 — 设计方向</h2>
+<p class="subtitle">当前实现存在硬编码颜色、无图标、无交互反馈等问题。请先选择你倾向的视觉风格方向</p>
+
+<h3>当前问题</h3>
+<div class="mockup">
+  <div class="mockup-header">当前左侧 Tab 栏（问题汇总）</div>
+  <div class="mockup-body">
+    <div style="display:flex;height:400px;border:1px solid #e0e0e0;border-radius:4px;overflow:hidden">
+      <!-- 左侧 tab bar 模拟 -->
+      <div style="width:120px;background:#f0f0f0;display:flex;flex-direction:column;font-family:system-ui;font-size:13px">
+        <div style="padding:14px 10px;background:#3b82f6;color:#fff;text-align:center;border-bottom:1px solid #ddd;cursor:pointer">字表管理</div>
+        <div style="padding:14px 10px;background:#f0f0f0;color:#333;text-align:center;border-bottom:1px solid #ddd;cursor:pointer">特殊表管理</div>
+        <div style="padding:14px 10px;background:#f0f0f0;color:#333;text-align:center;border-bottom:1px solid #ddd;cursor:pointer">词表管理</div>
+        <div style="padding:14px 10px;background:#f0f0f0;color:#333;text-align:center;border-bottom:1px solid #ddd;cursor:pointer">统计分析</div>
+        <div style="padding:14px 10px;background:#f0f0f0;color:#333;text-align:center;border-bottom:1px solid #ddd;cursor:pointer">导入导出</div>
+        <div style="padding:14px 10px;background:#f0f0f0;color:#333;text-align:center;border-bottom:1px solid #ddd;cursor:pointer">编码规则</div>
+        <div style="padding:14px 10px;background:#f0f0f0;color:#333;text-align:center;cursor:pointer">设置</div>
+      </div>
+      <!-- 内容区 -->
+      <div style="flex:1;background:#fff;display:flex;align-items:center;justify-content:center;color:#999">内容区域</div>
+    </div>
+    <div style="margin-top:12px;font-size:13px;color:#666">
+      <p style="margin:4px 0">❌ 硬编码灰色背景 (#f0f0f0)，深色主题下刺眼</p>
+      <p style="margin:4px 0">❌ 无图标，纯文字识别效率低</p>
+      <p style="margin:4px 0">❌ 无 hover 效果，交互反馈缺失</p>
+      <p style="margin:4px 0">❌ 选中态用蓝色 (#3b82f6) 硬编码，不跟随主题色</p>
+      <p style="margin:4px 0">❌ 切换位置时销毁重建整个 QTabWidget</p>
+    </div>
+  </div>
+</div>
+
+<h3>请选择你倾向的设计风格方向</h3>
+
+<div class="cards">
+  <div class="card" data-choice="linear" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="display:flex;height:260px;border:1px solid #e0e0e0;border-radius:6px;overflow:hidden">
+        <div style="width:140px;background:#1a1a2e;display:flex;flex-direction:column;padding:8px 0;font-family:system-ui;font-size:12px">
+          <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(94,106,210,0.25);color:#e0e0ff;border-left:3px solid #5e6ad2;margin:2px 0">
+            <span>Aa</span><span>字表管理</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;color:rgba(255,255,255,0.55);margin:2px 0;border-left:3px solid transparent">
+            <span>◆</span><span>特殊表管理</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;color:rgba(255,255,255,0.55);margin:2px 0;border-left:3px solid transparent">
+            <span>⬡</span><span>词表管理</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;color:rgba(255,255,255,0.55);margin:2px 0;border-left:3px solid transparent">
+            <span>📊</span><span>统计分析</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;color:rgba(255,255,255,0.55);margin:2px 0;border-left:3px solid transparent">
+            <span>⇄</span><span>导入导出</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;color:rgba(255,255,255,0.55);margin:2px 0;border-left:3px solid transparent">
+            <span>{ }</span><span>编码规则</span>
+          </div>
+          <div style="margin-top:auto;display:flex;align-items:center;gap:8px;padding:10px 14px;color:rgba(255,255,255,0.4);margin:2px 0;border-left:3px solid transparent">
+            <span>⚙</span><span>设置</span>
+          </div>
+        </div>
+        <div style="flex:1;background:#0f0f1a;display:flex;align-items:center;justify-content:center;color:#555">内容区域</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Linear 风格（推荐）</h3>
+      <p>深色侧边栏 + 品牌色高亮 + 左侧选中指示条。与现有 Linear 主题一致，现代极简</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="material" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="display:flex;height:260px;border:1px solid #e0e0e0;border-radius:6px;overflow:hidden">
+        <div style="width:140px;background:#fff;display:flex;flex-direction:column;padding:4px 0;font-family:system-ui;font-size:12px;border-right:1px solid #e8e8e8">
+          <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(25,118,210,0.08);color:#1976d2;border-radius:0 20px 20px 0;margin:2px 8px 2px 0">
+            <span>Aa</span><span>字表管理</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;color:#555;border-radius:0 20px 20px 0;margin:2px 8px 2px 0">
+            <span>◆</span><span>特殊表管理</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;color:#555;border-radius:0 20px 20px 0;margin:2px 8px 2px 0">
+            <span>⬡</span><span>词表管理</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;color:#555;border-radius:0 20px 20px 0;margin:2px 8px 2px 0">
+            <span>📊</span><span>统计分析</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;color:#555;border-radius:0 20px 20px 0;margin:2px 8px 2px 0">
+            <span>⇄</span><span>导入导出</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;color:#555;border-radius:0 20px 20px 0;margin:2px 8px 2px 0">
+            <span>{ }</span><span>编码规则</span>
+          </div>
+          <div style="margin-top:auto;display:flex;align-items:center;gap:8px;padding:10px 14px;color:#888;border-radius:0 20px 20px 0;margin:2px 8px 2px 0">
+            <span>⚙</span><span>设置</span>
+          </div>
+        </div>
+        <div style="flex:1;background:#fafafa;display:flex;align-items:center;justify-content:center;color:#aaa">内容区域</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Material 风格</h3>
+      <p>浅色侧边栏 + 圆角药丸形选中态 + 浅蓝背景高亮。Google Material Design 3 风格</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="minimal" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="display:flex;height:260px;border:1px solid #e0e0e0;border-radius:6px;overflow:hidden">
+        <div style="width:140px;background:#f8f9fa;display:flex;flex-direction:column;padding:8px 0;font-family:system-ui;font-size:12px;border-right:1px solid #e9ecef">
+          <div style="display:flex;align-items:center;gap:8px;padding:10px 16px;color:#212529;font-weight:600;margin:1px 0">
+            <span>Aa</span><span>字表管理</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:10px 16px;color:#6c757d;margin:1px 0">
+            <span>◆</span><span>特殊表管理</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:10px 16px;color:#6c757d;margin:1px 0">
+            <span>⬡</span><span>词表管理</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:10px 16px;color:#6c757d;margin:1px 0">
+            <span>📊</span><span>统计分析</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:10px 16px;color:#6c757d;margin:1px 0">
+            <span>⇄</span><span>导入导出</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:10px 16px;color:#6c757d;margin:1px 0">
+            <span>{ }</span><span>编码规则</span>
+          </div>
+          <div style="margin-top:auto;display:flex;align-items:center;gap:8px;padding:10px 16px;color:#adb5bd;margin:1px 0;border-top:1px solid #e9ecef;padding-top:14px">
+            <span>⚙</span><span>设置</span>
+          </div>
+        </div>
+        <div style="flex:1;background:#fff;display:flex;align-items:center;justify-content:center;color:#ccc">内容区域</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>极简风格</h3>
+      <p>无背景色区分 + 纯文字粗细对比 + 底部隔离线。Notion/Stripe 风格，极致简洁</p>
+    </div>
+  </div>
+</div>
