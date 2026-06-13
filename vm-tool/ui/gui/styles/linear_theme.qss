@@ -508,12 +508,12 @@ QFrame[frameShape="5"] {
 }
 
 /* === Top TabBar (fallback for non-sidebar mode) === */
-QTabBar[position="north"] {
+QTabBar#topTabBar {
     background: transparent;
     border: none;
 }
 
-QTabBar[position="north"]::tab {
+QTabBar#topTabBar::tab {
     padding: 8px 16px;
     border: none;
     border-bottom: 2px solid transparent;
@@ -521,13 +521,13 @@ QTabBar[position="north"]::tab {
     margin-right: 4px;
 }
 
-QTabBar[position="north"]::tab:selected {
+QTabBar#topTabBar::tab:selected {
     color: @accent;
     border-bottom: 2px solid @accent;
     font-weight: 600;
 }
 
-QTabBar[position="north"]::tab:hover:!selected {
+QTabBar#topTabBar::tab:hover:!selected {
     color: @primary-text;
     background: rgba(128,128,128,0.08);
     border-radius: 4px;
