@@ -91,7 +91,14 @@ class SidebarTabBar(QTabBar):
         )
 
         font = QFont(self.font())
-        font.setPointSizeF(font.pointSizeF() * 0.75)
+        base_size = font.pointSizeF()
+        if base_size > 0:
+            font.setPointSizeF(base_size * 0.75)
+        else:
+            # 降级：使用像素大小或默认值
+            px = font.pixelSize()
+            if px > 0:
+                font.setPixelSize(int(px * 0.75))
         font.setBold(True)
         font.setCapitalization(QFont.Capitalization.AllUppercase)
         painter.save()
