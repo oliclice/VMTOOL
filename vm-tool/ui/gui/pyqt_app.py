@@ -17,8 +17,7 @@ from PyQt6.QtWidgets import (
     QTextEdit, QGroupBox, QProgressBar, QCheckBox
 )
 from PyQt6.QtCore import Qt, QSortFilterProxyModel, QThread, pyqtSignal, QEvent
-from PyQt6.QtGui import QAction, QIcon, QFont, QColor, QStandardItemModel, QStandardItem, QPalette, QFontDatabase
-from PyQt6.QtWidgets import QStyle
+from PyQt6.QtGui import QAction, QIcon, QFont, QStandardItemModel, QStandardItem, QPalette, QFontDatabase
 
 from app.services.dict import DictService
 from app.services.weight import WeightCalculator
@@ -103,6 +102,9 @@ class VMTOOLPyQtApp(QMainWindow):
 
         # 注册到主题管理器
         theme_manager.register_widget(self)
+
+        # 注册 tab widget 用于主题变更回调
+        theme_manager.register_widget(self.tab_widget, callback=self._on_tab_theme_changed)
 
         # 初始主题设置
         self.set_theme(theme_mode, theme_name, theme_color)
@@ -302,141 +304,83 @@ class VMTOOLPyQtApp(QMainWindow):
 
     def create_tab_widget(self):
         """创建标签页"""
+        from app.core.theme_constants import TAB_ICONS
+
         self.tab_widget = QTabWidget()
-        self.main_layout.addWidget(self.tab_widget, 1)  # 添加拉伸因子为1，让标签页占据剩余空间
+        self.main_layout.addWidget(self.tab_widget, 1)
 
         # 应用 tab 栏位置配置
         tab_position = config_manager.get("tab_position", "top")
         self._apply_tab_position(tab_position)
 
-        # 字表管理标签页
-        chars_tab = CharsTab(parent=self, dict_service=self.dict_service)
-        self.tab_widget.addTab(chars_tab, "字表管理")
-        self.chars_tab = chars_tab
+        tabs = [
+            (CharsTab(parent=self, dict_service=self.dict_service), TAB_ICONS["chars"] + " 字表管理"),
+            (SpecialTab(parent=self, dict_service=self.dict_service), TAB_ICONS["special"] + " 特殊表管理"),
+            (WordsTab(parent=self, dict_service=self.dict_service), TAB_ICONS["words"] + " 词表管理"),
+            (StatsTab(parent=self, stats_service=self.stats_service), TAB_ICONS["stats"] + " 统计分析"),
+            (ImportExportTab(parent=self, filter_service=self.filter_service, dict_service=self.dict_service), TAB_ICONS["import_export"] + " 导入导出"),
+            (CodeRulesTab(parent=self, dict_service=self.dict_service), TAB_ICONS["code_rules"] + " 编码规则"),
+        ]
 
-        # 特殊表管理标签页
-        special_tab = SpecialTab(parent=self, dict_service=self.dict_service)
-        self.tab_widget.addTab(special_tab, "特殊表管理")
-        self.special_tab = special_tab
+        self.chars_tab = tabs[0][0]
+        self.special_tab = tabs[1][0]
+        self.words_tab = tabs[2][0]
+        self.stats_tab = tabs[3][0]
+        self.import_export_tab = tabs[4][0]
+        self.code_rules_tab = tabs[5][0]
 
-        # 词表管理标签页
-        words_tab = WordsTab(parent=self, dict_service=self.dict_service)
-        self.tab_widget.addTab(words_tab, "词表管理")
-        self.words_tab = words_tab
-
-        # 统计分析标签页
-        stats_tab = StatsTab(parent=self, stats_service=self.stats_service)
-        self.tab_widget.addTab(stats_tab, "统计分析")
-        self.stats_tab = stats_tab
-
-        # 导入导出标签页
-        import_export_tab = ImportExportTab(parent=self, filter_service=self.filter_service, dict_service=self.dict_service)
-        self.tab_widget.addTab(import_export_tab, "导入导出")
-        self.import_export_tab = import_export_tab
-
-        # 编码规则标签页
-        code_rules_tab = CodeRulesTab(parent=self, dict_service=self.dict_service)
-        self.tab_widget.addTab(code_rules_tab, "编码规则")
-        self.code_rules_tab = code_rules_tab
+        for widget, label in tabs:
+            self.tab_widget.addTab(widget, label)
 
         # 设置标签页
         settings_tab = QWidget()
-        self.tab_widget.addTab(settings_tab, "设置")
+        self.tab_widget.addTab(settings_tab, TAB_ICONS["settings"] + " 设置")
+        self._settings_tab_widget = settings_tab
         self.create_settings_tab(settings_tab)
+
+        # 存储 sidebar tab bar 引用
+        self._sidebar_tab_bar = None
 
         # 连接设置变更信号
         self._connect_settings_signals()
 
+        # 初始主题同步
+        self._sync_tab_theme()
+
     def _apply_tab_position(self, position: str):
-        """应用 tab 栏位置 - 通过重新创建 TabWidget 实现"""
-        # 保存当前状态
-        current_index = self.tab_widget.currentIndex()
-        tab_data = []
-        for i in range(self.tab_widget.count()):
-            widget = self.tab_widget.widget(i)
-            text = self.tab_widget.tabText(i)
-            tab_data.append((widget, text))
-
-        # 从布局中移除旧的 TabWidget
-        self.main_layout.removeWidget(self.tab_widget)
-        self.tab_widget.hide()
-        self.tab_widget.deleteLater()
-
-        # 创建新的 TabWidget
-        from PyQt6.QtWidgets import QTabWidget as QTabWidgetClass, QTabBar
-        from PyQt6.QtCore import Qt, QRect
-        from PyQt6.QtGui import QPainter, QPen
-
-        self.tab_widget = QTabWidgetClass()
-        self.main_layout.addWidget(self.tab_widget, 1)
+        """应用 tab 栏位置 — 仅替换 TabBar + setTabPosition，不销毁 QTabWidget"""
+        from PyQt6.QtWidgets import QTabBar
+        from .sidebar_tab_bar import SidebarTabBar
 
         if position == "left":
-            # 先创建自定义 TabBar
-            class HorizontalTabBar(QTabBar):
-                def __init__(self, parent=None):
-                    super().__init__(parent)
-                    self.setExpanding(False)
-                    self.setDrawBase(False)
-                    self.setFixedWidth(120)
-
-                def paintEvent(self, event):
-                    painter = QPainter(self)
-                    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-
-                    # 填充整个背景为浅灰色
-                    from PyQt6.QtGui import QColor
-                    bg_color = QColor(240, 240, 240)
-                    painter.fillRect(self.rect(), bg_color)
-
-                    tab_height = self.height()
-                    tab_count = self.count()
-
-                    if tab_count > 0:
-                        tab_h = tab_height // tab_count
-                    else:
-                        tab_h = tab_height
-
-                    for i in range(tab_count):
-                        x = 0
-                        y = i * tab_h
-                        rect = QRect(x, y, self.width(), tab_h)
-                        isSelected = (i == self.currentIndex())
-
-                        if isSelected:
-                            # 选中项使用蓝色背景
-                            painter.fillRect(rect, self.palette().highlight())
-                            painter.setPen(QPen(self.palette().highlightedText(), 1))
-                        else:
-                            # 非选中项使用浅灰色背景（与整体一致）
-                            painter.fillRect(rect, bg_color)
-                            painter.setPen(QPen(self.palette().text(), 1))
-
-                        text = self.tabText(i)
-                        font = self.font()
-                        painter.setFont(font)
-                        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, text)
-
-                    painter.end()
-
-            # 使用自定义 TabBar
-            horizontal_tab_bar = HorizontalTabBar()
-            self.tab_widget.setTabBar(horizontal_tab_bar)
-            self.tab_widget.setTabPosition(QTabWidgetClass.TabPosition.West)
+            sidebar = SidebarTabBar()
+            self.tab_widget.setTabBar(sidebar)
+            self.tab_widget.setTabPosition(QTabWidget.TabPosition.West)
+            self._sidebar_tab_bar = sidebar
         else:
-            self.tab_widget.setTabPosition(QTabWidgetClass.TabPosition.North)
+            default_bar = QTabBar()
+            self.tab_widget.setTabBar(default_bar)
+            self.tab_widget.setTabPosition(QTabWidget.TabPosition.North)
+            self._sidebar_tab_bar = None
 
-        # 重新添加所有 tab
-        for widget, text in tab_data:
-            self.tab_widget.addTab(widget, text)
+        # 重新同步主题样式（TabBar 实例已变更）
+        self._sync_tab_theme()
 
-        # 恢复当前选中的 tab
-        if current_index >= 0 and current_index < len(tab_data):
-            self.tab_widget.setCurrentIndex(current_index)
+    def _sync_tab_theme(self):
+        """同步 tab 栏主题样式"""
+        if self._sidebar_tab_bar is None:
+            return
+        from .theme_sync import theme_sync
+        theme_sync.sync_tab_bar(self._sidebar_tab_bar)
+
+    def _on_tab_theme_changed(self, mode, name, color):
+        """主题变更时重新同步 tab bar 样式"""
+        self._sync_tab_theme()
 
     def _connect_settings_signals(self):
         """连接设置面板的信号"""
         # 查找 AppearancePanel 并连接其 settings_changed 信号
-        settings_tab = self.tab_widget.widget(6)  # 设置标签页是第7个（索引6）
+        settings_tab = self._settings_tab_widget
         if settings_tab:
             # 在 settings_tab 中查找 AppearancePanel
             appearance_panel = settings_tab.findChild(QWidget, "外观设置")
