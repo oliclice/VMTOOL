@@ -105,10 +105,10 @@ class ThemeSync(QObject):
         logger.debug(f"Theme update complete, {self._update_count} updates so far")
 
     def sync_tab_bar(self, tab_bar) -> None:
-        """为 SidebarTabBar 构建并注入主题 QSS
+        """为 QTabBar 构建并注入侧边栏主题 QSS
 
         Args:
-            tab_bar: SidebarTabBar 实例
+            tab_bar: QTabBar 实例（内置 tab bar，非自定义类）
         """
         from app.core.theme_config import ThemeConfig
         from app.core.theme_constants import THEME_MODE_DARK
@@ -171,7 +171,7 @@ class ThemeSync(QObject):
                 }}
             """
 
-        tab_bar.dynamicStylesheet = css
+        tab_bar.setStyleSheet(css)
 
     def get_registered_count(self) -> int:
         """获取注册的组件数量"""
