@@ -76,6 +76,15 @@ class SettingsPanel(QGroupBox):
         """
         pass
 
+    def _clear_layout(self, layout):
+        """递归清理布局中的所有子控件（深度优先，确保嵌套控件被删除）"""
+        while layout.count():
+            item = layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+            elif item.layout():
+                self._clear_layout(item.layout())
+
     def _get_config(self, key, default=None):
         """从 config_manager 获取配置值"""
         return config_manager.get(key, default)
