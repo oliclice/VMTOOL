@@ -2,6 +2,8 @@
 
 展示数据概览、统计卡片、图表和最近活动记录。
 """
+import logging
+
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QScrollArea,
     QSizePolicy, QGroupBox, QTableWidget, QTableWidgetItem,
@@ -10,7 +12,10 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 
 from ui.gui.theme_manager import theme_manager
+from ui.gui.widgets.chart_widgets import BarChartWidget, PieChartWidget
 from app.core.theme_config import ThemeConfig
+
+logger = logging.getLogger(__name__)
 
 
 class DashboardPage(QWidget):
@@ -87,19 +92,18 @@ class DashboardPage(QWidget):
         layout = QHBoxLayout()
         layout.setSpacing(16)
 
-        # 图表容器
+        # 词长分布柱状图
         left_chart = QGroupBox("词长分布")
         left_chart.setMinimumHeight(280)
         left_layout = QVBoxLayout(left_chart)
-        self.chart_word_length = QLabel("暂无数据")
-        self.chart_word_length.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.chart_word_length = BarChartWidget("词长分布")
         left_layout.addWidget(self.chart_word_length)
 
+        # 权重区间分布饼图
         right_chart = QGroupBox("权重区间分布")
         right_chart.setMinimumHeight(280)
         right_layout = QVBoxLayout(right_chart)
-        self.chart_weight_dist = QLabel("暂无数据")
-        self.chart_weight_dist.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.chart_weight_dist = PieChartWidget("权重区间分布")
         right_layout.addWidget(self.chart_weight_dist)
 
         layout.addWidget(left_chart, 1)
@@ -123,9 +127,20 @@ class DashboardPage(QWidget):
         self.activity_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.activity_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.activity_table.verticalHeader().setVisible(False)
+        self._show_activity_placeholder()
         layout.addWidget(self.activity_table)
 
         return group
+
+    def _show_activity_placeholder(self):
+        """在活动表格中显示占位提示"""
+        self.activity_table.setRowCount(1)
+        placeholder = QTableWidgetItem("暂无活动记录")
+        placeholder.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+        placeholder.setFlags(Qt.ItemFlag.NoItemFlags)  # 不可选中/编辑
+        self.activity_table.setItem(0, 0, placeholder)
+        # 合并整行显示提示文字
+        self.activity_table.setSpan(0, 0, 1, 4)
 
     def refresh(self):
         """从 dict_service / stats_service 获取数据并更新显示"""
@@ -133,19 +148,16 @@ class DashboardPage(QWidget):
             return
 
         try:
-            # 获取字表统计
+            # ── 统计卡片（来自 dict_service） ──
             chars = self.dict_service.get_characters()
             self.card_total_chars.set_value(str(len(chars) if chars else 0))
 
-            # 获取词表统计
             words = self.dict_service.get_all_words()
             self.card_total_words.set_value(str(len(words) if words else 0))
 
-            # 获取特殊表统计
             special = self.dict_service.get_special_chars()
             self.card_special.set_value(str(len(special) if special else 0))
 
-            # 计算平均码长
             if words:
                 total_length = sum(len(w.get("code", "")) for w in words if w.get("code"))
                 avg_length = total_length / len(words) if words else 0
@@ -153,8 +165,26 @@ class DashboardPage(QWidget):
             else:
                 self.card_avg_length.set_value("0")
 
+            # ── 图表数据（来自 stats_service） ──
+            if self.stats_service:
+                stats = self.stats_service.get_stats()
+                word_length_stats = stats.get("word_length_stats", {})
+                weight_stats = stats.get("weight_stats", {})
+
+                # 词长分布柱状图
+                length_dist = word_length_stats.get("length_distribution", {})
+                if length_dist:
+                    # 按键（词长）排序
+                    sorted_dist = dict(sorted(length_dist.items(), key=lambda x: int(x[0])))
+                    self.chart_word_length.update_data(sorted_dist, color_index=0)
+
+                # 权重区间分布饼图
+                weight_dist = weight_stats.get("weight_distribution", {})
+                if weight_dist:
+                    self.chart_weight_dist.update_data(weight_dist, color_index=2)
+
         except Exception as e:
-            print(f"Dashboard refresh error: {e}")
+            logger.error("Dashboard refresh error: %s", e, exc_info=True)
 
     def _apply_style(self):
         """应用主题感知的样式"""
