@@ -37,6 +37,7 @@ class ExportPanel(SettingsPanel):
         self.export_path_edit = QLineEdit()
         self.export_path_button = QPushButton("浏览")
         self.export_path_button.clicked.connect(self._browse_export_path)
+        self.export_path_button.setMaximumWidth(80)
 
         export_path_layout = QHBoxLayout()
         export_path_layout.addWidget(self.export_path_edit)
