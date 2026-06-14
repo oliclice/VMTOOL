@@ -82,17 +82,8 @@ class CodeRulesPanel(SettingsPanel):
     panel_description = "管理编码规则，支持普通模式和Python模式"
 
     def _setup_ui(self):
-        # 清理旧的子控件（如果存在）
-        while self._main_layout.count():
-            item = self._main_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
-            elif item.layout():
-                # 递归清理子布局
-                while item.layout().count():
-                    sub_item = item.layout().takeAt(0)
-                    if sub_item.widget():
-                        sub_item.widget().deleteLater()
+        # 递归清理旧的子控件
+        self._clear_layout(self._main_layout)
 
         # 规则选择
         rule_layout = QFormLayout()

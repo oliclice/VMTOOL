@@ -17,17 +17,8 @@ class ExportPanel(SettingsPanel):
     panel_description = "文件导出路径、格式和权重计算范围"
 
     def _setup_ui(self):
-        # 清理旧的子控件（如果存在）
-        while self._main_layout.count():
-            item = self._main_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
-            elif item.layout():
-                # 递归清理子布局
-                while item.layout().count():
-                    sub_item = item.layout().takeAt(0)
-                    if sub_item.widget():
-                        sub_item.widget().deleteLater()
+        # 递归清理旧的子控件
+        self._clear_layout(self._main_layout)
 
         # 主布局使用垂直布局
         main_form = QFormLayout()
