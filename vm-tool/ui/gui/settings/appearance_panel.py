@@ -11,8 +11,7 @@ from app.core.theme_constants import (
     THEME_NAME_CLASSIC, THEME_NAME_MATERIAL3, THEME_NAME_LINEAR,
     THEME_COLOR_BLUE, THEME_COLOR_GREEN,
     THEME_COLOR_RED, THEME_COLOR_PURPLE, THEME_COLOR_ORANGE,
-    MODE_DISPLAY_MAP, MODE_DISPLAY_REVERSE_MAP,
-    TAB_POSITION_DISPLAY_MAP, TAB_POSITION_DISPLAY_REVERSE_MAP
+    MODE_DISPLAY_MAP, MODE_DISPLAY_REVERSE_MAP
 )
 
 
@@ -69,19 +68,6 @@ class AppearancePanel(SettingsPanel):
         self.font_combo.addItems(font_families)
         layout.addRow("字体:", self.font_combo)
 
-        # 分隔线
-        separator_label2 = QLabel("")
-        separator_label2.setFixedHeight(1)
-        layout.addRow("", separator_label2)
-
-        # Tab栏位置
-        self.tab_position_combo = QComboBox()
-        self.tab_position_combo.addItems([
-            TAB_POSITION_DISPLAY_MAP["top"],
-            TAB_POSITION_DISPLAY_MAP["left"]
-        ])
-        layout.addRow("Tab栏位置:", self.tab_position_combo)
-
         self._main_layout.addLayout(layout)
 
         # 加载当前值
@@ -100,9 +86,6 @@ class AppearancePanel(SettingsPanel):
 
         # 字体信号
         self.font_combo.currentTextChanged.connect(self._on_font_changed)
-
-        # Tab栏位置信号
-        self.tab_position_combo.currentTextChanged.connect(self._on_tab_position_changed)
 
     def _load_current_values(self):
         """从 config_manager 加载当前值"""
@@ -127,11 +110,6 @@ class AppearancePanel(SettingsPanel):
         current_font = self._get_config("font_family", "")
         if current_font:
             self.font_combo.setCurrentText(current_font)
-
-        # Tab栏位置
-        current_tab_position = self._get_config("tab_position", "top")
-        display_tab_position = TAB_POSITION_DISPLAY_MAP.get(current_tab_position, "顶部")
-        self.tab_position_combo.setCurrentText(display_tab_position)
 
     def _on_theme_selection_changed(self):
         """主题选择变更处理（UI 交互）"""
@@ -183,18 +161,6 @@ class AppearancePanel(SettingsPanel):
             parent = parent.parent() if hasattr(parent, 'parent') else None
         if parent and hasattr(parent, 'show_toast'):
             parent.show_toast(f"字体已更改为: {font_family}")
-
-    def _on_tab_position_changed(self, display_position):
-        """Tab栏位置变更处理"""
-        internal_position = TAB_POSITION_DISPLAY_REVERSE_MAP.get(display_position, "top")
-        self._set_config("tab_position", internal_position)
-
-        # 显示提示
-        parent = self.parent()
-        while parent and not hasattr(parent, 'show_toast'):
-            parent = parent.parent() if hasattr(parent, 'parent') else None
-        if parent and hasattr(parent, 'show_toast'):
-            parent.show_toast(f"Tab栏位置已更改为: {display_position}")
 
     def _on_theme_changed(self, mode, name, color):
         """主题变更通知回调"""

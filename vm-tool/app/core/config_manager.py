@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 from app.core.theme_constants import (
     DEFAULT_THEME_MODE, DEFAULT_THEME_NAME, DEFAULT_THEME_COLOR,
     THEME_MODE_DARK, THEME_MODE_LIGHT, THEME_MODE_AUTO,
-    THEME_NAME_CLASSIC, THEME_COLOR_BLUE, DEFAULT_TAB_POSITION
+    THEME_NAME_CLASSIC, THEME_COLOR_BLUE
 )
 
 
@@ -33,7 +33,6 @@ class ConfigManager:
             "theme_mode": DEFAULT_THEME_MODE,
             "theme_name": DEFAULT_THEME_NAME,
             "theme_color": DEFAULT_THEME_COLOR,
-            "tab_position": DEFAULT_TAB_POSITION,
             "window_size": [1000, 700],
             "window_position": [100, 100],
             "config_dir": self.config_dir,

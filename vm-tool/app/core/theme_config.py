@@ -63,6 +63,29 @@ class ColorPalette:
     danger: str
     danger_hover: str
 
+    # 侧边栏
+    sidebar_bg: str = "#0c0d0e"
+    sidebar_text: str = "#8a8f98"
+    sidebar_text_active: str = "#f7f8f8"
+    sidebar_indicator: str = "#5e6ad2"
+
+    # 卡片
+    card_bg: str = "#191a1b"
+    card_border: str = "rgba(255,255,255,0.05)"
+    divider: str = "rgba(255,255,255,0.06)"
+
+    # 导航分组
+    nav_group_text: str = "#62666d"
+
+    # Toast
+    toast_bg: str = "#191a1b"
+    toast_border: str = "rgba(255,255,255,0.08)"
+
+    # 圆角
+    radius_sm: int = 4
+    radius_md: int = 6
+    radius_lg: int = 12
+
 
 @dataclass
 class ThemeDefinition:
@@ -158,6 +181,24 @@ def _create_linear_palette(theme_color: str, is_dark: bool) -> ColorPalette:
             success=_hex(*success_rgb),
             danger=_hex(*danger_rgb),
             danger_hover=_hex(*_lighten(*danger_rgb, 0.15)),
+            # 侧边栏
+            sidebar_bg="#0c0d0e",
+            sidebar_text="#8a8f98",
+            sidebar_text_active="#f7f8f8",
+            sidebar_indicator=accent,
+            # 卡片
+            card_bg="#191a1b",
+            card_border="rgba(255,255,255,0.05)",
+            divider="rgba(255,255,255,0.06)",
+            # 导航分组
+            nav_group_text="#62666d",
+            # Toast
+            toast_bg="#191a1b",
+            toast_border="rgba(255,255,255,0.08)",
+            # 圆角
+            radius_sm=4,
+            radius_md=6,
+            radius_lg=12,
         )
     else:
         return ColorPalette(
@@ -195,11 +236,29 @@ def _create_linear_palette(theme_color: str, is_dark: bool) -> ColorPalette:
             success=_hex(*_darken(*success_rgb, 0.1)),
             danger=_hex(*_darken(*danger_rgb, 0.1)),
             danger_hover=_hex(*_darken(*danger_rgb, 0.2)),
+            # 侧边栏
+            sidebar_bg="#f3f4f5",
+            sidebar_text="#62666d",
+            sidebar_text_active="#1a1b1e",
+            sidebar_indicator=accent,
+            # 卡片
+            card_bg="#ffffff",
+            card_border="rgba(0,0,0,0.08)",
+            divider="rgba(0,0,0,0.08)",
+            # 导航分组
+            nav_group_text="#8a8f98",
+            # Toast
+            toast_bg="#ffffff",
+            toast_border="rgba(0,0,0,0.10)",
+            # 圆角
+            radius_sm=4,
+            radius_md=6,
+            radius_lg=12,
         )
 
 
 def _create_classic_palette(theme_color: str, is_dark: bool) -> ColorPalette:
-    """创建经典/Material3 主题调色板"""
+    """创建经典主题调色板"""
     accent_rgb = _CLASSIC_ACCENT_RGB.get(theme_color, _CLASSIC_ACCENT_RGB[THEME_COLOR_BLUE])
     accent = _hex(*accent_rgb)
     accent_hover = _hex(*_lighten(*accent_rgb, 0.15))
@@ -240,6 +299,24 @@ def _create_classic_palette(theme_color: str, is_dark: bool) -> ColorPalette:
             success="#66BB6A",
             danger="#EF5350",
             danger_hover="#E53935",
+            # 侧边栏
+            sidebar_bg="#1e1e1e",
+            sidebar_text="#b0b0b0",
+            sidebar_text_active="#f0f0f0",
+            sidebar_indicator=accent,
+            # 卡片
+            card_bg="#333333",
+            card_border="#404040",
+            divider="#404040",
+            # 导航分组
+            nav_group_text="#666666",
+            # Toast
+            toast_bg="#424242",
+            toast_border="#505050",
+            # 圆角
+            radius_sm=4,
+            radius_md=6,
+            radius_lg=8,
         )
     else:
         return ColorPalette(
@@ -277,6 +354,177 @@ def _create_classic_palette(theme_color: str, is_dark: bool) -> ColorPalette:
             success="#4CAF50",
             danger="#F44336",
             danger_hover="#E53935",
+            # 侧边栏
+            sidebar_bg="#ffffff",
+            sidebar_text="#757575",
+            sidebar_text_active="#212121",
+            sidebar_indicator=accent,
+            # 卡片
+            card_bg="#ffffff",
+            card_border="#e0e0e0",
+            divider="#e0e0e0",
+            # 导航分组
+            nav_group_text="#9e9e9e",
+            # Toast
+            toast_bg="#ffffff",
+            toast_border="#e0e0e0",
+            # 圆角
+            radius_sm=4,
+            radius_md=6,
+            radius_lg=8,
+        )
+
+
+# ==================== M3 强调色映射 ====================
+_M3_ACCENT_MAP: Dict[str, str] = {
+    THEME_COLOR_BLUE: "#d0bcff",
+    THEME_COLOR_GREEN: "#a8e6a3",
+    THEME_COLOR_RED: "#ffb4ab",
+    THEME_COLOR_PURPLE: "#d0bcff",
+    THEME_COLOR_ORANGE: "#ffb59e",
+}
+
+_M3_ACCENT_HOVER_MAP: Dict[str, str] = {
+    THEME_COLOR_BLUE: "#e8def8",
+    THEME_COLOR_GREEN: "#c8f0c8",
+    THEME_COLOR_RED: "#ffdad6",
+    THEME_COLOR_PURPLE: "#e8def8",
+    THEME_COLOR_ORANGE: "#ffd0c0",
+}
+
+
+def _create_material3_palette(theme_color: str, is_dark: bool) -> ColorPalette:
+    """创建 Material Design 3 主题调色板
+
+    基于 M3 Design Tokens:
+    - Surface: #1c1b1f (dark) / #fef7ff (light)
+    - On-Surface: #e6e1e5 (dark) / #1c1b1f (light)
+    - Primary: #d0bcff (dark) / #6750a4 (light)
+    """
+    accent = _M3_ACCENT_MAP.get(theme_color, _M3_ACCENT_MAP[THEME_COLOR_BLUE])
+    accent_hover = _M3_ACCENT_HOVER_MAP.get(theme_color, _M3_ACCENT_HOVER_MAP[THEME_COLOR_BLUE])
+
+    if is_dark:
+        return ColorPalette(
+            # M3 Surface hierarchy
+            bg_primary="#1c1b1f",
+            bg_secondary="#25232a",
+            bg_elevated="#2b2930",
+            bg_hover="#343038",
+            bg_pressed="#3d3943",
+            bg_disabled="#201f24",
+            bg_selection="#332d3d",
+            bg_alternate="#25232a",
+            bg_tooltip="#2b2930",
+            bg_info="#25232a",
+            # M3 On-Surface
+            text_primary="#e6e1e5",
+            text_secondary="#cac4d0",
+            text_disabled="#938f99",
+            text_tooltip="#e6e1e5",
+            # M3 Outline
+            border_default="#49454f",
+            border_hover="#605d66",
+            border_disabled="#2b2930",
+            border_light="#333039",
+            # M3 State layers
+            rgba_border_subtle="rgba(230,224,233,0.06)",
+            rgba_border_standard="rgba(230,224,233,0.10)",
+            rgba_border_strong="rgba(230,224,233,0.15)",
+            rgba_border_disabled="rgba(230,224,233,0.04)",
+            rgba_surface="rgba(230,224,233,0.03)",
+            rgba_surface_hover="rgba(230,224,233,0.08)",
+            rgba_surface_strong="rgba(230,224,233,0.11)",
+            rgba_surface_disabled="rgba(230,224,233,0.03)",
+            rgba_surface_pressed="rgba(230,224,233,0.12)",
+            rgba_selection="rgba(208,188,255,0.16)",
+            rgba_info_bg="rgba(208,188,255,0.08)",
+            # M3 Primary
+            accent=accent,
+            accent_hover=accent_hover,
+            # M3 Status
+            success="#a8e6a3",
+            danger="#ffb4ab",
+            danger_hover="#ffdad6",
+            # 侧边栏
+            sidebar_bg="#1c1b1f",
+            sidebar_text="#cac4d0",
+            sidebar_text_active="#e6e1e5",
+            sidebar_indicator=accent,
+            # 卡片
+            card_bg="#2b2930",
+            card_border="rgba(230,224,233,0.10)",
+            divider="rgba(230,224,233,0.08)",
+            # 导航分组
+            nav_group_text="#938f99",
+            # Toast
+            toast_bg="#2b2930",
+            toast_border="rgba(230,224,233,0.12)",
+            # 圆角 (M3 偏大)
+            radius_sm=8,
+            radius_md=12,
+            radius_lg=16,
+        )
+    else:
+        return ColorPalette(
+            # M3 Light Surface hierarchy
+            bg_primary="#fef7ff",
+            bg_secondary="#f3edf7",
+            bg_elevated="#ffffff",
+            bg_hover="#f5eff7",
+            bg_pressed="#e8e0f0",
+            bg_disabled="#f7f2fa",
+            bg_selection="#eaddff",
+            bg_alternate="#f3edf7",
+            bg_tooltip="#49454f",
+            bg_info="#f3edf7",
+            # M3 On-Surface
+            text_primary="#1c1b1f",
+            text_secondary="#49454f",
+            text_disabled="#79747e",
+            text_tooltip="#ffffff",
+            # M3 Outline
+            border_default="#cac4d0",
+            border_hover="#938f99",
+            border_disabled="#e7e0ec",
+            border_light="#e7e0ec",
+            # M3 State layers
+            rgba_border_subtle="rgba(28,27,31,0.06)",
+            rgba_border_standard="rgba(28,27,31,0.10)",
+            rgba_border_strong="rgba(28,27,31,0.15)",
+            rgba_border_disabled="rgba(28,27,31,0.04)",
+            rgba_surface="rgba(28,27,31,0.03)",
+            rgba_surface_hover="rgba(28,27,31,0.06)",
+            rgba_surface_strong="rgba(28,27,31,0.08)",
+            rgba_surface_disabled="rgba(28,27,31,0.03)",
+            rgba_surface_pressed="rgba(28,27,31,0.10)",
+            rgba_selection="rgba(103,80,164,0.12)",
+            rgba_info_bg="rgba(103,80,164,0.06)",
+            # M3 Primary (light mode uses darker accent)
+            accent="#6750a4" if theme_color in (THEME_COLOR_BLUE, THEME_COLOR_PURPLE) else accent,
+            accent_hover="#7c6cb0" if theme_color in (THEME_COLOR_BLUE, THEME_COLOR_PURPLE) else accent_hover,
+            # M3 Status
+            success="#3a691c",
+            danger="#ba1a1a",
+            danger_hover="#8c1d1d",
+            # 侧边栏
+            sidebar_bg="#f3edf7",
+            sidebar_text="#49454f",
+            sidebar_text_active="#1c1b1f",
+            sidebar_indicator="#6750a4" if theme_color in (THEME_COLOR_BLUE, THEME_COLOR_PURPLE) else accent,
+            # 卡片
+            card_bg="#ffffff",
+            card_border="rgba(28,27,31,0.10)",
+            divider="rgba(28,27,31,0.08)",
+            # 导航分组
+            nav_group_text="#79747e",
+            # Toast
+            toast_bg="#ffffff",
+            toast_border="rgba(28,27,31,0.12)",
+            # 圆角
+            radius_sm=8,
+            radius_md=12,
+            radius_lg=16,
         )
 
 
@@ -294,8 +542,8 @@ _THEMES: Dict[str, ThemeDefinition] = {
     ),
     THEME_NAME_MATERIAL3: ThemeDefinition(
         name=THEME_NAME_MATERIAL3,
-        light=_create_classic_palette(THEME_COLOR_BLUE, False),
-        dark=_create_classic_palette(THEME_COLOR_BLUE, True),
+        light=_create_material3_palette(THEME_COLOR_BLUE, False),
+        dark=_create_material3_palette(THEME_COLOR_BLUE, True),
     ),
 }
 
@@ -317,15 +565,15 @@ class ThemeConfig:
             theme_mode: 主题模式 (light/dark/auto)
             theme_color: 主题颜色 (蓝色/绿色/红色/紫色/橙色)
         """
-        theme = cls.get_theme(theme_name)
+        is_dark = theme_mode == THEME_MODE_DARK
 
         # 根据主题名称选择基础调色板
         if theme_name == THEME_NAME_LINEAR:
-            base_palette = _create_linear_palette(theme_color, theme_mode == THEME_MODE_DARK)
+            return _create_linear_palette(theme_color, is_dark)
+        elif theme_name == THEME_NAME_MATERIAL3:
+            return _create_material3_palette(theme_color, is_dark)
         else:
-            base_palette = _create_classic_palette(theme_color, theme_mode == THEME_MODE_DARK)
-
-        return base_palette
+            return _create_classic_palette(theme_color, is_dark)
 
     @classmethod
     def get_qpalette(cls, theme_name: str, theme_mode: str, theme_color: str) -> QPalette:

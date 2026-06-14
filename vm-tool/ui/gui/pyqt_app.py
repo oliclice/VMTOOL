@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QTabWidget, QTableWidget, QTableWidgetItem, QPushButton, QLineEdit,
+    QStackedWidget, QTableWidget, QTableWidgetItem, QPushButton, QLineEdit,
     QLabel, QDialog, QFormLayout, QComboBox, QMessageBox, QFileDialog,
     QTreeWidget, QTreeWidgetItem, QSplitter, QStatusBar, QMenuBar, QMenu,
     QTextEdit, QGroupBox, QProgressBar, QCheckBox
@@ -26,7 +26,8 @@ from app.services.stats import StatsService
 from app.core.config_manager import config_manager
 from app.core.theme_constants import (
     THEME_MODE_DARK, THEME_MODE_LIGHT, THEME_MODE_AUTO,
-    THEME_NAME_CLASSIC, THEME_COLOR_BLUE, THEME_COLOR_GREEN,
+    THEME_NAME_CLASSIC, THEME_NAME_LINEAR, THEME_NAME_MATERIAL3,
+    THEME_COLOR_BLUE, THEME_COLOR_GREEN,
     THEME_COLOR_RED, THEME_COLOR_PURPLE, THEME_COLOR_ORANGE,
     COLOR_RGB_MAP
 )
@@ -41,6 +42,8 @@ from .tabs.words_tab import WordsTab
 from .tabs.stats_tab import StatsTab
 from .tabs.import_export_tab import ImportExportTab
 from .progress_bar import ProgressBarWidget
+from .widgets.sidebar_nav import SidebarNav
+from .widgets.dashboard_page import DashboardPage
 
 
 class VMTOOLPyQtApp(QMainWindow):
@@ -51,7 +54,8 @@ class VMTOOLPyQtApp(QMainWindow):
         super().__init__()
 
         self.setWindowTitle("VM-TOOL - 码表处理工具")
-        self.resize(1200, 800)  # 设置初始窗口大小
+        self.resize(1200, 800)
+        self.setMinimumSize(900, 600)
 
         # 加载配置
         self.load_config()
@@ -62,6 +66,8 @@ class VMTOOLPyQtApp(QMainWindow):
 
         # 主布局
         self.main_layout = QVBoxLayout(self.central_widget)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout.setSpacing(0)
 
         # 创建菜单栏
         self.create_menu_bar()
@@ -92,8 +98,8 @@ class VMTOOLPyQtApp(QMainWindow):
         self.filter_service = FilterService()
         self.stats_service = StatsService()
 
-        # 创建标签页（数据库和服务都已就绪）
-        self.create_tab_widget()
+        # 创建侧边栏和内容区（数据库和服务都已就绪）
+        self.create_sidebar_and_content()
 
         # 设置主题（放在最后，避免影响组件创建）
         theme_mode = config_manager.get("theme_mode", THEME_MODE_AUTO)
@@ -102,9 +108,6 @@ class VMTOOLPyQtApp(QMainWindow):
 
         # 注册到主题管理器
         theme_manager.register_widget(self)
-
-        # 注册 tab widget 用于主题变更回调
-        theme_manager.register_widget(self.tab_widget, callback=self._on_tab_theme_changed)
 
         # 初始主题设置
         self.set_theme(theme_mode, theme_name, theme_color)
@@ -118,7 +121,6 @@ class VMTOOLPyQtApp(QMainWindow):
             screen = QGuiApplication.primaryScreen()
             if screen:
                 screen_geometry = screen.geometry()
-                # 将窗口移动到屏幕中心
                 x = (screen_geometry.width() - 1200) // 2
                 y = (screen_geometry.height() - 800) // 2
                 self.move(max(0, x), max(0, y))
@@ -150,10 +152,39 @@ class VMTOOLPyQtApp(QMainWindow):
             self.setPalette(palette)
             apply_theme_to_widget(self, palette)
 
+            # 应用 QSS 样式表 (Linear 或 Material3)
+            self._apply_theme_stylesheet(theme_name, theme_mode, theme_color)
+
             # 更新主题管理器（这会触发 theme_changed 信号通知所有注册的组件）
             theme_manager.set_theme(theme_mode, theme_name, theme_color)
         except Exception as e:
             logger.error(f"[GUI-Theme] 主题设置失败: {e}", exc_info=True)
+
+    def _apply_theme_stylesheet(self, theme_name, theme_mode, theme_color):
+        """应用主题 QSS 样式表"""
+        from app.core.theme_config import ThemeConfig
+
+        if theme_name == THEME_NAME_LINEAR:
+            # Linear 主题使用 QSS
+            palette = ThemeConfig.get_palette(theme_name, theme_mode, theme_color)
+            from .styles import load_linear_theme_qss
+            qss = load_linear_theme_qss(theme_mode, theme_color)
+            from .styles.theme_variables import resolve_qss_variables
+            qss = resolve_qss_variables(qss, palette)
+            QApplication.instance().setStyleSheet(qss)
+        elif theme_name == THEME_NAME_MATERIAL3:
+            # Material3 主题使用 QSS
+            palette = ThemeConfig.get_palette(theme_name, theme_mode, theme_color)
+            from .styles.theme_variables import resolve_qss_variables
+            import os
+            qss_path = os.path.join(os.path.dirname(__file__), "styles", "material_theme.qss")
+            with open(qss_path, "r", encoding="utf-8") as f:
+                qss = f.read()
+            qss = resolve_qss_variables(qss, palette)
+            QApplication.instance().setStyleSheet(qss)
+        else:
+            # 经典主题不使用 QSS，仅依赖 QPalette
+            QApplication.instance().setStyleSheet("")
 
     def on_theme_changed(self, theme_mode, theme_name, theme_color):
         """处理主题变更信号 - 仅应用主题，不重复调用 set_theme"""
@@ -174,8 +205,9 @@ class VMTOOLPyQtApp(QMainWindow):
 
             self.setPalette(palette)
             apply_theme_to_widget(self, palette)
-            # 重新同步侧边栏 tab bar 样式（apply_theme_to_widget 会清除动态 QSS）
-            self._sync_tab_theme()
+
+            # 应用 QSS 样式表
+            self._apply_theme_stylesheet(theme_name, theme_mode, theme_color)
         except Exception as e:
             logger.error(f"[GUI-Theme] 主题设置失败: {e}", exc_info=True)
 
@@ -304,82 +336,108 @@ class VMTOOLPyQtApp(QMainWindow):
         about_action.triggered.connect(self.show_about)
         help_menu.addAction(about_action)
 
-    def create_tab_widget(self):
-        """创建标签页"""
+    def create_sidebar_and_content(self):
+        """创建侧边栏导航和内容区"""
         from app.core.theme_constants import TAB_ICONS
 
-        self.tab_widget = QTabWidget()
-        self.main_layout.addWidget(self.tab_widget, 1)
+        # 创建 QSplitter 作为主容器
+        self.splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.splitter.setHandleWidth(1)
 
-        tabs = [
-            (CharsTab(parent=self, dict_service=self.dict_service), TAB_ICONS["chars"] + " 字表管理"),
-            (SpecialTab(parent=self, dict_service=self.dict_service), TAB_ICONS["special"] + " 特殊表管理"),
-            (WordsTab(parent=self, dict_service=self.dict_service), TAB_ICONS["words"] + " 词表管理"),
-            (StatsTab(parent=self, stats_service=self.stats_service), TAB_ICONS["stats"] + " 统计分析"),
-            (ImportExportTab(parent=self, filter_service=self.filter_service, dict_service=self.dict_service), TAB_ICONS["import_export"] + " 导入导出"),
-            (CodeRulesTab(parent=self, dict_service=self.dict_service), TAB_ICONS["code_rules"] + " 编码规则"),
-        ]
+        # 创建侧边栏导航
+        self.sidebar_nav = SidebarNav()
+        self.sidebar_nav.setMinimumWidth(200)
+        self.sidebar_nav.setMaximumWidth(300)
+        self.splitter.addWidget(self.sidebar_nav)
 
-        self.chars_tab = tabs[0][0]
-        self.special_tab = tabs[1][0]
-        self.words_tab = tabs[2][0]
-        self.stats_tab = tabs[3][0]
-        self.import_export_tab = tabs[4][0]
-        self.code_rules_tab = tabs[5][0]
+        # 创建内容区 (QStackedWidget)
+        self.content_stack = QStackedWidget()
+        self.splitter.addWidget(self.content_stack)
 
-        for widget, label in tabs:
-            self.tab_widget.addTab(widget, label)
+        # 设置默认比例 220:980
+        self.splitter.setSizes([220, 980])
+        self.main_layout.addWidget(self.splitter, 1)
 
-        # 设置标签页
-        settings_tab = QWidget()
-        self.tab_widget.addTab(settings_tab, TAB_ICONS["settings"] + " 设置")
-        self._settings_tab_widget = settings_tab
-        self.create_settings_tab(settings_tab)
+        # 创建页面并添加到侧边栏
+        # [0] Dashboard
+        dashboard_page = DashboardPage(
+            parent=self,
+            dict_service=self.dict_service,
+            stats_service=self.stats_service
+        )
+        self.content_stack.addWidget(dashboard_page)
+        self.sidebar_nav.add_group("概览")
+        self.sidebar_nav.add_item("📊", "首页", 0)
 
-        # 应用 tab 栏位置配置（仅 setTabPosition，不替换 TabBar）
-        tab_position = config_manager.get("tab_position", "top")
-        self._apply_tab_position(tab_position)
+        # [1] 字表管理
+        self.chars_tab = CharsTab(parent=self, dict_service=self.dict_service)
+        self.content_stack.addWidget(self.chars_tab)
 
-        # 连接设置变更信号 + 初始主题同步
-        self._connect_settings_signals()
-        self._sync_tab_theme()
+        # [2] 特殊表管理
+        self.special_tab = SpecialTab(parent=self, dict_service=self.dict_service)
+        self.content_stack.addWidget(self.special_tab)
 
-    def _apply_tab_position(self, position: str):
-        """应用 tab 栏位置 — 使用内置 QTabBar，仅切换位置，不重建"""
-        if position == "left":
-            self.tab_widget.setTabPosition(QTabWidget.TabPosition.West)
-            self.tab_widget.tabBar().setObjectName("sidebarTabBar")
-        else:
-            self.tab_widget.setTabPosition(QTabWidget.TabPosition.North)
-            self.tab_widget.tabBar().setObjectName("topTabBar")
+        # [3] 词表管理
+        self.words_tab = WordsTab(parent=self, dict_service=self.dict_service)
+        self.content_stack.addWidget(self.words_tab)
 
-        # 重新应用 QSS 样式
-        self._sync_tab_theme()
-        self.tab_widget.updateGeometry()
-        self.tab_widget.update()
+        self.sidebar_nav.add_group("数据管理")
+        self.sidebar_nav.add_item(TAB_ICONS["chars"], "字表管理", 1)
+        self.sidebar_nav.add_item(TAB_ICONS["special"], "特殊表管理", 2)
+        self.sidebar_nav.add_item(TAB_ICONS["words"], "词表管理", 3)
 
-    def _sync_tab_theme(self):
-        """同步 tab 栏主题样式 — 直接作用于内置 QTabBar"""
-        if self.tab_widget.tabPosition() != QTabWidget.TabPosition.West:
-            return
-        from .theme_sync import theme_sync
-        theme_sync.sync_tab_bar(self.tab_widget.tabBar())
+        # [4] 统计分析
+        self.stats_tab = StatsTab(parent=self, stats_service=self.stats_service)
+        self.content_stack.addWidget(self.stats_tab)
 
-    def _on_tab_theme_changed(self, mode, name, color):
-        """主题变更时重新同步 tab bar 样式"""
-        self._sync_tab_theme()
+        # [5] 导入导出
+        self.import_export_tab = ImportExportTab(
+            parent=self,
+            filter_service=self.filter_service,
+            dict_service=self.dict_service
+        )
+        self.content_stack.addWidget(self.import_export_tab)
 
-    def _connect_settings_signals(self):
-        """连接设置面板的信号"""
-        # 查找 AppearancePanel 并连接其 settings_changed 信号
-        settings_tab = self._settings_tab_widget
-        if settings_tab:
-            # 在 settings_tab 中查找 AppearancePanel
-            appearance_panel = settings_tab.findChild(QWidget, "外观设置")
-            if appearance_panel:
-                appearance_panel.settings_changed.connect(self._on_settings_changed)
+        # [6] 编码规则
+        self.code_rules_tab = CodeRulesTab(parent=self, dict_service=self.dict_service)
+        self.content_stack.addWidget(self.code_rules_tab)
 
-    def _on_settings_changed(self, key: str, value):
-        """设置变更处理"""
-        if key == "tab_position":
-            self._apply_tab_position(value)
+        self.sidebar_nav.add_group("工具")
+        self.sidebar_nav.add_item(TAB_ICONS["stats"], "统计分析", 4)
+        self.sidebar_nav.add_item(TAB_ICONS["import_export"], "导入导出", 5)
+        self.sidebar_nav.add_item(TAB_ICONS["code_rules"], "编码规则", 6)
+
+        # 分隔线
+        self.sidebar_nav.add_separator()
+
+        # [7] 设置
+        settings_tab = SettingsTab(parent=self, dict_service=self.dict_service)
+        self.content_stack.addWidget(settings_tab)
+
+        self.sidebar_nav.add_item(TAB_ICONS["settings"], "设置", 7)
+
+        # 添加版本号到侧边栏底部
+        from PyQt6.QtWidgets import QSizePolicy
+        version_label = QLabel("v1.0.0")
+        version_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        version_label.setStyleSheet("font-size: 10px; color: #62666d; padding: 8px;")
+        self.sidebar_nav.add_bottom_widget(version_label)
+
+        # 连接信号
+        self.sidebar_nav.nav_changed.connect(self._on_nav_changed)
+
+        # 设置默认选中首页
+        self.sidebar_nav.set_active(0)
+        self.content_stack.setCurrentIndex(0)
+
+        # 刷新仪表盘数据
+        dashboard_page.refresh()
+
+    def _on_nav_changed(self, page_index: int):
+        """导航切换处理"""
+        self.content_stack.setCurrentIndex(page_index)
+        # 如果切换到仪表盘，刷新数据
+        if page_index == 0:
+            dashboard = self.content_stack.widget(0)
+            if hasattr(dashboard, 'refresh'):
+                dashboard.refresh()
