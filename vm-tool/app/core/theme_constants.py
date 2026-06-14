@@ -45,24 +45,10 @@ DEFAULT_THEME_MODE = THEME_MODE_AUTO
 DEFAULT_THEME_NAME = THEME_NAME_CLASSIC
 DEFAULT_THEME_COLOR = THEME_COLOR_BLUE
 
-# Tab位置常量
-TAB_POSITION_TOP = "top"
-TAB_POSITION_LEFT = "left"
-
-# Tab位置显示名称映射
-TAB_POSITION_DISPLAY_MAP = {
-    TAB_POSITION_TOP: "顶部",
-    TAB_POSITION_LEFT: "左侧"
-}
-
-# 反向映射
-TAB_POSITION_DISPLAY_REVERSE_MAP = {
-    "顶部": TAB_POSITION_TOP,
-    "左侧": TAB_POSITION_LEFT
-}
-
-# 默认Tab位置
-DEFAULT_TAB_POSITION = TAB_POSITION_TOP
+# 侧边栏宽度
+SIDEBAR_WIDTH_DEFAULT = 220
+SIDEBAR_WIDTH_MIN = 200
+SIDEBAR_WIDTH_MAX = 300
 
 # Tab 图标映射 (Unicode 字符)
 TAB_ICONS: dict[str, str] = {
@@ -76,7 +62,7 @@ TAB_ICONS: dict[str, str] = {
 }
 
 # Tab 分组定义: {tab_index: group_label}
-# tab_index 对应 addTab 的顺序:
+# tab_index 对应导航的顺序:
 #   0: chars, 1: special, 2: words, 3: stats, 4: import_export, 5: code_rules, 6: settings
 TAB_GROUPS: dict[int, str] = {
     0: "数据管理",   # tabs 0-2

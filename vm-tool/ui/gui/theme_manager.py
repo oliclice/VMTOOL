@@ -1,12 +1,14 @@
 """主题管理器，统一处理主题变更和应用"""
 import logging
+import os
 from PyQt6.QtCore import QObject, pyqtSignal
 from PyQt6.QtWidgets import QApplication
 from typing import Tuple
 
 from app.core.theme_constants import (
     THEME_MODE_AUTO, THEME_MODE_LIGHT, THEME_MODE_DARK,
-    THEME_NAME_CLASSIC, THEME_NAME_LINEAR, THEME_COLOR_BLUE
+    THEME_NAME_CLASSIC, THEME_NAME_LINEAR, THEME_NAME_MATERIAL3,
+    THEME_COLOR_BLUE
 )
 from app.core.theme_config import ThemeConfig
 from .theme_utils import get_theme_stylesheet
@@ -74,7 +76,7 @@ class ThemeManager(QObject):
 
         app.setPalette(palette)
 
-        # Linear 主题使用 QSS 样式表，其他主题需要清除 QSS
+        # 根据主题名称选择 QSS 样式表
         if self.current_theme_name == THEME_NAME_LINEAR:
             qss = get_theme_stylesheet(
                 self.current_theme_mode,
@@ -83,8 +85,21 @@ class ThemeManager(QObject):
             )
             if qss:
                 app.setStyleSheet(qss)
+        elif self.current_theme_name == THEME_NAME_MATERIAL3:
+            # Material3 主题使用 QSS
+            palette_obj = ThemeConfig.get_palette(
+                self.current_theme_name,
+                self.current_theme_mode,
+                self.current_theme_color
+            )
+            from .styles.theme_variables import resolve_qss_variables
+            qss_path = os.path.join(os.path.dirname(__file__), "styles", "material_theme.qss")
+            with open(qss_path, "r", encoding="utf-8") as f:
+                qss = f.read()
+            qss = resolve_qss_variables(qss, palette_obj)
+            app.setStyleSheet(qss)
         else:
-            # 从 Linear 切换到其他主题时，清除 QSS 样式表
+            # 经典主题不使用 QSS，仅依赖 QPalette
             app.setStyleSheet("")
 
         # 更新所有顶级窗口
