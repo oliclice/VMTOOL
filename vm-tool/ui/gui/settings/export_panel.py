@@ -1,5 +1,7 @@
 """导出设置面板 - 合并文件配置和权重计算设置"""
 
+import os
+
 from PyQt6.QtWidgets import QFormLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout
 from PyQt6.QtWidgets import QComboBox, QCheckBox, QFileDialog
 from PyQt6.QtCore import Qt
@@ -96,6 +98,9 @@ class ExportPanel(SettingsPanel):
         info_label.setWordWrap(True)
         self._main_layout.addWidget(info_label)
 
+        # Rime 自动导出设置
+        self._setup_rime_auto_export(palette)
+
         # 加载当前值
         self._load_current_values()
 
@@ -161,6 +166,69 @@ class ExportPanel(SettingsPanel):
         self.weight_words_checkbox.setChecked(self._get_config("weight_calc_words", True))
         self.weight_chars_checkbox.setChecked(self._get_config("weight_calc_chars", False))
         self.weight_special_checkbox.setChecked(self._get_config("weight_calc_special", False))
+
+        # Rime 自动导出
+        self._load_rime_auto_export()
+
+    def _setup_rime_auto_export(self, palette):
+        """设置 Rime 自动导出开关（ibus/fcitx5）"""
+        ibus_rime_path = os.path.expanduser("~/.config/ibus/rime")
+        fcitx5_rime_path = os.path.expanduser("~/.local/share/fcitx5/rime")
+
+        ibus_exists = os.path.exists(ibus_rime_path)
+        fcitx5_exists = os.path.exists(fcitx5_rime_path)
+
+        if not ibus_exists and not fcitx5_exists:
+            # 两个路径都不存在，不显示此部分
+            return
+
+        # 分隔线
+        separator = QLabel("")
+        separator.setFixedHeight(1)
+        separator.setStyleSheet(f"background-color: {palette.border_default};")
+        self._main_layout.addWidget(separator)
+
+        # Rime 自动导出标题
+        rime_label = QLabel("Rime 自动导出:")
+        rime_label.setStyleSheet(f"font-weight: bold; color: {palette.text_primary};")
+        self._main_layout.addWidget(rime_label)
+
+        # ibus/rime 开关
+        if ibus_exists:
+            self.ibus_rime_checkbox = QCheckBox(f"自动导出到 ibus/rime 目录 ({ibus_rime_path})")
+            self.ibus_rime_checkbox.stateChanged.connect(
+                lambda state: self._set_config(
+                    "auto_export_ibus_rime", state == Qt.CheckState.Checked.value
+                )
+            )
+            self._main_layout.addWidget(self.ibus_rime_checkbox)
+
+        # fcitx5/rime 开关
+        if fcitx5_exists:
+            self.fcitx5_rime_checkbox = QCheckBox(f"自动导出到 fcitx5/rime 目录 ({fcitx5_rime_path})")
+            self.fcitx5_rime_checkbox.stateChanged.connect(
+                lambda state: self._set_config(
+                    "auto_export_fcitx5_rime", state == Qt.CheckState.Checked.value
+                )
+            )
+            self._main_layout.addWidget(self.fcitx5_rime_checkbox)
+
+        # 提示信息
+        rime_info = QLabel("勾选后，导出词表时将自动复制到对应 Rime 目录，无需手动操作。")
+        rime_info.setStyleSheet(f"color: {palette.text_secondary}; font-size: 11px;")
+        rime_info.setWordWrap(True)
+        self._main_layout.addWidget(rime_info)
+
+    def _load_rime_auto_export(self):
+        """加载 Rime 自动导出开关状态"""
+        if hasattr(self, 'ibus_rime_checkbox'):
+            self.ibus_rime_checkbox.setChecked(
+                self._get_config("auto_export_ibus_rime", False)
+            )
+        if hasattr(self, 'fcitx5_rime_checkbox'):
+            self.fcitx5_rime_checkbox.setChecked(
+                self._get_config("auto_export_fcitx5_rime", False)
+            )
 
     def _browse_export_path(self):
         """浏览选择导出目录"""
