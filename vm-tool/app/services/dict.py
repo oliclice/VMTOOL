@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 
 class DictService:
     """码表词条服务"""
-    
-    def __init__(self, db: Optional[Session] = None):
+
+    def __init__(self, db: Optional[Session] = None, on_data_changed: Optional[Callable[[], None]] = None):
         if db:
             self.db = db
         else:
@@ -25,6 +25,16 @@ class DictService:
         self.code_generator = CodeGenerator()
         # 设置为使用自定义规则，这样会使用GUI中指定的默认规则
         self.code_generator.set_config({'rule': 'custom'})
+        # 数据变更回调（用于清除统计缓存等）
+        self._on_data_changed = on_data_changed
+
+    def _notify_data_changed(self):
+        """通知数据已变更，触发缓存清除等后续操作"""
+        if self._on_data_changed:
+            try:
+                self._on_data_changed()
+            except Exception as e:
+                logger.warning(f"数据变更通知失败: {e}")
     
     @cache.decorator()
     def get_word(self, word: str) -> Optional[Dict[str, Any]]:
@@ -183,6 +193,7 @@ class DictService:
                 is_character = len(word) == 1
             
             db_word = self.repo.create(word, code, weight, is_character, is_special, manual)
+            self._notify_data_changed()
             return {
                 "word": db_word.word,
                 "code": db_word.code,
@@ -279,6 +290,7 @@ class DictService:
                     progress_callback(60, "开始批量创建...")
                 # 调用批量创建方法
                 self.repo.bulk_create(valid_words)
+                self._notify_data_changed()
                 if progress_callback:
                     progress_callback(100, "批量创建完成")
 
@@ -326,6 +338,7 @@ class DictService:
             
             # 更新词条
             updated = self.repo.update(db_word.id, **kwargs)
+            self._notify_data_changed()
             return {
                 "word": updated.word,
                 "code": updated.code,
@@ -346,19 +359,21 @@ class DictService:
             if not db_word:
                 raise DictError(f"词条 '{word}' 不存在")
             
-            return self.repo.delete(db_word.id)
+            result = self.repo.delete(db_word.id)
+            self._notify_data_changed()
+            return result
         except DictError:
             raise
         except Exception as e:
             logger.error(f"删除词条失败: {e}")
             raise DictError(f"删除词条失败: {e}")
-    
+
     def delete_words(self, words: List[str]) -> Dict[str, Any]:
         """批量删除词条"""
         try:
             deleted = 0
             not_found = []
-            
+
             for word in words:
                 db_word = self.repo.get_by_word(word)
                 if db_word:
@@ -366,7 +381,10 @@ class DictService:
                     deleted += 1
                 else:
                     not_found.append(word)
-            
+
+            if deleted > 0:
+                self._notify_data_changed()
+
             return {
                 "deleted": deleted,
                 "not_found": len(not_found),
@@ -439,7 +457,8 @@ class DictService:
             
             # 提交事务
             self.db.commit()
-            
+            self._notify_data_changed()
+
             return {"deleted": result.rowcount}
         except DictError:
             self.db.rollback()
@@ -587,7 +606,8 @@ class DictService:
                 
                 # 提交更改
                 self.db.commit()
-                
+                self._notify_data_changed()
+
                 if progress_callback:
                     progress_callback(100, "计算完成")
                 
@@ -649,13 +669,14 @@ class DictService:
             
             if progress_callback:
                 progress_callback(70, "提交事务...")
-            
+
             # 提交事务
             self.db.commit()
-            
+            self._notify_data_changed()
+
             if progress_callback:
                 progress_callback(100, "更新完成")
-            
+
             return {"updated": result.rowcount}
         except DictError:
             self.db.rollback()
@@ -745,6 +766,7 @@ class DictService:
             if to_delete:
                 try:
                     deleted = self.repo.bulk_delete(to_delete)
+                    self._notify_data_changed()
                     logger.info(f"自动去重: 实际删除 {deleted} 条")
                 except Exception as e:
                     errors = len(to_delete)

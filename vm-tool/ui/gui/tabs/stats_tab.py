@@ -59,7 +59,7 @@ class StatsTab(QWidget):
         btn_row = QHBoxLayout()
         btn_row.addStretch()
         self._refresh_btn = QPushButton("🔄 刷新统计")
-        self._refresh_btn.clicked.connect(self.refresh_stats)
+        self._refresh_btn.clicked.connect(lambda: self.refresh_stats(force=True))
         btn_row.addWidget(self._refresh_btn)
         layout.addLayout(btn_row)
 
@@ -198,12 +198,18 @@ class StatsTab(QWidget):
 
     # ── 数据刷新 ────────────────────────────────────────
 
-    def refresh_stats(self):
-        """刷新统计数据"""
+    def refresh_stats(self, force: bool = False):
+        """刷新统计数据
+
+        Args:
+            force: 为 True 时清除缓存强制重新计算，默认使用缓存
+        """
         if not self.stats_service:
             return
 
         try:
+            if force:
+                self.stats_service.clear_cache()
             stats = self.stats_service.get_stats()
             word_length_stats = stats.get("word_length_stats", {})
             code_stats = stats.get("code_stats", {})

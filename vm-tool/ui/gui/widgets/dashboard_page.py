@@ -50,7 +50,7 @@ class DashboardPage(QWidget):
         self.refresh_btn = QPushButton("刷新")
         self.refresh_btn.setProperty("cssClass", "primary")
         self.refresh_btn.setFixedWidth(80)
-        self.refresh_btn.clicked.connect(self.refresh)
+        self.refresh_btn.clicked.connect(self._on_refresh_clicked)
         header_layout.addWidget(self.refresh_btn)
 
         main_layout.addLayout(header_layout)
@@ -142,46 +142,52 @@ class DashboardPage(QWidget):
         # 合并整行显示提示文字
         self.activity_table.setSpan(0, 0, 1, 4)
 
+    def _on_refresh_clicked(self):
+        """用户手动刷新：清除缓存后强制重新计算"""
+        if self.stats_service:
+            self.stats_service.clear_cache()
+        self.refresh()
+
     def refresh(self):
-        """从 dict_service / stats_service 获取数据并更新显示"""
-        if not self.dict_service:
+        """从 stats_service 共享缓存获取数据并更新显示
+
+        统计卡片和图表均从 stats_service.get_stats() 的缓存结果中取值，
+        与统计分析页共用同一份缓存，避免重复查询数据库。
+        """
+        if not self.stats_service:
             return
 
         try:
-            # ── 统计卡片（来自 dict_service） ──
-            chars = self.dict_service.get_characters()
-            self.card_total_chars.set_value(str(len(chars) if chars else 0))
+            # ── 统计卡片 + 图表（来自 stats_service 缓存） ──
+            stats = self.stats_service.get_stats()
+            word_length_stats = stats.get("word_length_stats", {})
+            code_stats = stats.get("code_stats", {})
+            weight_stats = stats.get("weight_stats", {})
 
-            words = self.dict_service.get_all_words()
-            self.card_total_words.set_value(str(len(words) if words else 0))
+            # 统计卡片
+            total_words = word_length_stats.get("total_words", 0)
+            total_chars = word_length_stats.get("total_chars", 0)
+            avg_code_length = word_length_stats.get("average_code_length", 0)
+            # 特殊字符数从字表中获取（不在 stats_service 统计范围内）
+            special = self.dict_service.get_special_chars() if self.dict_service else []
 
-            special = self.dict_service.get_special_chars()
+            self.card_total_words.set_value(str(total_words))
+            self.card_total_chars.set_value(str(total_chars))
             self.card_special.set_value(str(len(special) if special else 0))
+            self.card_avg_length.set_value(
+                f"{avg_code_length:.2f}" if avg_code_length else "0"
+            )
 
-            if words:
-                total_length = sum(len(w.get("code", "")) for w in words if w.get("code"))
-                avg_length = total_length / len(words) if words else 0
-                self.card_avg_length.set_value(f"{avg_length:.1f}")
-            else:
-                self.card_avg_length.set_value("0")
+            # 词长分布柱状图
+            length_dist = word_length_stats.get("length_distribution", {})
+            if length_dist:
+                sorted_dist = dict(sorted(length_dist.items(), key=lambda x: int(x[0])))
+                self.chart_word_length.update_data(sorted_dist, color_index=0)
 
-            # ── 图表数据（来自 stats_service） ──
-            if self.stats_service:
-                stats = self.stats_service.get_stats()
-                word_length_stats = stats.get("word_length_stats", {})
-                weight_stats = stats.get("weight_stats", {})
-
-                # 词长分布柱状图
-                length_dist = word_length_stats.get("length_distribution", {})
-                if length_dist:
-                    # 按键（词长）排序
-                    sorted_dist = dict(sorted(length_dist.items(), key=lambda x: int(x[0])))
-                    self.chart_word_length.update_data(sorted_dist, color_index=0)
-
-                # 权重区间分布饼图
-                weight_dist = weight_stats.get("weight_distribution", {})
-                if weight_dist:
-                    self.chart_weight_dist.update_data(weight_dist, color_index=2)
+            # 权重区间分布饼图
+            weight_dist = weight_stats.get("weight_distribution", {})
+            if weight_dist:
+                self.chart_weight_dist.update_data(weight_dist, color_index=2)
 
         except Exception as e:
             logger.error("Dashboard refresh error: %s", e, exc_info=True)

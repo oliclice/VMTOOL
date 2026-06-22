@@ -3,6 +3,7 @@ from typing import List, Dict, Any, Optional
 from collections import Counter, defaultdict
 from sqlalchemy.orm import Session
 import logging
+import time
 
 from app.dal.repositories import WordRepository
 from app.dal.database import get_db
@@ -15,12 +16,16 @@ logger = logging.getLogger(__name__)
 class StatsService:
     """统计和分析服务"""
 
-    def __init__(self, db: Optional[Session] = None):
+    def __init__(self, db: Optional[Session] = None, cache_ttl: int = 300):
         if db:
             self.db = db
         else:
             self.db = next(get_db())
         self.repo = WordRepository(self.db)
+        # 统计结果缓存
+        self._stats_cache: Optional[Dict[str, Any]] = None
+        self._cache_timestamp: float = 0
+        self._cache_ttl = cache_ttl  # 默认 5 分钟
 
     def get_word_length_stats(self) -> Dict[str, Any]:
         """获取词长统计"""
@@ -39,12 +44,17 @@ class StatsService:
                 if word.is_special:
                     total_special += 1
 
+            # 平均编码长度（与统计界面一致）
+            total_code_length = sum(len(word.code) for word in word_list)
+            average_code_length = total_code_length / len(word_list) if word_list else 0
+
             return {
                 "total_words": len(word_list),
                 "total_chars": total_chars,
                 "total_special": total_special,
                 "length_distribution": dict(length_counter),
-                "average_length": sum(len(word.word) for word in word_list) / len(word_list) if word_list else 0
+                "average_length": sum(len(word.word) for word in word_list) / len(word_list) if word_list else 0,
+                "average_code_length": average_code_length
             }
         except Exception as e:
             logger.error(f"获取词长统计失败: {e}")
@@ -117,16 +127,33 @@ class StatsService:
             raise DictError(f"检测编码冲突失败: {e}")
 
     def get_stats(self) -> Dict[str, Any]:
-        """获取所有统计数据"""
+        """获取所有统计数据（带缓存）
+
+        Dashboard 和 StatsTab 共享同一份缓存结果，
+        避免重复查询数据库。缓存默认 5 分钟过期。
+        """
+        now = time.monotonic()
+        if self._stats_cache is not None and (now - self._cache_timestamp) < self._cache_ttl:
+            logger.debug("使用统计数据缓存 (age=%.1fs)", now - self._cache_timestamp)
+            return self._stats_cache
+
         try:
-            return {
+            self._stats_cache = {
                 "word_length_stats": self.get_word_length_stats(),
                 "code_stats": self.get_code_stats(),
                 "weight_stats": self.get_weight_stats()
             }
+            self._cache_timestamp = now
+            return self._stats_cache
         except Exception as e:
             logger.error(f"获取统计数据失败: {e}")
             raise DictError(f"获取统计数据失败: {e}")
+
+    def clear_cache(self):
+        """清除统计缓存，下次 get_stats() 将重新计算"""
+        self._stats_cache = None
+        self._cache_timestamp = 0
+        logger.debug("统计缓存已清除")
 
     def get_weight_stats(self) -> Dict[str, Any]:
         """获取权重统计"""

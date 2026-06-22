@@ -93,10 +93,10 @@ class VMTOOLPyQtApp(QMainWindow):
             return
 
         # 初始化服务（数据库已就绪）
-        self.dict_service = DictService()
+        self.stats_service = StatsService()
+        self.dict_service = DictService(on_data_changed=self.stats_service.clear_cache)
         self.weight_calc = WeightCalculator()
         self.filter_service = FilterService()
-        self.stats_service = StatsService()
 
         # 创建侧边栏和内容区（数据库和服务都已就绪）
         self.create_sidebar_and_content()
