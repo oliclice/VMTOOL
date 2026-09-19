@@ -95,13 +95,19 @@ def write_launcher(python: Path) -> Path | None:
         return None
 
     bin_dir = Path.home() / ".local" / "bin"
-    bin_dir.mkdir(parents=True, exist_ok=True)
     launcher = bin_dir / LAUNCHER_NAME
-    launcher.write_text(
-        _LAUNCHER_TEMPLATE.format(root=PROJECT_ROOT, python=python, name=LAUNCHER_NAME),
-        encoding="utf-8",
+    content = _LAUNCHER_TEMPLATE.format(
+        root=PROJECT_ROOT, python=python, name=LAUNCHER_NAME
     )
-    launcher.chmod(0o755)
+    try:
+        bin_dir.mkdir(parents=True, exist_ok=True)
+        launcher.write_text(content, encoding="utf-8")
+        launcher.chmod(0o755)
+    except OSError as exc:
+        print(f"[3/4] 写入启动器失败：{exc}")
+        print(f"      请确认 {bin_dir} 可写，或手工保存以下内容到 {launcher}：\n")
+        print(content)
+        return None
     print(f"[3/4] 启动器已写入：{launcher}")
     return launcher
 
