@@ -1,155 +1,200 @@
 #!/usr/bin/env python3
-"""VM-TOOL 命令行工具入口"""
-import logging
+"""VM-TOOL 安装器与命令行入口。
+
+设计目标：部署一次之后，任何人直接敲 ``vmtool``（即 ``~/.local/bin/vmtool``）
+即可使用，不需要关心解释器、虚拟环境或依赖版本。
+
+为此 ``--install`` 与「当前解释器」彻底解耦：
+
+1. 在项目根目录下创建或复用 ``.venv``；
+2. 一律使用**该 venv 的解释器**执行 pip——这样 pyproject.toml 里
+   PyQt6 与 Qt6 运行库的版本上界才会真正生效；
+3. 在 ``~/.local/bin/`` 写入启动器，其内容固定 exec 到该 venv 的解释器。
+
+因此即便有人用系统 python 执行 ``python3 vmtool.py --install``，也不会再出现
+「装进用户级 site-packages、入口指向系统 python、进而加载到版本不匹配的
+PyQt6/Qt 而崩溃」的老问题。
+"""
+
+from __future__ import annotations
+
+import os
 import subprocess
 import sys
+from pathlib import Path
 
-logger = logging.getLogger(__name__)
+PROJECT_ROOT = Path(__file__).resolve().parent
+VENV_DIR = PROJECT_ROOT / ".venv"
+LAUNCHER_NAME = "vmtool"
 
-# 依赖清单的唯一来源是 pyproject.toml [project].dependencies。
-# 下面的兜底清单仅在 vm-tool 自身尚未安装（读不到发行版元数据）时使用，
-# 必须与 pyproject.toml [project].dependencies 保持逐项一致。
-_FALLBACK_REQUIRED_DEPS = [
-    "pydantic",
-    "pydantic-settings",
-    "sqlalchemy",
-    "psutil",
-    "typer",
-    "click",
-    "rich",
-    "PyQt6",
-    "PyQt6-Qt6",
-    "PyQt6-Charts",
-    "PyQt6-Charts-Qt6",
-]
-
-
-def _base_requirement_name(requirement: str) -> str | None:
-    """从 PEP 508 依赖串中取出发行包名。
-
-    extras 依赖（如 ``pytest==7.4.3; extra == "test"``）不是运行时基础依赖，
-    返回 None 以便调用方过滤。
-    """
-    import re
-
-    spec, _, marker = requirement.partition(";")
-    if "extra" in marker:
-        return None
-    match = re.match(r"\s*([A-Za-z0-9][A-Za-z0-9._-]*)", spec)
-    return match.group(1) if match else None
+_LAUNCHER_TEMPLATE = """#!/bin/sh
+# VMtool 启动器 —— 由 `python3 vmtool.py --install` 生成，请勿手工编辑。
+# 解释器固定指向项目自带 venv，避免加载系统或用户级 site-packages 中
+# 版本不匹配的 PyQt6 与 Qt 运行库（否则会报 undefined symbol / Qt_6_PRIVATE_API）。
+VMTOOL_ROOT='{root}'
+VMTOOL_PY='{python}'
+VMTOOL_BIN="$VMTOOL_ROOT/.venv/bin/{name}"
+# 优先走 venv 自己的入口脚本，这样 --help 显示的是 vmtool 而非 python -m ui.cli
+if [ -x "$VMTOOL_BIN" ]; then
+  exec "$VMTOOL_BIN" "$@"
+fi
+if [ ! -x "$VMTOOL_PY" ]; then
+  echo "vmtool: 项目环境缺失：$VMTOOL_PY" >&2
+  echo "vmtool: 请重新初始化：python3 '$VMTOOL_ROOT/vmtool.py' --install" >&2
+  exit 1
+fi
+exec "$VMTOOL_PY" -m ui.cli "$@"
+"""
 
 
-def get_required_deps() -> list[str]:
-    """返回 --install 需要检查的依赖包名。
-
-    从已安装发行版元数据 ``importlib.metadata.requires("vm-tool")`` 派生，
-    与 pyproject.toml 共用一份清单；vm-tool 未安装时退回与 pyproject.toml
-    [project].dependencies 一致的硬编码清单。
-    """
-    import importlib.metadata
-
-    try:
-        requirements = importlib.metadata.requires("vm-tool") or []
-    except importlib.metadata.PackageNotFoundError:
-        requirements = []
-    names = [name for name in map(_base_requirement_name, requirements) if name]
-    return names or list(_FALLBACK_REQUIRED_DEPS)
+def venv_python() -> Path:
+    """返回项目 venv 中解释器的路径（跨平台）。"""
+    if os.name == "nt":
+        return VENV_DIR / "Scripts" / "python.exe"
+    return VENV_DIR / "bin" / "python"
 
 
-if __name__ == "__main__":
-    # 检查是否执行 --install 命令
-    if "--install" in sys.argv:
-        # 需要检查的依赖（派生自 pyproject.toml [project].dependencies）
-        REQUIRED_DEPS = get_required_deps()
+def ensure_venv() -> Path:
+    """确保项目 venv 存在，返回其解释器路径。"""
+    python = venv_python()
+    if python.exists():
+        print(f"[1/4] 复用已有虚拟环境：{VENV_DIR}")
+        return python
 
-        def _check_dep(pkg_name: str) -> bool:
-            """检查依赖是否已安装"""
-            import importlib.metadata
-
-            try:
-                importlib.metadata.distribution(pkg_name)
-                return True
-            except importlib.metadata.PackageNotFoundError:
-                return False
-
-        # 1) 检测缺失的依赖
-        missing = [p for p in REQUIRED_DEPS if not _check_dep(p)]
-
-        if missing:
-            logger.info(f"检测到缺失依赖: {', '.join(missing)}")
-            logger.info("正在安装缺失依赖...")
-            result = subprocess.run(
-                [sys.executable, "-m", "pip", "install", *missing],
-                cwd=sys.path[0],
-                capture_output=False,
-            )
-            if result.returncode != 0:
-                logger.error("依赖安装失败")
-                sys.exit(1)
-        else:
-            logger.info("所有依赖已安装，跳过依赖安装")
-
-        # 2) 以 editable 模式安装项目本身（--no-deps 跳过依赖解析）
-        logger.info("正在安装项目...")
-        result = subprocess.run(
-            [sys.executable, "-m", "pip", "install", "-e", ".", "--no-deps"],
-            cwd=sys.path[0],
-            capture_output=True,
-            text=True,
+    print(f"[1/4] 创建虚拟环境：{VENV_DIR}")
+    result = subprocess.run(
+        [sys.executable, "-m", "venv", str(VENV_DIR)],
+        cwd=PROJECT_ROOT,
+    )
+    if result.returncode != 0 or not python.exists():
+        raise SystemExit(
+            "创建虚拟环境失败（请确认系统已安装 python3-venv），"
+            f"或手工执行：{sys.executable} -m venv {VENV_DIR}"
         )
+    return python
+
+
+def install_project(python: Path) -> None:
+    """在 venv 中安装项目及其依赖（版本约束由 pyproject.toml 决定）。"""
+    print("[2/4] 安装依赖与项目（版本以 pyproject.toml 为准）……")
+    result = subprocess.run(
+        [str(python), "-m", "pip", "install", "-e", "."],
+        cwd=PROJECT_ROOT,
+    )
+    if result.returncode != 0:
+        raise SystemExit(
+            "安装失败。请检查网络后重试，或手工执行以查看详细错误：\n"
+            f"    {python} -m pip install -e {PROJECT_ROOT}"
+        )
+
+
+def write_launcher(python: Path) -> Path | None:
+    """在 ~/.local/bin 写入固定指向 venv 的启动器。"""
+    if os.name == "nt":
+        print("[3/4] Windows 平台跳过启动器写入；请改用 scripts/build.py 打包")
+        return None
+
+    bin_dir = Path.home() / ".local" / "bin"
+    bin_dir.mkdir(parents=True, exist_ok=True)
+    launcher = bin_dir / LAUNCHER_NAME
+    launcher.write_text(
+        _LAUNCHER_TEMPLATE.format(root=PROJECT_ROOT, python=python, name=LAUNCHER_NAME),
+        encoding="utf-8",
+    )
+    launcher.chmod(0o755)
+    print(f"[3/4] 启动器已写入：{launcher}")
+    return launcher
+
+
+def verify(python: Path) -> bool:
+    """验证 CLI 与 GUI 依赖在 venv 中确实可用。"""
+    gui_probe = "from PyQt6.QtWidgets import QPushButton"
+    checks: list[tuple[str, list[str]]] = [
+        ("命令行", [str(python), "-m", "ui.cli", "--help"]),
+        ("图形界面依赖", [str(python), "-c", gui_probe]),
+    ]
+    all_ok = True
+    for label, cmd in checks:
+        result = subprocess.run(cmd, cwd=PROJECT_ROOT, capture_output=True, text=True)
         if result.returncode == 0:
-            logger.info("项目安装成功！")
-        else:
-            logger.error(f"项目安装失败: {result.stderr}")
+            print(f"      {label}：OK")
+            continue
+        all_ok = False
+        print(f"      {label}：失败")
+        detail = (result.stderr or result.stdout).strip().splitlines()
+        if detail:
+            print(f"        {detail[-1]}")
+    return all_ok
 
-        # 直接退出，避免执行其他命令
-        sys.exit(0)
 
-    # 检查是否执行 --install-completion 命令
-    if "--install-completion" in sys.argv:
-        # 尝试直接生成补全脚本，绕过 shell 检测
-        try:
-            from typer.completion import get_completion_script
+def _warn_if_not_on_path(directory: Path) -> None:
+    path_dirs = os.environ.get("PATH", "").split(os.pathsep)
+    if str(directory) not in path_dirs:
+        print(f"      注意：{directory} 不在 PATH 中，请先把它加入 PATH。")
 
-            # 尝试获取 shell 类型
-            shell = None
-            if len(sys.argv) > 2:
-                shell = sys.argv[2]
-            else:
-                # 默认使用 zsh
-                shell = "zsh"
 
-            # 生成补全脚本
-            prog_name = "vmtool"
-            complete_var = f"_{prog_name.upper()}_COMPLETE"
-            completion_script = get_completion_script(
-                prog_name=prog_name, complete_var=complete_var, shell=shell
-            )
+def cmd_install() -> int:
+    """创建 venv、安装项目，并写好全局启动器。"""
+    print(f"VM-Tool 安装器\n      项目目录：{PROJECT_ROOT}")
+    python = ensure_venv()
+    install_project(python)
+    launcher = write_launcher(python)
 
-            # 输出补全脚本到标准输出
-            logger.info(completion_script)
+    print("[4/4] 验证安装：")
+    ok = verify(python)
+    if launcher is not None:
+        _warn_if_not_on_path(launcher.parent)
 
-            # 打印安装说明
-            logger.info("\n=== 补全安装说明 ===")
-            if shell == "zsh":
-                logger.info("1. 将上述输出保存到 ~/.zsh/completions/_vmtool")
-                logger.info("2. 确保 ~/.zsh/completions 目录在你的 fpath 中")
-                logger.info("3. 重新启动 zsh 或执行 'source ~/.zshrc' 来激活补全")
-            elif shell == "bash":
-                logger.info("1. 将上述输出保存到 ~/.bash_completion.d/vmtool")
-                logger.info(
-                    "2. 重新启动 bash 或执行 "
-                    "'source ~/.bash_completion.d/vmtool' 来激活补全"
-                )
-            else:
-                logger.info(f"请将上述输出保存到适合 {shell} 的补全目录中")
+    if ok:
+        print("\n安装完成。之后直接使用：\n    vmtool --help\n    vmtool gui")
+        return 0
+    print("\n安装完成，但验证未全部通过，请查看上面的输出。")
+    return 1
 
-            sys.exit(0)
-        except Exception as e:
-            logger.error(f"补全生成失败: {e}")
-            sys.exit(1)
 
-    # 执行原有的命令（延迟导入，避免 --install 时加载全部依赖）
+def cmd_install_completion(argv: list[str]) -> int:
+    """输出 shell 补全脚本（绕过 shell 自动探测）。"""
+    try:
+        from typer.completion import get_completion_script
+    except Exception as exc:
+        print(f"补全生成失败: {exc}")
+        return 1
+
+    shell = argv[1] if len(argv) > 1 else "zsh"
+    script = get_completion_script(
+        prog_name=LAUNCHER_NAME,
+        complete_var=f"_{LAUNCHER_NAME.upper()}_COMPLETE",
+        shell=shell,
+    )
+    print(script)
+
+    print("\n=== 补全安装说明 ===")
+    if shell == "zsh":
+        print("1. 将上述输出保存到 ~/.zsh/completions/_vmtool")
+        print("2. 确保 ~/.zsh/completions 目录在你的 fpath 中")
+        print("3. 重新启动 zsh 或执行 'source ~/.zshrc' 来激活补全")
+    elif shell == "bash":
+        print("1. 将上述输出保存到 ~/.bash_completion.d/vmtool")
+        print("2. 执行 'source ~/.bash_completion.d/vmtool' 来激活补全")
+    else:
+        print(f"请将上述输出保存到适合 {shell} 的补全目录中")
+    return 0
+
+
+def main() -> int:
+    """脚本入口：--install / --install-completion / 其余交给 Typer。"""
+    argv = sys.argv[1:]
+    if "--install" in argv:
+        return cmd_install()
+    if "--install-completion" in argv:
+        return cmd_install_completion(argv)
+
+    # 延迟导入：--install 时不需要加载全部运行时依赖
     from ui.cli.__main__ import app
 
     app()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

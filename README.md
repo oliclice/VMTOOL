@@ -33,22 +33,43 @@
 
 ## 快速开始
 
-### 安装
+### 安装（推荐：一条命令）
 
 ```bash
 cd vm-tool
-
-# 1. 创建虚拟环境（需要 Python >= 3.10）
-python3 -m venv .venv
-
-# 2. 安装本项目（可执行入口 vmtool 会装进 .venv/bin/）
-.venv/bin/python -m pip install -U pip
-.venv/bin/python -m pip install -e .
+python3 vmtool.py --install
 ```
 
-> **务必用 `.venv/bin/python` 运行本项目，不要用系统 `python3`。**
-> 原因是 PyQt6 与 Qt 运行库的版本必须严格同属 6.6.x，而系统 python 可能加载到
-> 用户级（`~/.local`）或系统级的不兼容 PyQt6，详见「开发 → PyQt6/Qt6 版本约束」。
+它会自动完成三件事：
+
+1. 在项目目录下创建 `.venv`（已存在则复用）；
+2. 用**该 venv 的解释器**安装项目与依赖——只有这样 `pyproject.toml` 里
+   PyQt6/Qt6 的版本上界才会真正生效；
+3. 在 `~/.local/bin/vmtool` 写入启动器，其解释器**固定指向该 venv**。
+
+完成后，**任何终端、任何目录**直接使用：
+
+```bash
+vmtool --help
+vmtool gui
+```
+
+不需要 `activate`，也不需要关心当前用的是哪个 python。
+
+> **为什么必须这样**：PyQt6 与 Qt 运行库必须同属 6.6.x，而系统 `python3` 会加载
+> `~/.local` 或系统级里的其他版本 PyQt6，并与系统 Qt 混用而崩溃
+> （`ImportError: ... version Qt_6_PRIVATE_API not found`）。
+> 启动器把解释器钉在 venv 上，从根上避免这类问题；
+> 详见「开发 → PyQt6/Qt6 版本约束」。
+
+### 手工安装（等价做法，适合开发调试）
+
+```bash
+cd vm-tool
+python3 -m venv .venv
+.venv/bin/python -m pip install -e .
+# 之后需自行使用 .venv/bin/vmtool，或 .venv/bin/python -m ui.cli
+```
 
 ### CLI 使用
 
@@ -175,7 +196,7 @@ VMtool/
 │   │       ├── test_isolation_guard.py
 │   │       ├── test_session_ownership.py
 │   │       └── test_thread_service_ownership.py
-│   ├── vmtool.py               # 安装器 + 交互式菜单入口
+│   ├── vmtool.py               # 安装器（--install 建 venv + 写全局启动器）与命令行入口
 │   ├── pyproject.toml          # 项目配置
 │   ├── requirements.txt        # 依赖列表
 │   ├── data/                   # 词频数据（THUOCL）
