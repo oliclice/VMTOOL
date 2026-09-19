@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """多平台打包脚本"""
-import os
-import sys
-import subprocess
 import argparse
 import logging
+import os
+import subprocess
 
 logger = logging.getLogger(__name__)
 
@@ -17,33 +16,86 @@ EXCLUDE_MODULES = [
     # Qt 冲突
     "PyQt5",
     # 科学计算
-    "numpy", "scipy", "pandas", "numba", "llvmlite", "pyarrow",
+    "numpy",
+    "scipy",
+    "pandas",
+    "numba",
+    "llvmlite",
+    "pyarrow",
     # 数据处理
-    "lxml", "rapidfuzz", "openpyxl", "xlrd", "xlwt",
+    "lxml",
+    "rapidfuzz",
+    "openpyxl",
+    "xlrd",
+    "xlwt",
     # 云服务/AWS
-    "botocore", "boto3", "s3transfer", "awscli",
+    "botocore",
+    "boto3",
+    "s3transfer",
+    "awscli",
     # 数据库客户端（项目只需要 sqlite3）
-    "psycopg", "psycopg2", "psycopg_binary", "mysqlclient", "pymysql",
+    "psycopg",
+    "psycopg2",
+    "psycopg_binary",
+    "mysqlclient",
+    "pymysql",
     # Web 框架
-    "django", "flask", "fastapi", "uvicorn", "starlette",
+    "django",
+    "flask",
+    "fastapi",
+    "uvicorn",
+    "starlette",
     # 可视化
-    "matplotlib", "seaborn", "plotly", "bokeh",
+    "matplotlib",
+    "seaborn",
+    "plotly",
+    "bokeh",
     # 图像处理
-    "PIL", "pillow", "opencv",
+    "PIL",
+    "pillow",
+    "opencv",
     # Jupyter/IPython
-    "IPython", "ipykernel", "ipywidgets", "nbformat", "nbconvert", "jupyter",
+    "IPython",
+    "ipykernel",
+    "ipywidgets",
+    "nbformat",
+    "nbconvert",
+    "jupyter",
     # 测试/代码质量
-    "pytest", "hypothesis", "black", "isort", "ruff", "mypy",
+    "pytest",
+    "hypothesis",
+    "black",
+    "isort",
+    "ruff",
+    "mypy",
     # 深度学习
-    "torch", "torchvision", "torchaudio", "tensorflow", "keras",
+    "torch",
+    "torchvision",
+    "torchaudio",
+    "tensorflow",
+    "keras",
     # 消息队列/网络
-    "zmq", "celery", "redis", "kafka",
+    "zmq",
+    "celery",
+    "redis",
+    "kafka",
     # 其他不需要的
-    "jedi", "parso", "tkinter", "_tkinter",
-    "setuptools", "pkg_resources", "wheel", "pip",
-    "cryptography", "paramiko", "bcrypt",
-    "aiohttp", "httpx", "requests",
-    "jsonschema", "pydantic_extra_types",
+    "jedi",
+    "parso",
+    "tkinter",
+    "_tkinter",
+    "setuptools",
+    "pkg_resources",
+    "wheel",
+    "pip",
+    "cryptography",
+    "paramiko",
+    "bcrypt",
+    "aiohttp",
+    "httpx",
+    "requests",
+    "jsonschema",
+    "pydantic_extra_types",
 ]
 
 
@@ -52,9 +104,12 @@ def _build_common_args(name: str, distpath: str, workpath: str, windowed: bool =
     args = [
         "pyinstaller",
         "vmtool.py",
-        "--name", name,
-        "--distpath", distpath,
-        "--workpath", workpath,
+        "--name",
+        name,
+        "--distpath",
+        distpath,
+        "--workpath",
+        workpath,
         "--noconfirm",
     ]
     for mod in EXCLUDE_MODULES:
@@ -69,24 +124,41 @@ def _build_common_args(name: str, distpath: str, workpath: str, windowed: bool =
 def build_linux():
     """构建 Linux 版本"""
     logger.info("构建 Linux 版本...")
-    subprocess.run(_build_common_args("vmtool", "dist/linux", "build/linux"), check=True)
-    subprocess.run(_build_common_args("vmtool-gui", "dist/linux", "build/linux", windowed=True), check=True)
+    subprocess.run(
+        _build_common_args("vmtool", "dist/linux", "build/linux"), check=True
+    )
+    subprocess.run(
+        _build_common_args("vmtool-gui", "dist/linux", "build/linux", windowed=True),
+        check=True,
+    )
     logger.info("Linux 版本构建完成")
 
 
 def build_windows():
     """构建 Windows 版本"""
     logger.info("构建 Windows 版本...")
-    subprocess.run(_build_common_args("vmtool", "dist/windows", "build/windows"), check=True)
-    subprocess.run(_build_common_args("vmtool-gui", "dist/windows", "build/windows", windowed=True), check=True)
+    subprocess.run(
+        _build_common_args("vmtool", "dist/windows", "build/windows"), check=True
+    )
+    subprocess.run(
+        _build_common_args(
+            "vmtool-gui", "dist/windows", "build/windows", windowed=True
+        ),
+        check=True,
+    )
     logger.info("Windows 版本构建完成")
 
 
 def build_macos():
     """构建 macOS 版本"""
     logger.info("构建 macOS 版本...")
-    subprocess.run(_build_common_args("vmtool", "dist/macos", "build/macos"), check=True)
-    subprocess.run(_build_common_args("vmtool-gui", "dist/macos", "build/macos", windowed=True), check=True)
+    subprocess.run(
+        _build_common_args("vmtool", "dist/macos", "build/macos"), check=True
+    )
+    subprocess.run(
+        _build_common_args("vmtool-gui", "dist/macos", "build/macos", windowed=True),
+        check=True,
+    )
     logger.info("macOS 版本构建完成")
 
 
@@ -104,9 +176,9 @@ def main():
     parser.add_argument("--windows", action="store_true", help="构建Windows版本")
     parser.add_argument("--macos", action="store_true", help="构建macOS版本")
     parser.add_argument("--all", action="store_true", help="构建所有平台版本")
-    
+
     args = parser.parse_args()
-    
+
     if args.linux:
         build_linux()
     elif args.windows:

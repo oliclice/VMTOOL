@@ -1,25 +1,38 @@
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QLabel, 
-                             QComboBox, QPushButton, QLineEdit, QTextEdit, 
-                             QCheckBox, QMessageBox, QGroupBox, QSplitter, 
-                             QTableWidget, QTableWidgetItem, QHeaderView, QGridLayout)
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont, QColor
-from app.core.config_manager import config_manager
 import logging
+
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QFont
+from PyQt6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QSplitter,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
+
+from app.core.config_manager import config_manager
 
 logger = logging.getLogger(__name__)
 
+
 class CodeRulesTab(QWidget):
     """编码规则标签页"""
+
     def __init__(self, parent=None, dict_service=None):
         super().__init__(parent)
         self.dict_service = dict_service
         self.init_ui()
-    
+
     def init_ui(self):
         """初始化 UI"""
         layout = QVBoxLayout(self)
-        
+
         # 顶部：规则选择区域
         top_layout = QHBoxLayout()
         rule_label = QLabel("选择编码规则:")
@@ -30,18 +43,18 @@ class CodeRulesTab(QWidget):
         top_layout.addWidget(self.rule_combo)
         top_layout.addStretch()
         layout.addLayout(top_layout)
-        
+
         # 中部：规则编辑和预览区域
         splitter = QSplitter(Qt.Orientation.Horizontal)
-        
+
         # 左侧：规则编辑区域
         edit_widget = QWidget()
         edit_layout = QVBoxLayout(edit_widget)
-        
+
         # 自定义编码规则设置
         custom_rule_group = QGroupBox("规则编辑")
         custom_rule_layout = QVBoxLayout()
-        
+
         # 规则名称
         rule_name_layout = QHBoxLayout()
         rule_name_label = QLabel("规则名称:")
@@ -50,14 +63,14 @@ class CodeRulesTab(QWidget):
         rule_name_layout.addWidget(rule_name_label)
         rule_name_layout.addWidget(self.rule_name_edit)
         custom_rule_layout.addLayout(rule_name_layout)
-        
+
         # Python模式勾选框
         python_mode_layout = QHBoxLayout()
         self.python_mode_checkbox = QCheckBox("开启Python模式")
         self.python_mode_checkbox.setToolTip("开启后可以使用Python代码生成编码")
         python_mode_layout.addWidget(self.python_mode_checkbox)
         custom_rule_layout.addLayout(python_mode_layout)
-        
+
         # 规则内容
         rule_content_layout = QVBoxLayout()
         rule_content_layout.setSpacing(5)  # 减小间距，使文本框与标题更接近
@@ -72,18 +85,22 @@ class CodeRulesTab(QWidget):
         # 设置 QTextEdit 的字体，确保代码显示清晰
         self.rule_content_edit.setFont(QFont("Monospace", 10))
         # 确保 QTextEdit 能够滚动
-        self.rule_content_edit.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+        self.rule_content_edit.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOn
+        )
         # 确保文本框可以输入
         self.rule_content_edit.setReadOnly(False)
         rule_content_layout.addWidget(rule_content_label)
         rule_content_layout.addWidget(self.rule_content_edit)
         custom_rule_layout.addLayout(rule_content_layout)
-        
+
         # 规则模板
         template_layout = QHBoxLayout()
         template_label = QLabel("规则模板:")
         self.template_combo = QComboBox()
-        self.template_combo.addItems(["选择模板", "双拼规则", "全拼规则", "五笔规则", "自定义规则"])
+        self.template_combo.addItems(
+            ["选择模板", "双拼规则", "全拼规则", "五笔规则", "自定义规则"]
+        )
         self.template_combo.setToolTip("选择预设规则模板")
         template_button = QPushButton("应用模板")
         template_button.setToolTip("将选择的模板应用到当前规则")
@@ -92,7 +109,7 @@ class CodeRulesTab(QWidget):
         template_layout.addWidget(self.template_combo)
         template_layout.addWidget(template_button)
         custom_rule_layout.addLayout(template_layout)
-        
+
         # 语法说明
         syntax_layout = QHBoxLayout()
         syntax_label = QLabel("语法说明:")
@@ -103,10 +120,10 @@ class CodeRulesTab(QWidget):
         syntax_layout.addWidget(syntax_label)
         syntax_layout.addWidget(syntax_button)
         custom_rule_layout.addLayout(syntax_layout)
-        
+
         custom_rule_group.setLayout(custom_rule_layout)
         edit_layout.addWidget(custom_rule_group)
-        
+
         # 操作按钮
         button_layout = QHBoxLayout()
         add_button = QPushButton("添加规则")
@@ -115,25 +132,25 @@ class CodeRulesTab(QWidget):
         delete_button.setToolTip("删除当前编码规则")
         set_default_button = QPushButton("设为默认")
         set_default_button.setToolTip("将当前规则设为默认编码规则")
-        
+
         add_button.clicked.connect(self.add_rule)
         delete_button.clicked.connect(self.delete_rule)
         set_default_button.clicked.connect(self.set_default)
-        
+
         button_layout.addWidget(add_button)
         button_layout.addWidget(delete_button)
         button_layout.addWidget(set_default_button)
         edit_layout.addLayout(button_layout)
-        
+
         splitter.addWidget(edit_widget)
-        
+
         # 右侧：实时预览区域
         preview_widget = QWidget()
         preview_layout = QVBoxLayout(preview_widget)
-        
+
         preview_group = QGroupBox("实时预览")
         preview_group_layout = QVBoxLayout()
-        
+
         # 预览输入
         preview_input_layout = QHBoxLayout()
         preview_input_label = QLabel("输入测试词:")
@@ -146,7 +163,7 @@ class CodeRulesTab(QWidget):
         preview_input_layout.addWidget(self.preview_input)
         preview_input_layout.addWidget(preview_button)
         preview_group_layout.addLayout(preview_input_layout)
-        
+
         # 预览结果
         self.preview_result = QTextEdit()
         self.preview_result.setReadOnly(True)
@@ -154,30 +171,30 @@ class CodeRulesTab(QWidget):
         self.preview_result.setFont(QFont("Monospace", 10))
         preview_group_layout.addWidget(QLabel("编码结果:"))
         preview_group_layout.addWidget(self.preview_result)
-        
+
         # 规则验证
         self.validation_result = QLabel()
         self.validation_result.setObjectName("validation_result")
         preview_group_layout.addWidget(QLabel("规则验证:"))
         preview_group_layout.addWidget(self.validation_result)
-        
+
         preview_group.setLayout(preview_group_layout)
         preview_layout.addWidget(preview_group)
-        
+
         splitter.addWidget(preview_widget)
-        
+
         # 设置分割器比例
         splitter.setSizes([600, 400])
-        
+
         layout.addWidget(splitter)
-        
+
         # 加载规则
         self.load_rules()
-        
+
         # 连接信号
         self.rule_combo.currentTextChanged.connect(self.on_rule_changed)
         self.rule_content_edit.textChanged.connect(self.validate_rule)
-    
+
     def load_rules(self):
         """加载编码规则"""
         # 加载自定义规则列表
@@ -188,10 +205,7 @@ class CodeRulesTab(QWidget):
         for rule_name, rule_value in self.rules.items():
             if isinstance(rule_value, str):
                 # 旧格式，转换为新格式
-                new_rules[rule_name] = {
-                    "content": rule_value,
-                    "python_mode": False
-                }
+                new_rules[rule_name] = {"content": rule_value, "python_mode": False}
             else:
                 # 新格式，直接使用
                 new_rules[rule_name] = rule_value
@@ -202,13 +216,16 @@ class CodeRulesTab(QWidget):
             # 默认规则
             self.rules = {
                 "默认规则": {
-                    "content": "v[2]=s[1][1]+s[1][2]+s[2][1]+s[2][2]\nv[3]=s[1][1]+s[2][1]+s[3][1]",
-                    "python_mode": False
+                    "content": (
+                        "v[2]=s[1][1]+s[1][2]+s[2][1]+s[2][2]\n"
+                        "v[3]=s[1][1]+s[2][1]+s[3][1]"
+                    ),
+                    "python_mode": False,
                 }
             }
             config_manager.set("custom_rules", self.rules)
             self.rule_names = list(self.rules.keys())
-        
+
         # 为默认规则和Python模式添加标识
         default_rule = config_manager.get("default_code_rule", "")
         self.rule_combo.clear()
@@ -219,9 +236,11 @@ class CodeRulesTab(QWidget):
             if name == default_rule:
                 display_name += " [默认]"
             self.rule_combo.addItem(display_name)
-        
+
         # 设置当前规则
-        current_rule = config_manager.get("code_rule", self.rule_names[0] if self.rule_names else "")
+        current_rule = config_manager.get(
+            "code_rule", self.rule_names[0] if self.rule_names else ""
+        )
         if current_rule in self.rule_names:
             # 检查是否为默认规则和Python模式
             display_name = current_rule
@@ -232,12 +251,16 @@ class CodeRulesTab(QWidget):
             self.rule_combo.setCurrentText(display_name)
             # 初始化显示当前规则内容和Python模式状态
             self.rule_name_edit.setText(current_rule)
-            self.rule_content_edit.setPlainText(self.rules.get(current_rule, {}).get("content", ""))
-            self.python_mode_checkbox.setChecked(self.rules.get(current_rule, {}).get("python_mode", False))
-        
+            self.rule_content_edit.setPlainText(
+                self.rules.get(current_rule, {}).get("content", "")
+            )
+            self.python_mode_checkbox.setChecked(
+                self.rules.get(current_rule, {}).get("python_mode", False)
+            )
+
         # 验证规则
         self.validate_rule()
-    
+
     def on_rule_changed(self, text):
         """当规则选择变化时"""
         # 移除默认标识和Python模式标识
@@ -250,22 +273,26 @@ class CodeRulesTab(QWidget):
         config_manager.set("code_rule", rule_name)
         # 切换规则时，自动填充规则名称、内容和Python模式状态
         self.rule_name_edit.setText(rule_name)
-        self.rule_content_edit.setPlainText(self.rules.get(rule_name, {}).get("content", ""))
-        self.python_mode_checkbox.setChecked(self.rules.get(rule_name, {}).get("python_mode", False))
+        self.rule_content_edit.setPlainText(
+            self.rules.get(rule_name, {}).get("content", "")
+        )
+        self.python_mode_checkbox.setChecked(
+            self.rules.get(rule_name, {}).get("python_mode", False)
+        )
         # 验证规则
         self.validate_rule()
-    
+
     def add_rule(self):
         """添加新规则"""
         rule_name = self.rule_name_edit.text().strip()
         rule_content = self.rule_content_edit.toPlainText().strip()
         python_mode = self.python_mode_checkbox.isChecked()
-        
+
         if rule_name and rule_content:
             # 保存规则内容和Python模式状态
             self.rules[rule_name] = {
                 "content": rule_content,
-                "python_mode": python_mode
+                "python_mode": python_mode,
             }
             config_manager.set("custom_rules", self.rules)
             # 更新下拉框
@@ -275,12 +302,12 @@ class CodeRulesTab(QWidget):
             if python_mode:
                 current_display_name += " *python"
             self.rule_combo.setCurrentText(current_display_name)
-            if hasattr(self.parent(), 'show_toast'):
+            if hasattr(self.parent(), "show_toast"):
                 self.parent().show_toast(f"规则 '{rule_name}' 添加成功")
         else:
-            if hasattr(self.parent(), 'show_toast'):
+            if hasattr(self.parent(), "show_toast"):
                 self.parent().show_toast("请输入规则名称和内容")
-    
+
     def delete_rule(self):
         """删除当前规则"""
         current_rule = self.rule_combo.currentText()
@@ -289,20 +316,20 @@ class CodeRulesTab(QWidget):
             current_rule = current_rule.replace(" [默认]", "")
         if " *python" in current_rule:
             current_rule = current_rule.replace(" *python", "")
-        
+
         if current_rule:
             if current_rule in self.rules:
                 # 如果删除的是默认规则，清除默认规则设置
                 if current_rule == config_manager.get("default_code_rule", ""):
                     config_manager.set("default_code_rule", "")
-                
+
                 del self.rules[current_rule]
                 config_manager.set("custom_rules", self.rules)
                 # 更新下拉框
                 self.load_rules()
-                if hasattr(self.parent(), 'show_toast'):
+                if hasattr(self.parent(), "show_toast"):
                     self.parent().show_toast(f"规则 '{current_rule}' 删除成功")
-    
+
     def set_default(self):
         """设置默认规则"""
         current_rule = self.rule_combo.currentText()
@@ -311,7 +338,7 @@ class CodeRulesTab(QWidget):
             current_rule = current_rule.replace(" [默认]", "")
         if " *python" in current_rule:
             current_rule = current_rule.replace(" *python", "")
-        
+
         if current_rule:
             # 设置默认规则
             config_manager.set("default_code_rule", current_rule)
@@ -323,14 +350,13 @@ class CodeRulesTab(QWidget):
                 current_display_name += " *python"
             current_display_name += " [默认]"
             self.rule_combo.setCurrentText(current_display_name)
-            if hasattr(self.parent(), 'show_toast'):
+            if hasattr(self.parent(), "show_toast"):
                 self.parent().show_toast(f"规则 '{current_rule}' 已设为默认")
-    
+
     def show_syntax_help(self):
         """显示语法说明"""
-        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QPushButton, QScrollArea
-        from PyQt6.QtCore import QSize
-        
+        from PyQt6.QtWidgets import QDialog, QPushButton, QScrollArea, QVBoxLayout
+
         help_text = """编码规则语法说明：
 
 普通模式：
@@ -386,150 +412,168 @@ else:
 
 # 自定义复杂逻辑
 """
-        
+
         # 创建可调整大小的对话框
         dialog = QDialog(self)
         dialog.setWindowTitle("语法说明")
-        
+
         # 获取屏幕尺寸
         screen = self.screen()
         screen_size = screen.size()
-        dialog_width = int(screen_size.width() * 2/5)
-        dialog_height = int(screen_size.height() * 1/2)
-        
+        dialog_width = int(screen_size.width() * 2 / 5)
+        dialog_height = int(screen_size.height() * 1 / 2)
+
         # 设置默认大小
         dialog.resize(dialog_width, dialog_height)
-        
+
         # 设置布局
         layout = QVBoxLayout(dialog)
-        
+
         # 创建滚动区域
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
-        
+
         # 创建文本显示组件
         text_edit = QTextEdit()
         text_edit.setPlainText(help_text)
         text_edit.setReadOnly(True)
         text_edit.setFont(QFont("Monospace", 10))
-        
+
         # 将文本组件放入滚动区域
         scroll_area.setWidget(text_edit)
-        
+
         # 添加滚动区域到布局
         layout.addWidget(scroll_area)
-        
+
         # 添加确定按钮
         button = QPushButton("确定")
         button.clicked.connect(dialog.accept)
         layout.addWidget(button)
-        
+
         # 显示对话框
         dialog.exec()
-    
+
     def apply_template(self):
         """应用规则模板"""
         template = self.template_combo.currentText()
         if template == "双拼规则":
-            self.rule_content_edit.setPlainText("v[2] = s[1][1] + s[1][2] + s[2][1] + s[2][2]\nv[3] = s[1][1] + s[2][1] + s[3][1]\nv[4+] = s[1][1] + s[2][1] + s[3][1] + s[4][1]")
+            self.rule_content_edit.setPlainText(
+                "v[2] = s[1][1] + s[1][2] + s[2][1] + s[2][2]\n"
+                "v[3] = s[1][1] + s[2][1] + s[3][1]\n"
+                "v[4+] = s[1][1] + s[2][1] + s[3][1] + s[4][1]"
+            )
         elif template == "全拼规则":
-            self.rule_content_edit.setPlainText("v[2] = s[1][1] + s[1][2] + s[2][1] + s[2][2]\nv[3] = s[1][1] + s[2][1] + s[3][1]\nv[4+] = s[1][1] + s[2][1] + s[3][1] + s[4][1]")
+            self.rule_content_edit.setPlainText(
+                "v[2] = s[1][1] + s[1][2] + s[2][1] + s[2][2]\n"
+                "v[3] = s[1][1] + s[2][1] + s[3][1]\n"
+                "v[4+] = s[1][1] + s[2][1] + s[3][1] + s[4][1]"
+            )
         elif template == "五笔规则":
-            self.rule_content_edit.setPlainText("v[2] = s[1][1] + s[1][2] + s[2][1] + s[2][2]\nv[3] = s[1][1] + s[2][1] + s[3][1]\nv[4+] = s[1][1] + s[2][1] + s[3][1] + s[4][1]")
+            self.rule_content_edit.setPlainText(
+                "v[2] = s[1][1] + s[1][2] + s[2][1] + s[2][2]\n"
+                "v[3] = s[1][1] + s[2][1] + s[3][1]\n"
+                "v[4+] = s[1][1] + s[2][1] + s[3][1] + s[4][1]"
+            )
         elif template == "自定义规则":
-            self.rule_content_edit.setPlainText("# 自定义编码规则\nv[2] = s[1][1] + s[1][2] + s[2][1] + s[2][2]\nv[3] = s[1][1] + s[2][1] + s[3][1]\nv[4+] = s[1][1] + s[2][1] + s[3][1] + s[4][1]")
+            self.rule_content_edit.setPlainText(
+                "# 自定义编码规则\n"
+                "v[2] = s[1][1] + s[1][2] + s[2][1] + s[2][2]\n"
+                "v[3] = s[1][1] + s[2][1] + s[3][1]\n"
+                "v[4+] = s[1][1] + s[2][1] + s[3][1] + s[4][1]"
+            )
         # 验证规则
         self.validate_rule()
-    
+
     def validate_rule(self):
         """验证规则语法"""
         rule_content = self.rule_content_edit.toPlainText().strip()
         python_mode = self.python_mode_checkbox.isChecked()
-        
+
         if not rule_content:
             self.validation_result.setText("规则内容为空")
             return
-        
+
         if python_mode:
             # Python 模式，简单检查语法
             try:
-                compile(rule_content, '<string>', 'exec')
+                compile(rule_content, "<string>", "exec")
                 self.validation_result.setText("Python 语法正确")
             except SyntaxError as e:
                 self.validation_result.setText(f"Python 语法错误：{e}")
         else:
             # 普通模式，检查语法
-            lines = rule_content.split('\n')
+            lines = rule_content.split("\n")
             valid = True
             error_message = ""
-            
+
             for line in lines:
                 line = line.strip()
-                if not line or line.startswith('#'):
+                if not line or line.startswith("#"):
                     continue
-                if '=' not in line:
+                if "=" not in line:
                     valid = False
                     error_message = f"规则格式错误: {line}"
                     break
-                parts = line.split('=')
+                parts = line.split("=")
                 if len(parts) != 2:
                     valid = False
                     error_message = f"规则格式错误: {line}"
                     break
                 left_part = parts[0].strip()
-                if not left_part.startswith('v['):
+                if not left_part.startswith("v["):
                     valid = False
                     error_message = f"规则格式错误: {line}"
                     break
-            
+
             if valid:
                 self.validation_result.setText("规则语法正确")
             else:
                 self.validation_result.setText(error_message)
-    
+
     def test_rule(self):
         """测试规则"""
         test_word = self.preview_input.text().strip()
         if not test_word:
             self.preview_result.setText("请输入测试词")
             return
-        
+
         try:
             if self.dict_service:
                 # 获取当前正在编辑的规则内容和Python模式
                 rule_content = self.rule_content_edit.toPlainText().strip()
                 python_mode = self.python_mode_checkbox.isChecked()
-                
+
                 # 保存原始配置
                 from app.core.config_manager import config_manager
+
                 original_rule = config_manager.get("code_rule")
                 original_rules = config_manager.get("custom_rules", {}).copy()
-                
+
                 # 保存CodeGenerator的原始配置
                 original_config = self.dict_service.code_generator.get_config().copy()
-                
+
                 # 构建临时规则数据
                 temp_rule_name = "__temp_test_rule__"
                 temp_rules = original_rules.copy()
                 temp_rules[temp_rule_name] = {
                     "content": rule_content,
-                    "python_mode": python_mode
+                    "python_mode": python_mode,
                 }
-                
+
                 # 设置临时规则
                 config_manager.set("code_rule", temp_rule_name)
                 config_manager.set("custom_rules", temp_rules)
-                
+
                 # 设置CodeGenerator为custom规则模式
-                self.dict_service.code_generator.set_config({'rule': 'custom'})
-                
+                self.dict_service.code_generator.set_config({"rule": "custom"})
+
                 try:
                     # 生成编码
                     code = self.dict_service.generate_code(test_word)
-                    
+
                     result = f"测试词: {test_word}\n"
                     result += f"词长度: {len(test_word)}\n"
-                    
+
                     # 尝试获取字符编码信息
                     try:
                         # 显示用户正在编辑的规则名称，而不是临时规则名称
@@ -537,25 +581,25 @@ else:
                         if not current_rule_name:
                             current_rule_name = "未命名规则"
                         result += f"使用规则: {current_rule_name}\n"
-                        
+
                         # 获取当前规则是否为Python模式
                         python_mode = self.python_mode_checkbox.isChecked()
                         if python_mode:
-                            result += f"规则模式: Python模式\n"
+                            result += "规则模式: Python模式\n"
                         else:
-                            result += f"规则模式: 普通模式\n"
-                    except:
+                            result += "规则模式: 普通模式\n"
+                    except Exception:
                         pass
-                    
+
                     result += f"编码结果: {code}"
                 finally:
                     # 恢复原始配置
                     config_manager.set("code_rule", original_rule)
                     config_manager.set("custom_rules", original_rules)
-                    
+
                     # 恢复CodeGenerator的原始配置
                     self.dict_service.code_generator.set_config(original_config)
-                    
+
                     # 清理临时规则（如果还在）
                     current_rules = config_manager.get("custom_rules", {}).copy()
                     if temp_rule_name in current_rules:
@@ -567,12 +611,13 @@ else:
                 result += "编码结果: 无法生成编码（服务未初始化）"
         except Exception as e:
             import traceback
+
             error_details = traceback.format_exc()
             logger.error(f"预览生成编码失败: {error_details}")
-            
+
             result = f"测试词: {test_word}\n"
             result += f"词长度: {len(test_word)}\n"
             result += f"编码结果: 生成失败 - {str(e)}\n"
-            result += f"详细错误: 请查看日志"
-        
+            result += "详细错误: 请查看日志"
+
         self.preview_result.setText(result)

@@ -3,6 +3,7 @@
 将 QSS 中的 @variable 占位符替换为 ColorPalette 的实际值。
 """
 import dataclasses
+
 from app.core.theme_config import ColorPalette
 
 
@@ -27,7 +28,9 @@ def resolve_qss_variables(qss: str, palette: ColorPalette) -> str:
     result = qss
     # 按变量名长度降序排序，避免短变量名先替换导致长变量名被截断
     # 例如 @sidebar_text_active 必须在 @sidebar_text 之前替换
-    for var_name, var_value in sorted(variables.items(), key=lambda x: len(x[0]), reverse=True):
+    for var_name, var_value in sorted(
+        variables.items(), key=lambda x: len(x[0]), reverse=True
+    ):
         result = result.replace(var_name, var_value)
 
     return result

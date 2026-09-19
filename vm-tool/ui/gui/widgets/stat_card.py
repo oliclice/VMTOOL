@@ -1,9 +1,9 @@
 """统计指标卡片组件 — 用于 Dashboard 仪表盘顶部的关键指标展示"""
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
 from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
-from ui.gui.theme_manager import theme_manager
 from app.core.theme_config import ThemeConfig
+from ui.gui.theme_manager import theme_manager
 
 
 class StatCard(QWidget):
@@ -81,7 +81,7 @@ class StatCard(QWidget):
         palette = ThemeConfig.get_palette(
             theme_manager.current_theme_name,
             theme_manager.current_theme_mode,
-            theme_manager.current_theme_color
+            theme_manager.current_theme_color,
         )
 
         bg = palette.bg_elevated
@@ -92,7 +92,8 @@ class StatCard(QWidget):
         trend_neg_color = palette.danger
         accent_color = palette.accent
 
-        self.setStyleSheet(f"""
+        self.setStyleSheet(
+            f"""
             StatCard {{
                 background-color: {bg};
                 border: 1px solid {border};
@@ -124,7 +125,8 @@ class StatCard(QWidget):
             #stat_card_trend[positive="false"] {{
                 color: {trend_neg_color};
             }}
-        """)
+        """
+        )
 
     def _on_theme_changed(self, _mode, _name, _color):
         """主题变更时重新应用样式"""

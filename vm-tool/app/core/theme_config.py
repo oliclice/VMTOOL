@@ -2,21 +2,27 @@
 
 整合所有颜色定义，消除重复，提供统一的 API 供 GUI 组件使用。
 """
-from dataclasses import dataclass, field
-from typing import Dict, Optional, Tuple
-from PyQt6.QtGui import QPalette, QColor
+from dataclasses import dataclass
+
+from PyQt6.QtGui import QColor, QPalette
 
 from .theme_constants import (
-    THEME_MODE_AUTO, THEME_MODE_LIGHT, THEME_MODE_DARK,
-    THEME_NAME_CLASSIC, THEME_NAME_MATERIAL3, THEME_NAME_LINEAR,
-    THEME_COLOR_BLUE, THEME_COLOR_GREEN, THEME_COLOR_RED,
-    THEME_COLOR_PURPLE, THEME_COLOR_ORANGE
+    THEME_COLOR_BLUE,
+    THEME_COLOR_GREEN,
+    THEME_COLOR_ORANGE,
+    THEME_COLOR_PURPLE,
+    THEME_COLOR_RED,
+    THEME_MODE_DARK,
+    THEME_NAME_CLASSIC,
+    THEME_NAME_LINEAR,
+    THEME_NAME_MATERIAL3,
 )
 
 
 @dataclass
 class ColorPalette:
     """主题调色板 - 定义所有颜色 token"""
+
     # 背景色层级
     bg_primary: str
     bg_secondary: str
@@ -90,22 +96,23 @@ class ColorPalette:
 @dataclass
 class ThemeDefinition:
     """完整主题定义"""
+
     name: str
     light: ColorPalette
     dark: ColorPalette
 
 
 # ==================== 强调色 RGB 映射 ====================
-_ACCENT_RGB: Dict[str, Tuple[int, int, int]] = {
-    THEME_COLOR_BLUE: (94, 106, 210),      # #5e6ad2 Linear Brand Indigo
-    THEME_COLOR_GREEN: (39, 166, 68),      # #27a644
-    THEME_COLOR_RED: (239, 68, 68),        # #ef4444
-    THEME_COLOR_PURPLE: (113, 112, 255),   # #7170ff
-    THEME_COLOR_ORANGE: (249, 115, 22),    # #f97316
+_ACCENT_RGB: dict[str, tuple[int, int, int]] = {
+    THEME_COLOR_BLUE: (94, 106, 210),  # #5e6ad2 Linear Brand Indigo
+    THEME_COLOR_GREEN: (39, 166, 68),  # #27a644
+    THEME_COLOR_RED: (239, 68, 68),  # #ef4444
+    THEME_COLOR_PURPLE: (113, 112, 255),  # #7170ff
+    THEME_COLOR_ORANGE: (249, 115, 22),  # #f97316
 }
 
 # 经典/Material3 主题的强调色
-_CLASSIC_ACCENT_RGB: Dict[str, Tuple[int, int, int]] = {
+_CLASSIC_ACCENT_RGB: dict[str, tuple[int, int, int]] = {
     THEME_COLOR_BLUE: (50, 150, 250),
     THEME_COLOR_GREEN: (50, 150, 100),
     THEME_COLOR_RED: (200, 50, 50),
@@ -119,7 +126,7 @@ def _hex(r: int, g: int, b: int) -> str:
     return f"#{r:02x}{g:02x}{b:02x}"
 
 
-def _lighten(r: int, g: int, b: int, factor: float = 0.15) -> Tuple[int, int, int]:
+def _lighten(r: int, g: int, b: int, factor: float = 0.15) -> tuple[int, int, int]:
     """颜色变亮"""
     return (
         min(255, int(r + (255 - r) * factor)),
@@ -128,7 +135,7 @@ def _lighten(r: int, g: int, b: int, factor: float = 0.15) -> Tuple[int, int, in
     )
 
 
-def _darken(r: int, g: int, b: int, factor: float = 0.15) -> Tuple[int, int, int]:
+def _darken(r: int, g: int, b: int, factor: float = 0.15) -> tuple[int, int, int]:
     """颜色变暗"""
     return (
         max(0, int(r * (1 - factor))),
@@ -259,7 +266,9 @@ def _create_linear_palette(theme_color: str, is_dark: bool) -> ColorPalette:
 
 def _create_classic_palette(theme_color: str, is_dark: bool) -> ColorPalette:
     """创建经典主题调色板"""
-    accent_rgb = _CLASSIC_ACCENT_RGB.get(theme_color, _CLASSIC_ACCENT_RGB[THEME_COLOR_BLUE])
+    accent_rgb = _CLASSIC_ACCENT_RGB.get(
+        theme_color, _CLASSIC_ACCENT_RGB[THEME_COLOR_BLUE]
+    )
     accent = _hex(*accent_rgb)
     accent_hover = _hex(*_lighten(*accent_rgb, 0.15))
 
@@ -376,7 +385,7 @@ def _create_classic_palette(theme_color: str, is_dark: bool) -> ColorPalette:
 
 
 # ==================== M3 强调色映射 ====================
-_M3_ACCENT_MAP: Dict[str, str] = {
+_M3_ACCENT_MAP: dict[str, str] = {
     THEME_COLOR_BLUE: "#d0bcff",
     THEME_COLOR_GREEN: "#a8e6a3",
     THEME_COLOR_RED: "#ffb4ab",
@@ -384,7 +393,7 @@ _M3_ACCENT_MAP: Dict[str, str] = {
     THEME_COLOR_ORANGE: "#ffb59e",
 }
 
-_M3_ACCENT_HOVER_MAP: Dict[str, str] = {
+_M3_ACCENT_HOVER_MAP: dict[str, str] = {
     THEME_COLOR_BLUE: "#e8def8",
     THEME_COLOR_GREEN: "#c8f0c8",
     THEME_COLOR_RED: "#ffdad6",
@@ -402,7 +411,9 @@ def _create_material3_palette(theme_color: str, is_dark: bool) -> ColorPalette:
     - Primary: #d0bcff (dark) / #6750a4 (light)
     """
     accent = _M3_ACCENT_MAP.get(theme_color, _M3_ACCENT_MAP[THEME_COLOR_BLUE])
-    accent_hover = _M3_ACCENT_HOVER_MAP.get(theme_color, _M3_ACCENT_HOVER_MAP[THEME_COLOR_BLUE])
+    accent_hover = _M3_ACCENT_HOVER_MAP.get(
+        theme_color, _M3_ACCENT_HOVER_MAP[THEME_COLOR_BLUE]
+    )
 
     if is_dark:
         return ColorPalette(
@@ -501,8 +512,12 @@ def _create_material3_palette(theme_color: str, is_dark: bool) -> ColorPalette:
             rgba_selection="rgba(103,80,164,0.12)",
             rgba_info_bg="rgba(103,80,164,0.06)",
             # M3 Primary (light mode uses darker accent)
-            accent="#6750a4" if theme_color in (THEME_COLOR_BLUE, THEME_COLOR_PURPLE) else accent,
-            accent_hover="#7c6cb0" if theme_color in (THEME_COLOR_BLUE, THEME_COLOR_PURPLE) else accent_hover,
+            accent="#6750a4"
+            if theme_color in (THEME_COLOR_BLUE, THEME_COLOR_PURPLE)
+            else accent,
+            accent_hover="#7c6cb0"
+            if theme_color in (THEME_COLOR_BLUE, THEME_COLOR_PURPLE)
+            else accent_hover,
             # M3 Status
             success="#3a691c",
             danger="#ba1a1a",
@@ -511,7 +526,9 @@ def _create_material3_palette(theme_color: str, is_dark: bool) -> ColorPalette:
             sidebar_bg="#f3edf7",
             sidebar_text="#49454f",
             sidebar_text_active="#1c1b1f",
-            sidebar_indicator="#6750a4" if theme_color in (THEME_COLOR_BLUE, THEME_COLOR_PURPLE) else accent,
+            sidebar_indicator="#6750a4"
+            if theme_color in (THEME_COLOR_BLUE, THEME_COLOR_PURPLE)
+            else accent,
             # 卡片
             card_bg="#ffffff",
             card_border="rgba(28,27,31,0.10)",
@@ -529,7 +546,7 @@ def _create_material3_palette(theme_color: str, is_dark: bool) -> ColorPalette:
 
 
 # ==================== 主题定义注册表 ====================
-_THEMES: Dict[str, ThemeDefinition] = {
+_THEMES: dict[str, ThemeDefinition] = {
     THEME_NAME_LINEAR: ThemeDefinition(
         name=THEME_NAME_LINEAR,
         light=_create_linear_palette(THEME_COLOR_BLUE, False),
@@ -557,7 +574,9 @@ class ThemeConfig:
         return _THEMES.get(theme_name, _THEMES[THEME_NAME_CLASSIC])
 
     @classmethod
-    def get_palette(cls, theme_name: str, theme_mode: str, theme_color: str) -> ColorPalette:
+    def get_palette(
+        cls, theme_name: str, theme_mode: str, theme_color: str
+    ) -> ColorPalette:
         """获取指定配置的调色板
 
         Args:
@@ -576,7 +595,9 @@ class ThemeConfig:
             return _create_classic_palette(theme_color, is_dark)
 
     @classmethod
-    def get_qpalette(cls, theme_name: str, theme_mode: str, theme_color: str) -> QPalette:
+    def get_qpalette(
+        cls, theme_name: str, theme_mode: str, theme_color: str
+    ) -> QPalette:
         """获取 Qt 调色板
 
         Args:
@@ -588,23 +609,37 @@ class ThemeConfig:
 
         palette = QPalette()
         palette.setColor(QPalette.ColorRole.Window, QColor(palette_colors.bg_primary))
-        palette.setColor(QPalette.ColorRole.WindowText, QColor(palette_colors.text_primary))
+        palette.setColor(
+            QPalette.ColorRole.WindowText, QColor(palette_colors.text_primary)
+        )
         palette.setColor(QPalette.ColorRole.Base, QColor(palette_colors.bg_elevated))
-        palette.setColor(QPalette.ColorRole.AlternateBase, QColor(palette_colors.bg_alternate))
-        palette.setColor(QPalette.ColorRole.ToolTipBase, QColor(palette_colors.bg_tooltip))
-        palette.setColor(QPalette.ColorRole.ToolTipText, QColor(palette_colors.text_tooltip))
+        palette.setColor(
+            QPalette.ColorRole.AlternateBase, QColor(palette_colors.bg_alternate)
+        )
+        palette.setColor(
+            QPalette.ColorRole.ToolTipBase, QColor(palette_colors.bg_tooltip)
+        )
+        palette.setColor(
+            QPalette.ColorRole.ToolTipText, QColor(palette_colors.text_tooltip)
+        )
         palette.setColor(QPalette.ColorRole.Text, QColor(palette_colors.text_primary))
         palette.setColor(QPalette.ColorRole.Button, QColor(palette_colors.bg_elevated))
-        palette.setColor(QPalette.ColorRole.ButtonText, QColor(palette_colors.text_primary))
+        palette.setColor(
+            QPalette.ColorRole.ButtonText, QColor(palette_colors.text_primary)
+        )
         palette.setColor(QPalette.ColorRole.BrightText, QColor(palette_colors.danger))
         palette.setColor(QPalette.ColorRole.Link, QColor(palette_colors.accent))
         palette.setColor(QPalette.ColorRole.Highlight, QColor(palette_colors.accent))
-        palette.setColor(QPalette.ColorRole.HighlightedText, QColor(palette_colors.text_tooltip))
+        palette.setColor(
+            QPalette.ColorRole.HighlightedText, QColor(palette_colors.text_tooltip)
+        )
 
         return palette
 
     @classmethod
-    def get_status_color(cls, status: str, theme_name: str, theme_mode: str, theme_color: str) -> str:
+    def get_status_color(
+        cls, status: str, theme_name: str, theme_mode: str, theme_color: str
+    ) -> str:
         """获取状态颜色
 
         Args:
@@ -624,7 +659,9 @@ class ThemeConfig:
         return status_map.get(status, palette.accent)
 
     @classmethod
-    def get_accent_color(cls, theme_color: str, theme_name: str = THEME_NAME_LINEAR) -> str:
+    def get_accent_color(
+        cls, theme_color: str, theme_name: str = THEME_NAME_LINEAR
+    ) -> str:
         """获取强调色
 
         Args:
@@ -634,7 +671,9 @@ class ThemeConfig:
         if theme_name == THEME_NAME_LINEAR:
             rgb = _ACCENT_RGB.get(theme_color, _ACCENT_RGB[THEME_COLOR_BLUE])
         else:
-            rgb = _CLASSIC_ACCENT_RGB.get(theme_color, _CLASSIC_ACCENT_RGB[THEME_COLOR_BLUE])
+            rgb = _CLASSIC_ACCENT_RGB.get(
+                theme_color, _CLASSIC_ACCENT_RGB[THEME_COLOR_BLUE]
+            )
         return _hex(*rgb)
 
     @classmethod
@@ -644,14 +683,20 @@ class ThemeConfig:
         return palette.text_secondary
 
     @classmethod
-    def get_info_box_style(cls, theme_name: str, theme_mode: str, theme_color: str) -> str:
+    def get_info_box_style(
+        cls, theme_name: str, theme_mode: str, theme_color: str
+    ) -> str:
         """获取信息框样式"""
         palette = cls.get_palette(theme_name, theme_mode, theme_color)
-        return (f"QLabel {{ color: {palette.accent}; padding: 8px; "
-                f"background-color: {palette.rgba_info_bg}; border-radius: 6px; }}")
+        return (
+            f"QLabel {{ color: {palette.accent}; padding: 8px; "
+            f"background-color: {palette.rgba_info_bg}; border-radius: 6px; }}"
+        )
 
     @classmethod
-    def get_button_style(cls, button_type: str, theme_name: str, theme_mode: str, theme_color: str) -> str:
+    def get_button_style(
+        cls, button_type: str, theme_name: str, theme_mode: str, theme_color: str
+    ) -> str:
         """获取按钮样式
 
         Args:
@@ -663,15 +708,21 @@ class ThemeConfig:
         palette = cls.get_palette(theme_name, theme_mode, theme_color)
 
         if button_type == "primary":
-            return (f"QPushButton {{ background-color: {palette.accent}; color: {palette.text_tooltip}; "
-                    f"font-weight: 600; padding: 10px; border-radius: 6px; "
-                    f"border: 1px solid {palette.accent}; }} "
-                    f"QPushButton:hover {{ background-color: {palette.accent_hover}; "
-                    f"border-color: {palette.accent_hover}; }}")
+            return (
+                f"QPushButton {{ background-color: {palette.accent}; "
+                f"color: {palette.text_tooltip}; "
+                f"font-weight: 600; padding: 10px; border-radius: 6px; "
+                f"border: 1px solid {palette.accent}; }} "
+                f"QPushButton:hover {{ background-color: {palette.accent_hover}; "
+                f"border-color: {palette.accent_hover}; }}"
+            )
         elif button_type == "success":
-            return (f"QPushButton {{ background-color: {palette.success}; color: {palette.text_tooltip}; "
-                    f"font-weight: 600; padding: 10px; border-radius: 6px; "
-                    f"border: 1px solid {palette.success}; }} "
-                    f"QPushButton:hover {{ background-color: {palette.accent_hover}; "
-                    f"border-color: {palette.accent_hover}; }}")
+            return (
+                f"QPushButton {{ background-color: {palette.success}; "
+                f"color: {palette.text_tooltip}; "
+                f"font-weight: 600; padding: 10px; border-radius: 6px; "
+                f"border: 1px solid {palette.success}; }} "
+                f"QPushButton:hover {{ background-color: {palette.accent_hover}; "
+                f"border-color: {palette.accent_hover}; }}"
+            )
         return ""

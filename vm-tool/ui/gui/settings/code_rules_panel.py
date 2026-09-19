@@ -1,16 +1,25 @@
 """编码规则设置面板"""
 
-from PyQt6.QtWidgets import (QFormLayout, QLabel, QComboBox, QHBoxLayout,
-                             QPushButton, QLineEdit, QTextEdit, QWidget,
-                             QVBoxLayout, QMessageBox, QGroupBox)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import (
+    QApplication,
+    QComboBox,
+    QFormLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
 
-from .base_panel import SettingsPanel
 from app.core.config_manager import config_manager
-from ..theme_colors import get_status_color
 
+from ..theme_colors import get_status_color
+from .base_panel import SettingsPanel
 
 # 语法帮助文本
 SYNTAX_HELP_TEXT = """编码规则语法说明：
@@ -121,7 +130,9 @@ class CodeRulesPanel(SettingsPanel):
         self.rule_content_edit.setMinimumHeight(min_height)
         self.rule_content_edit.setMinimumWidth(400)
         self.rule_content_edit.setFont(QFont("Monospace", 10))
-        self.rule_content_edit.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+        self.rule_content_edit.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOn
+        )
 
         custom_rule_layout.addWidget(QLabel("规则内容:"))
         custom_rule_layout.addWidget(self.rule_content_edit)
@@ -132,7 +143,8 @@ class CodeRulesPanel(SettingsPanel):
         syntax_button.setFixedSize(20, 20)
         success_color = get_status_color("success")
         syntax_button.setStyleSheet(
-            f"QPushButton {{ border-radius: 10px; background-color: {success_color}; color: white; }}"
+            f"QPushButton {{ border-radius: 10px; "
+            f"background-color: {success_color}; color: white; }}"
         )
         syntax_button.clicked.connect(self._show_syntax_help)
 
@@ -174,10 +186,7 @@ class CodeRulesPanel(SettingsPanel):
         for rule_name, rule_value in rules.items():
             if isinstance(rule_value, str):
                 # 旧格式，转换为新格式
-                new_rules[rule_name] = {
-                    "content": rule_value,
-                    "python_mode": False
-                }
+                new_rules[rule_name] = {"content": rule_value, "python_mode": False}
             else:
                 # 新格式，直接使用
                 new_rules[rule_name] = rule_value
@@ -189,8 +198,11 @@ class CodeRulesPanel(SettingsPanel):
             # 默认规则
             rules = {
                 "默认规则": {
-                    "content": "v[2]=s[1][1]+s[1][2]+s[2][1]+s[2][2]\nv[3]=s[1][1]+s[2][1]+s[3][1]",
-                    "python_mode": False
+                    "content": (
+                        "v[2]=s[1][1]+s[1][2]+s[2][1]+s[2][2]\n"
+                        "v[3]=s[1][1]+s[2][1]+s[3][1]"
+                    ),
+                    "python_mode": False,
                 }
             }
             config_manager.set("custom_rules", rules)
@@ -208,7 +220,9 @@ class CodeRulesPanel(SettingsPanel):
             self.rule_combo.addItem(display_name)
 
         # 设置当前规则
-        current_rule = config_manager.get("code_rule", rule_names[0] if rule_names else "")
+        current_rule = config_manager.get(
+            "code_rule", rule_names[0] if rule_names else ""
+        )
         if current_rule in rule_names:
             display_name = current_rule
             if rules[current_rule].get("python_mode", False):
@@ -219,8 +233,12 @@ class CodeRulesPanel(SettingsPanel):
 
             # 初始化显示当前规则内容和Python模式状态
             self.rule_name_edit.setText(current_rule)
-            self.rule_content_edit.setPlainText(rules.get(current_rule, {}).get("content", ""))
-            self.python_mode_checkbox.setChecked(rules.get(current_rule, {}).get("python_mode", False))
+            self.rule_content_edit.setPlainText(
+                rules.get(current_rule, {}).get("content", "")
+            )
+            self.python_mode_checkbox.setChecked(
+                rules.get(current_rule, {}).get("python_mode", False)
+            )
 
     def _on_rule_changed(self, text):
         """规则选择变更"""
@@ -237,7 +255,9 @@ class CodeRulesPanel(SettingsPanel):
         rules = config_manager.get("custom_rules", {})
         self.rule_name_edit.setText(rule_name)
         self.rule_content_edit.setPlainText(rules.get(rule_name, {}).get("content", ""))
-        self.python_mode_checkbox.setChecked(rules.get(rule_name, {}).get("python_mode", False))
+        self.python_mode_checkbox.setChecked(
+            rules.get(rule_name, {}).get("python_mode", False)
+        )
 
     def _add_rule(self):
         """添加规则"""
@@ -248,25 +268,22 @@ class CodeRulesPanel(SettingsPanel):
         if rule_name and rule_content:
             rules = config_manager.get("custom_rules", {})
             # 保存规则内容和Python模式状态
-            rules[rule_name] = {
-                "content": rule_content,
-                "python_mode": python_mode
-            }
+            rules[rule_name] = {"content": rule_content, "python_mode": python_mode}
             config_manager.set("custom_rules", rules)
 
             # 更新下拉框
             self._refresh_rule_combo(rule_name)
 
             parent = self.parent()
-            while parent and not hasattr(parent, 'show_toast'):
-                parent = parent.parent() if hasattr(parent, 'parent') else None
-            if parent and hasattr(parent, 'show_toast'):
+            while parent and not hasattr(parent, "show_toast"):
+                parent = parent.parent() if hasattr(parent, "parent") else None
+            if parent and hasattr(parent, "show_toast"):
                 parent.show_toast(f"规则 '{rule_name}' 添加成功")
         else:
             parent = self.parent()
-            while parent and not hasattr(parent, 'show_toast'):
-                parent = parent.parent() if hasattr(parent, 'parent') else None
-            if parent and hasattr(parent, 'show_toast'):
+            while parent and not hasattr(parent, "show_toast"):
+                parent = parent.parent() if hasattr(parent, "parent") else None
+            if parent and hasattr(parent, "show_toast"):
                 parent.show_toast("请输入规则名称和内容")
 
     def _delete_rule(self):
@@ -292,9 +309,9 @@ class CodeRulesPanel(SettingsPanel):
                 self._refresh_rule_combo()
 
                 parent = self.parent()
-                while parent and not hasattr(parent, 'show_toast'):
-                    parent = parent.parent() if hasattr(parent, 'parent') else None
-                if parent and hasattr(parent, 'show_toast'):
+                while parent and not hasattr(parent, "show_toast"):
+                    parent = parent.parent() if hasattr(parent, "parent") else None
+                if parent and hasattr(parent, "show_toast"):
                     parent.show_toast(f"规则 '{current_rule}' 删除成功")
 
     def _set_default_rule(self):
@@ -314,9 +331,9 @@ class CodeRulesPanel(SettingsPanel):
             self._refresh_rule_combo(current_rule)
 
             parent = self.parent()
-            while parent and not hasattr(parent, 'show_toast'):
-                parent = parent.parent() if hasattr(parent, 'parent') else None
-            if parent and hasattr(parent, 'show_toast'):
+            while parent and not hasattr(parent, "show_toast"):
+                parent = parent.parent() if hasattr(parent, "parent") else None
+            if parent and hasattr(parent, "show_toast"):
                 parent.show_toast(f"规则 '{current_rule}' 已设为默认")
 
     def _refresh_rule_combo(self, select_rule=None):
@@ -346,8 +363,12 @@ class CodeRulesPanel(SettingsPanel):
             config_manager.set("code_rule", rule_names[0])
             # 更新规则编辑框
             self.rule_name_edit.setText(rule_names[0])
-            self.rule_content_edit.setPlainText(rules.get(rule_names[0], {}).get("content", ""))
-            self.python_mode_checkbox.setChecked(rules.get(rule_names[0], {}).get("python_mode", False))
+            self.rule_content_edit.setPlainText(
+                rules.get(rule_names[0], {}).get("content", "")
+            )
+            self.python_mode_checkbox.setChecked(
+                rules.get(rule_names[0], {}).get("python_mode", False)
+            )
         else:
             config_manager.set("code_rule", "")
             self.rule_name_edit.setText("")

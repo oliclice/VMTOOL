@@ -1,7 +1,20 @@
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem,
-                             QPushButton, QLineEdit, QLabel, QComboBox, QMenu, QMessageBox,
-                             QDialog, QFormLayout)
 from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
+    QComboBox,
+    QDialog,
+    QFormLayout,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMenu,
+    QMessageBox,
+    QPushButton,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
+
 from .refreshable_tab import RefreshableTab
 
 
@@ -40,16 +53,23 @@ class SpecialTab(QWidget, RefreshableTab):
         self.special_table.setColumnCount(3)
         self.special_table.setHorizontalHeaderLabels(["特殊字符", "编码", "权重"])
         self.special_table.setSortingEnabled(True)
-        self.special_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.special_table.setSelectionBehavior(
+            QTableWidget.SelectionBehavior.SelectRows
+        )
 
         self.special_table.setColumnWidth(0, 150)
         self.special_table.setColumnWidth(1, 150)
         self.special_table.setColumnWidth(2, 100)
 
         self.special_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.special_table.customContextMenuRequested.connect(self.show_special_context_menu)
+        self.special_table.customContextMenuRequested.connect(
+            self.show_special_context_menu
+        )
 
-        self.special_table.setEditTriggers(QTableWidget.EditTrigger.DoubleClicked | QTableWidget.EditTrigger.SelectedClicked)
+        self.special_table.setEditTriggers(
+            QTableWidget.EditTrigger.DoubleClicked
+            | QTableWidget.EditTrigger.SelectedClicked
+        )
         self.special_table.cellChanged.connect(self.on_cell_changed_special)
 
         layout.addWidget(self.special_table)
@@ -99,11 +119,11 @@ class SpecialTab(QWidget, RefreshableTab):
         if not thread:
             return
 
-        if self.parent and hasattr(self.parent, 'progress_bar'):
+        if self.parent and hasattr(self.parent, "progress_bar"):
             self.parent.progress_bar.start_progress("正在加载特殊表...")
 
         def on_progress(progress, message):
-            if self.parent and hasattr(self.parent, 'progress_bar'):
+            if self.parent and hasattr(self.parent, "progress_bar"):
                 self.parent.progress_bar.update_progress(progress, message)
 
         def on_finished(data):
@@ -111,7 +131,7 @@ class SpecialTab(QWidget, RefreshableTab):
             self.cleanup_refresh_thread()
 
         def on_error(error_msg):
-            if self.parent and hasattr(self.parent, 'progress_bar'):
+            if self.parent and hasattr(self.parent, "progress_bar"):
                 self.parent.progress_bar.error_progress(f"加载失败: {error_msg}")
             QMessageBox.critical(self, "错误", f"刷新失败: {error_msg}")
             self.cleanup_refresh_thread()
@@ -139,13 +159,16 @@ class SpecialTab(QWidget, RefreshableTab):
             for i in range(batch_start, batch_end):
                 self.update_table_row(table, i, data[i])
             from PyQt6.QtWidgets import QApplication
+
             QApplication.processEvents()
 
         table.blockSignals(False)
         table.setSortingEnabled(was_sorted)
 
-        if self.parent and hasattr(self.parent, 'progress_bar'):
-            self.parent.progress_bar.finish_progress(f"{task_description}完成，共 {total_rows} 条记录")
+        if self.parent and hasattr(self.parent, "progress_bar"):
+            self.parent.progress_bar.finish_progress(
+                f"{task_description}完成，共 {total_rows} 条记录"
+            )
 
     def search_special(self):
         if not self.dict_service:
@@ -222,13 +245,15 @@ class SpecialTab(QWidget, RefreshableTab):
             return
 
         def add_callback(chars, dialog):
-            self.execute_batch_add(chars, dialog, {"is_special": True}, "添加成功，共添加 {} 个特殊字符")
+            self.execute_batch_add(
+                chars, dialog, {"is_special": True}, "添加成功，共添加 {} 个特殊字符"
+            )
 
         dialog = self.create_batch_add_dialog(
             "批量添加特殊字符",
             "请输入要添加的特殊字符，每个特殊字符占一行:",
             "添加",
-            add_callback
+            add_callback,
         )
         dialog.exec()
 
@@ -244,8 +269,10 @@ class SpecialTab(QWidget, RefreshableTab):
         char = self.special_table.item(selected_row, 0).text()
 
         reply = QMessageBox.question(
-            self, "确认", f"确定要删除 '{char}' 吗？",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            self,
+            "确认",
+            f"确定要删除 '{char}' 吗？",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
 
         if reply == QMessageBox.StandardButton.Yes:
@@ -329,7 +356,7 @@ class SpecialTab(QWidget, RefreshableTab):
                 if weight_item:
                     weight = float(weight_item.text())
                     self.dict_service.update_word(char, code=new_value, weight=weight)
-                    if hasattr(self.parent, 'show_toast'):
+                    if hasattr(self.parent, "show_toast"):
                         self.parent.show_toast(f"特殊字符 '{char}' 编码更新成功")
             elif column == 2:
                 code_item = self.special_table.item(row, 1)
@@ -337,7 +364,7 @@ class SpecialTab(QWidget, RefreshableTab):
                     code = code_item.text()
                     weight = float(new_value)
                     self.dict_service.update_word(char, code=code, weight=weight)
-                    if hasattr(self.parent, 'show_toast'):
+                    if hasattr(self.parent, "show_toast"):
                         self.parent.show_toast(f"特殊字符 '{char}' 权重更新成功")
         except Exception as e:
             QMessageBox.critical(self, "错误", f"更新失败: {e}")

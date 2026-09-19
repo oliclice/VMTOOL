@@ -1,7 +1,7 @@
 """侧边栏 TabBar — QSS 驱动、主题感知、分组标题"""
-from PyQt6.QtWidgets import QTabBar, QStylePainter, QStyleOptionTab, QStyle
 from PyQt6.QtCore import QRect, QSize, Qt
-from PyQt6.QtGui import QPainter, QFont, QPen
+from PyQt6.QtGui import QFont, QPainter, QPen
+from PyQt6.QtWidgets import QStyle, QStyleOptionTab, QStylePainter, QTabBar
 
 from app.core.theme_constants import TAB_GROUPS
 
@@ -106,7 +106,11 @@ class SidebarTabBar(QTabBar):
         # 使用与未选中文字一致的颜色 (从 palette 的 placeholder 色近似)
         c = self.palette().color(self.palette().ColorRole.PlaceholderText)
         painter.setPen(QPen(c))
-        painter.drawText(header_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, label)
+        painter.drawText(
+            header_rect,
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+            label,
+        )
         painter.restore()
 
     def _paint_tab(self, painter: QStylePainter, index: int):
@@ -119,8 +123,10 @@ class SidebarTabBar(QTabBar):
             offset = self.GROUP_HEADER_HEIGHT + self.GROUP_HEADER_MARGIN_TOP
             tab_rect = self.tabRect(index)
             adjusted_rect = QRect(
-                tab_rect.x(), tab_rect.y() + offset,
-                tab_rect.width(), tab_rect.height() - offset,
+                tab_rect.x(),
+                tab_rect.y() + offset,
+                tab_rect.width(),
+                tab_rect.height() - offset,
             )
             opt.rect = adjusted_rect
 

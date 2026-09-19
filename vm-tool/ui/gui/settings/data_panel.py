@@ -1,11 +1,16 @@
 """数据设置面板 - 合并配置目录和数据库路径设置"""
 
 import os
-from PyQt6.QtWidgets import QFormLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout
-from PyQt6.QtWidgets import QFileDialog
+
+from PyQt6.QtWidgets import (
+    QFileDialog,
+    QFormLayout,
+    QHBoxLayout,
+    QLineEdit,
+    QPushButton,
+)
 
 from .base_panel import SettingsPanel
-from app.core.config_manager import config_manager
 
 
 class DataPanel(SettingsPanel):
@@ -69,12 +74,18 @@ class DataPanel(SettingsPanel):
         # 尝试使用 zenity
         try:
             import subprocess
+
             result = subprocess.run(
-                ["zenity", "--file-selection", "--directory",
-                 "--title=选择配置目录", "--filename=~/.config/"],
+                [
+                    "zenity",
+                    "--file-selection",
+                    "--directory",
+                    "--title=选择配置目录",
+                    "--filename=~/.config/",
+                ],
                 capture_output=True,
                 text=True,
-                timeout=30
+                timeout=30,
             )
             if result.returncode == 0:
                 directory = result.stdout.strip()
@@ -86,9 +97,7 @@ class DataPanel(SettingsPanel):
             pass
 
         # 回退到 Qt 内置对话框
-        directory = QFileDialog.getExistingDirectory(
-            self, "选择配置目录", "~/.config"
-        )
+        directory = QFileDialog.getExistingDirectory(self, "选择配置目录", "~/.config")
         if directory:
             self.config_dir_edit.setText(directory)
             self._set_config("config_dir", directory)
@@ -98,13 +107,18 @@ class DataPanel(SettingsPanel):
         # 尝试使用 zenity
         try:
             import subprocess
+
             result = subprocess.run(
-                ["zenity", "--file-selection", "--save",
-                 "--title=选择数据库文件",
-                 "--file-filter=SQLite数据库文件 (*.db)|*.db"],
+                [
+                    "zenity",
+                    "--file-selection",
+                    "--save",
+                    "--title=选择数据库文件",
+                    "--file-filter=SQLite数据库文件 (*.db)|*.db",
+                ],
                 capture_output=True,
                 text=True,
-                timeout=30
+                timeout=30,
             )
             if result.returncode == 0:
                 file_path = result.stdout.strip()
@@ -133,6 +147,7 @@ class DataPanel(SettingsPanel):
     def _recreate_engine(self):
         """重建数据库引擎"""
         from app.dal.database import recreate_engine
+
         recreate_engine()
 
     def reload(self):

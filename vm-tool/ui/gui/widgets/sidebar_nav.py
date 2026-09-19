@@ -2,11 +2,16 @@
 
 提供 Finder-like 的导航体验，支持分组、选中态、主题响应。
 """
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QSizePolicy
-)
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
+from PyQt6.QtWidgets import (
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 
 
 class NavItem(QWidget):
@@ -17,6 +22,7 @@ class NavItem(QWidget):
     - 选中: indicator accent 色, 文字 primary, 背景 rgba_selection
     - hover: 背景 rgba_surface_hover
     """
+
     clicked = pyqtSignal(int)  # page_index
 
     def __init__(self, icon: str, label: str, page_index: int, parent=None):
@@ -121,6 +127,7 @@ class SidebarNav(QWidget):
         set_active(page_index: int)
         add_bottom_widget(widget: QWidget)
     """
+
     nav_changed = pyqtSignal(int)
 
     def __init__(self, parent=None):
@@ -140,7 +147,9 @@ class SidebarNav(QWidget):
         # Brand header
         self.brand_header = QLabel("VMtool")
         self.brand_header.setFixedHeight(40)
-        self.brand_header.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        self.brand_header.setAlignment(
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        )
         self.main_layout.addWidget(self.brand_header)
 
         # 内容区域 (可滚动)
@@ -170,7 +179,9 @@ class SidebarNav(QWidget):
         separator = QFrame()
         separator.setFrameShape(QFrame.Shape.HLine)
         separator.setFixedHeight(1)
-        separator.setStyleSheet("background-color: rgba(255,255,255,0.06); margin: 8px 14px;")
+        separator.setStyleSheet(
+            "background-color: rgba(255,255,255,0.06); margin: 8px 14px;"
+        )
         self.content_layout.insertWidget(self.content_layout.count() - 1, separator)
 
     def add_bottom_widget(self, widget: QWidget):

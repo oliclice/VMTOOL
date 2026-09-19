@@ -1,5 +1,14 @@
-from PyQt6.QtWidgets import (QDialog, QFormLayout, QHBoxLayout, QLineEdit, QMessageBox, QTableWidgetItem, QPushButton)
 from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
+    QDialog,
+    QFormLayout,
+    QHBoxLayout,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QTableWidgetItem,
+)
+
 from .base_table_tab import BaseTableTab
 from .refreshable_tab import RefreshableTab
 
@@ -57,8 +66,10 @@ class GeneralTableTab(BaseTableTab, RefreshableTab):
         if not thread:
             return
 
-        if self.parent and hasattr(self.parent, 'progress_bar'):
-            self.parent.progress_bar.start_progress(f"正在加载{self.item_type_name}表...")
+        if self.parent and hasattr(self.parent, "progress_bar"):
+            self.parent.progress_bar.start_progress(
+                f"正在加载{self.item_type_name}表..."
+            )
 
         self.setup_refresh_callbacks(thread, self.table, f"{self.item_type_name}表加载")
         thread.start()
@@ -78,7 +89,9 @@ class GeneralTableTab(BaseTableTab, RefreshableTab):
                 self.table.setItem(i, 0, QTableWidgetItem(item["word"]))
                 self.table.setItem(i, 1, QTableWidgetItem(item["code"]))
                 self.table.setItem(i, 2, QTableWidgetItem(str(item["weight"])))
-                self.table.setItem(i, 3, QTableWidgetItem("是" if item["manual"] else "否"))
+                self.table.setItem(
+                    i, 3, QTableWidgetItem("是" if item["manual"] else "否")
+                )
         except Exception as e:
             QMessageBox.critical(self, "错误", f"搜索失败: {e}")
 
@@ -119,7 +132,9 @@ class GeneralTableTab(BaseTableTab, RefreshableTab):
 
             try:
                 self.add_method(name, code, weight, True)
-                QMessageBox.information(self, "成功", f"{self.item_type_name} '{name}' 添加成功")
+                QMessageBox.information(
+                    self, "成功", f"{self.item_type_name} '{name}' 添加成功"
+                )
                 self.refresh_data()
                 dialog.accept()
             except Exception as e:
@@ -139,13 +154,18 @@ class GeneralTableTab(BaseTableTab, RefreshableTab):
             return
 
         def add_callback(items, dialog):
-            self.execute_batch_add(items, dialog, self.batch_add_params, f"添加成功，共添加 {{}} 个{self.item_type_name}")
+            self.execute_batch_add(
+                items,
+                dialog,
+                self.batch_add_params,
+                f"添加成功，共添加 {{}} 个{self.item_type_name}",
+            )
 
         dialog = self.create_batch_add_dialog(
             f"批量添加{self.item_type_name}",
             f"请输入要添加的{self.item_type_name}，每个{self.item_type_name}占一行:",
             "添加",
-            add_callback
+            add_callback,
         )
         dialog.exec()
 
@@ -161,14 +181,18 @@ class GeneralTableTab(BaseTableTab, RefreshableTab):
         name = self.table.item(selected_row, 0).text()
 
         reply = QMessageBox.question(
-            self, "确认", f"确定要删除 '{name}' 吗？",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            self,
+            "确认",
+            f"确定要删除 '{name}' 吗？",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
 
         if reply == QMessageBox.StandardButton.Yes:
             try:
                 self.delete_method(name)
-                QMessageBox.information(self, "成功", f"{self.item_type_name} '{name}' 删除成功")
+                QMessageBox.information(
+                    self, "成功", f"{self.item_type_name} '{name}' 删除成功"
+                )
                 self.refresh_data()
             except Exception as e:
                 QMessageBox.critical(self, "错误", f"删除失败: {e}")
@@ -211,7 +235,9 @@ class GeneralTableTab(BaseTableTab, RefreshableTab):
 
             try:
                 self.update_method(name, code=new_code, weight=new_weight)
-                QMessageBox.information(self, "成功", f"{self.item_type_name} '{name}' 更新成功")
+                QMessageBox.information(
+                    self, "成功", f"{self.item_type_name} '{name}' 更新成功"
+                )
                 self.refresh_data()
                 dialog.accept()
             except Exception as e:
@@ -246,16 +272,20 @@ class GeneralTableTab(BaseTableTab, RefreshableTab):
                 if weight_item:
                     weight = float(weight_item.text())
                     self.update_method(name, code=new_value, weight=weight)
-                    if hasattr(self.parent, 'show_toast'):
-                        self.parent.show_toast(f"{self.item_type_name} '{name}' 编码更新成功")
+                    if hasattr(self.parent, "show_toast"):
+                        self.parent.show_toast(
+                            f"{self.item_type_name} '{name}' 编码更新成功"
+                        )
             elif column == 2:
                 code_item = self.table.item(row, 1)
                 if code_item:
                     code = code_item.text()
                     weight = float(new_value)
                     self.update_method(name, code=code, weight=weight)
-                    if hasattr(self.parent, 'show_toast'):
-                        self.parent.show_toast(f"{self.item_type_name} '{name}' 权重更新成功")
+                    if hasattr(self.parent, "show_toast"):
+                        self.parent.show_toast(
+                            f"{self.item_type_name} '{name}' 权重更新成功"
+                        )
         except Exception as e:
             QMessageBox.critical(self, "错误", f"更新失败: {e}")
             self.refresh_data()

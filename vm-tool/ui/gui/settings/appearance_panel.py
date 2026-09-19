@@ -1,18 +1,25 @@
 """外观设置面板 - 合并主题、语言、字体设置"""
 
-from PyQt6.QtWidgets import QFormLayout, QLabel, QComboBox
 from PyQt6.QtGui import QFont, QFontDatabase
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication, QComboBox, QFormLayout, QLabel
+
+from app.core.theme_constants import (
+    MODE_DISPLAY_MAP,
+    MODE_DISPLAY_REVERSE_MAP,
+    THEME_COLOR_BLUE,
+    THEME_COLOR_GREEN,
+    THEME_COLOR_ORANGE,
+    THEME_COLOR_PURPLE,
+    THEME_COLOR_RED,
+    THEME_MODE_AUTO,
+    THEME_MODE_DARK,
+    THEME_MODE_LIGHT,
+    THEME_NAME_CLASSIC,
+    THEME_NAME_LINEAR,
+    THEME_NAME_MATERIAL3,
+)
 
 from .base_panel import SettingsPanel
-from app.core.config_manager import config_manager
-from app.core.theme_constants import (
-    THEME_MODE_AUTO, THEME_MODE_LIGHT, THEME_MODE_DARK,
-    THEME_NAME_CLASSIC, THEME_NAME_MATERIAL3, THEME_NAME_LINEAR,
-    THEME_COLOR_BLUE, THEME_COLOR_GREEN,
-    THEME_COLOR_RED, THEME_COLOR_PURPLE, THEME_COLOR_ORANGE,
-    MODE_DISPLAY_MAP, MODE_DISPLAY_REVERSE_MAP
-)
 
 
 class AppearancePanel(SettingsPanel):
@@ -27,11 +34,9 @@ class AppearancePanel(SettingsPanel):
 
         # 主题选择
         self.theme_combo = QComboBox()
-        self.theme_combo.addItems([
-            THEME_NAME_CLASSIC,
-            THEME_NAME_MATERIAL3,
-            THEME_NAME_LINEAR
-        ])
+        self.theme_combo.addItems(
+            [THEME_NAME_CLASSIC, THEME_NAME_MATERIAL3, THEME_NAME_LINEAR]
+        )
         layout.addRow("主题:", self.theme_combo)
 
         # 模式选择
@@ -39,17 +44,22 @@ class AppearancePanel(SettingsPanel):
         mode_display_names = [
             MODE_DISPLAY_MAP[THEME_MODE_AUTO],
             MODE_DISPLAY_MAP[THEME_MODE_LIGHT],
-            MODE_DISPLAY_MAP[THEME_MODE_DARK]
+            MODE_DISPLAY_MAP[THEME_MODE_DARK],
         ]
         self.mode_combo.addItems(mode_display_names)
         layout.addRow("模式:", self.mode_combo)
 
         # 主题颜色
         self.color_combo = QComboBox()
-        self.color_combo.addItems([
-            THEME_COLOR_BLUE, THEME_COLOR_GREEN, THEME_COLOR_RED,
-            THEME_COLOR_PURPLE, THEME_COLOR_ORANGE
-        ])
+        self.color_combo.addItems(
+            [
+                THEME_COLOR_BLUE,
+                THEME_COLOR_GREEN,
+                THEME_COLOR_RED,
+                THEME_COLOR_PURPLE,
+                THEME_COLOR_ORANGE,
+            ]
+        )
         layout.addRow("主题颜色:", self.color_combo)
 
         # 分隔线（通过添加一个空行模拟）
@@ -95,7 +105,9 @@ class AppearancePanel(SettingsPanel):
 
         # 模式
         current_mode = self._get_config("theme_mode", THEME_MODE_AUTO)
-        display_mode = MODE_DISPLAY_MAP.get(current_mode, MODE_DISPLAY_MAP[THEME_MODE_AUTO])
+        display_mode = MODE_DISPLAY_MAP.get(
+            current_mode, MODE_DISPLAY_MAP[THEME_MODE_AUTO]
+        )
         self.mode_combo.setCurrentText(display_mode)
 
         # 颜色
@@ -133,13 +145,14 @@ class AppearancePanel(SettingsPanel):
 
             # 应用主题
             from ..theme_manager import theme_manager
+
             theme_manager.set_theme(internal_mode, theme, color)
 
             # 显示提示
             parent = self.parent()
-            while parent and not hasattr(parent, 'show_toast'):
-                parent = parent.parent() if hasattr(parent, 'parent') else None
-            if parent and hasattr(parent, 'show_toast'):
+            while parent and not hasattr(parent, "show_toast"):
+                parent = parent.parent() if hasattr(parent, "parent") else None
+            if parent and hasattr(parent, "show_toast"):
                 parent.show_toast(f"主题已更改为：{theme} - {mode_display} - {color}")
         finally:
             # 恢复信号
@@ -157,9 +170,9 @@ class AppearancePanel(SettingsPanel):
 
         # 显示提示
         parent = self.parent()
-        while parent and not hasattr(parent, 'show_toast'):
-            parent = parent.parent() if hasattr(parent, 'parent') else None
-        if parent and hasattr(parent, 'show_toast'):
+        while parent and not hasattr(parent, "show_toast"):
+            parent = parent.parent() if hasattr(parent, "parent") else None
+        if parent and hasattr(parent, "show_toast"):
             parent.show_toast(f"字体已更改为: {font_family}")
 
     def _on_theme_changed(self, mode, name, color):

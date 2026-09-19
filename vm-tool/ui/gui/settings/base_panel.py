@@ -1,9 +1,9 @@
 """设置面板基类"""
 
-from PyQt6.QtWidgets import QGroupBox, QVBoxLayout
 from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtWidgets import QGroupBox, QVBoxLayout
+
 from app.core.config_manager import config_manager
-from app.core.theme_config import ThemeConfig
 
 
 class SettingsPanel(QGroupBox):
@@ -43,6 +43,7 @@ class SettingsPanel(QGroupBox):
 
         # 注册到主题同步
         from ..theme_manager import theme_manager
+
         theme_manager.register_widget(self, self._on_theme_changed)
 
     def _setup_ui(self):
@@ -97,5 +98,6 @@ class SettingsPanel(QGroupBox):
     def _add_row(self, layout, label_text, widget):
         """向表单布局添加一行"""
         from PyQt6.QtWidgets import QLabel
+
         label = QLabel(label_text)
         layout.addRow(label, widget)

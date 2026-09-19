@@ -1,13 +1,14 @@
 """数据库初始化脚本"""
 import logging
-import sys
 import os
+import sys
 
-# 添加当前目录到Python路径
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+# 添加当前目录到Python路径（供 `python app/dal/init_db.py` 直接执行时使用，
+# 因此 import 必须位于其后 —— 见下方 noqa: E402）
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
-from app.dal.database import Base, _get_engine
-from app.dal.models import Word, DictConfig
+from app.dal.database import Base, _get_engine  # noqa: E402
+from app.dal.models import DictConfig  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,6 @@ def init_database():
         Base.metadata.create_all(bind=engine)
         logger.info("数据库表结构创建成功")
 
-        from sqlalchemy.orm import Session
         from app.dal.database import _get_session_factory
 
         db = _get_session_factory()()
@@ -40,7 +40,7 @@ def init_database():
                 logger.info("配置已存在，跳过初始配置")
         finally:
             db.close()
-            
+
     except Exception as e:
         logger.error(f"数据库初始化失败: {e}")
         raise
@@ -51,15 +51,42 @@ def create_indexes():
     try:
         logger.info("开始创建数据库索引...")
         from sqlalchemy import text
+
         engine = _get_engine()
         with engine.connect() as conn:
-            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_words_word ON words (word)"))
-            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_words_code ON words (code)"))
-            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_words_word_code ON words (word, code)"))
-            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_words_is_active ON words (is_active)"))
-            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_words_is_character ON words (is_character)"))
-            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_words_is_special ON words (is_special)"))
-            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_words_manual ON words (manual)"))
+            conn.execute(
+                text("CREATE INDEX IF NOT EXISTS idx_words_word ON words (word)")
+            )
+            conn.execute(
+                text("CREATE INDEX IF NOT EXISTS idx_words_code ON words (code)")
+            )
+            conn.execute(
+                text(
+                    "CREATE INDEX IF NOT EXISTS idx_words_word_code "
+                    "ON words (word, code)"
+                )
+            )
+            conn.execute(
+                text(
+                    "CREATE INDEX IF NOT EXISTS idx_words_is_active "
+                    "ON words (is_active)"
+                )
+            )
+            conn.execute(
+                text(
+                    "CREATE INDEX IF NOT EXISTS idx_words_is_character "
+                    "ON words (is_character)"
+                )
+            )
+            conn.execute(
+                text(
+                    "CREATE INDEX IF NOT EXISTS idx_words_is_special "
+                    "ON words (is_special)"
+                )
+            )
+            conn.execute(
+                text("CREATE INDEX IF NOT EXISTS idx_words_manual ON words (manual)")
+            )
             conn.commit()
         logger.info("数据库索引创建成功")
     except Exception as e:
@@ -72,6 +99,7 @@ def optimize_database():
     try:
         logger.info("开始优化数据库...")
         from sqlalchemy import text
+
         engine = _get_engine()
         with engine.connect() as conn:
             conn.execute(text("PRAGMA optimize"))

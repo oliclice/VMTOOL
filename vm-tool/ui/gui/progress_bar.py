@@ -1,8 +1,8 @@
 """统一的进度条组件"""
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QProgressBar, QPushButton
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtWidgets import QHBoxLayout, QLabel, QProgressBar, QPushButton, QWidget
 
-from .theme_colors import get_status_color, get_hint_color
+from .theme_colors import get_hint_color, get_status_color
 from .theme_manager import theme_manager
 
 
@@ -84,7 +84,9 @@ class ProgressBarWidget(QWidget):
         self.status_label.setText(message)
 
         color = get_status_color("info")
-        self.status_label.setStyleSheet(f"QLabel {{ color: {color}; font-weight: bold; }}")
+        self.status_label.setStyleSheet(
+            f"QLabel {{ color: {color}; font-weight: bold; }}"
+        )
         self.cancel_button.setEnabled(True)
 
     def update_progress(self, value, message=None):
@@ -113,11 +115,14 @@ class ProgressBarWidget(QWidget):
         else:
             self.status_label.setText(message)
             color = get_status_color("error")
-        self.status_label.setStyleSheet(f"QLabel {{ color: {color}; font-weight: bold; }}")
+        self.status_label.setStyleSheet(
+            f"QLabel {{ color: {color}; font-weight: bold; }}"
+        )
         self.cancel_button.setEnabled(False)
 
         # 2 秒后隐藏
         from PyQt6.QtCore import QTimer
+
         QTimer.singleShot(2000, lambda: self.set_visible(False))
 
     def error_progress(self, message="错误"):
@@ -130,11 +135,14 @@ class ProgressBarWidget(QWidget):
         self.progress_bar.setValue(0)
         self.status_label.setText(message)
         color = get_status_color("error")
-        self.status_label.setStyleSheet(f"QLabel {{ color: {color}; font-weight: bold; }}")
+        self.status_label.setStyleSheet(
+            f"QLabel {{ color: {color}; font-weight: bold; }}"
+        )
         self.cancel_button.setEnabled(False)
 
         # 3 秒后隐藏
         from PyQt6.QtCore import QTimer
+
         QTimer.singleShot(3000, lambda: self.set_visible(False))
 
     def on_cancel_clicked(self):

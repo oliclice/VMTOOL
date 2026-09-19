@@ -1,13 +1,21 @@
 """设置标签页 - 侧边栏列表 + 卡片式内容"""
 
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QListWidget,
-                             QListWidgetItem, QScrollArea, QLabel)
-from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtCore import QSize
 from PyQt6.QtGui import QFont
+from PyQt6.QtWidgets import (
+    QHBoxLayout,
+    QLabel,
+    QListWidget,
+    QListWidgetItem,
+    QScrollArea,
+    QVBoxLayout,
+    QWidget,
+)
 
 from app.core.config_manager import config_manager
 from app.core.theme_config import ThemeConfig
-from .settings import PANEL_MAP, DEFAULT_PANEL_ORDER
+
+from .settings import DEFAULT_PANEL_ORDER, PANEL_MAP
 from .theme_manager import theme_manager
 
 
@@ -31,11 +39,13 @@ class SettingsTab(QWidget):
         # 左侧导航栏
         left_widget = QWidget()
         left_widget.setObjectName("settings_sidebar")
-        left_widget.setStyleSheet("""
+        left_widget.setStyleSheet(
+            """
             #settings_sidebar {
                 border-right: 1px solid palette(mid);
             }
-        """)
+        """
+        )
         left_layout = QVBoxLayout(left_widget)
         left_layout.setContentsMargins(0, 8, 0, 8)
         left_layout.setSpacing(0)
@@ -49,7 +59,8 @@ class SettingsTab(QWidget):
         # 导航列表
         self.nav_list = QListWidget()
         self.nav_list.setObjectName("settings_nav_list")
-        self.nav_list.setStyleSheet("""
+        self.nav_list.setStyleSheet(
+            """
             #settings_nav_list {
                 border: none;
                 background-color: transparent;
@@ -65,7 +76,8 @@ class SettingsTab(QWidget):
             #settings_nav_list::item:hover {
                 background-color: palette(mid);
             }
-        """)
+        """
+        )
         self.nav_list.setDragEnabled(True)
         self.nav_list.setDropIndicatorShown(True)
         self.nav_list.setDragDropMode(QListWidget.DragDropMode.InternalMove)
@@ -185,9 +197,9 @@ class SettingsTab(QWidget):
         """保存设置"""
         # 配置会在修改时自动保存，这里只是显示一个提示
         parent = self.parent()
-        while parent and not hasattr(parent, 'show_toast'):
-            parent = parent.parent() if hasattr(parent, 'parent') else None
-        if parent and hasattr(parent, 'show_toast'):
+        while parent and not hasattr(parent, "show_toast"):
+            parent = parent.parent() if hasattr(parent, "parent") else None
+        if parent and hasattr(parent, "show_toast"):
             parent.show_toast("设置已保存")
 
     def _on_theme_changed(self, _mode, _name, _color):
@@ -196,10 +208,12 @@ class SettingsTab(QWidget):
         palette = ThemeConfig.get_palette(
             theme_manager.current_theme_name,
             theme_manager.current_theme_mode,
-            theme_manager.current_theme_color
+            theme_manager.current_theme_color,
         )
-        self.findChild(QWidget, "settings_sidebar").setStyleSheet(f"""
+        self.findChild(QWidget, "settings_sidebar").setStyleSheet(
+            f"""
             #settings_sidebar {{
                 border-right: 1px solid {palette.rgba_border_standard};
             }}
-        """)
+        """
+        )

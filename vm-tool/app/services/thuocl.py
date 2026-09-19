@@ -1,17 +1,16 @@
 """词频数据加载服务"""
+import logging
 import math
 import os
-from typing import Dict, Optional
-import logging
 
 logger = logging.getLogger(__name__)
 
 # 模块级缓存，避免重复加载
-_freq_cache: Optional[Dict[str, int]] = None
-_data_dir: Optional[str] = None
+_freq_cache: dict[str, int] | None = None
+_data_dir: str | None = None
 
 
-def load_thuocl_data(data_dir: str) -> Dict[str, int]:
+def load_thuocl_data(data_dir: str) -> dict[str, int]:
     """加载词频数据
 
     优先加载 xiandaihaiyuchangyongcibiao.txt（三列格式：词\t拼音\t词频），
@@ -24,7 +23,7 @@ def load_thuocl_data(data_dir: str) -> Dict[str, int]:
     if _freq_cache is not None and _data_dir == data_dir:
         return _freq_cache
 
-    freq_dict: Dict[str, int] = {}
+    freq_dict: dict[str, int] = {}
 
     if not os.path.isdir(data_dir):
         logger.warning(f"词频数据目录不存在: {data_dir}")
@@ -36,7 +35,7 @@ def load_thuocl_data(data_dir: str) -> Dict[str, int]:
     priority_file = os.path.join(data_dir, "xiandaihaiyuchangyongcibiao.txt")
     if os.path.isfile(priority_file):
         try:
-            with open(priority_file, "r", encoding="utf-8") as f:
+            with open(priority_file, encoding="utf-8") as f:
                 for line in f:
                     line = line.strip()
                     if not line:
@@ -59,7 +58,7 @@ def load_thuocl_data(data_dir: str) -> Dict[str, int]:
             continue
         filepath = os.path.join(data_dir, filename)
         try:
-            with open(filepath, "r", encoding="utf-8") as f:
+            with open(filepath, encoding="utf-8") as f:
                 for line in f:
                     line = line.strip()
                     if not line:
@@ -83,7 +82,7 @@ def load_thuocl_data(data_dir: str) -> Dict[str, int]:
     return freq_dict
 
 
-def get_log_weight(word: str, freq_dict: Dict[str, int]) -> float:
+def get_log_weight(word: str, freq_dict: dict[str, int]) -> float:
     """获取词的对数权重: log10(词频)
 
     若词不在词频表中，返回 0.0（即 log10(1)）。

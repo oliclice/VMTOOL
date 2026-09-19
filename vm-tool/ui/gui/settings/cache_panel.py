@@ -1,10 +1,9 @@
 """缓存设置面板"""
 
-from PyQt6.QtWidgets import QFormLayout, QLabel, QComboBox, QCheckBox
 from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QCheckBox, QComboBox, QFormLayout
 
 from .base_panel import SettingsPanel
-from app.core.config_manager import config_manager
 
 
 class CachePanel(SettingsPanel):
@@ -39,7 +38,9 @@ class CachePanel(SettingsPanel):
     def _connect_signals(self):
         # 启用缓存
         self.cache_enabled_checkbox.stateChanged.connect(
-            lambda state: self._set_config("cache_enabled", state == Qt.CheckState.Checked.value)
+            lambda state: self._set_config(
+                "cache_enabled", state == Qt.CheckState.Checked.value
+            )
         )
 
         # 缓存大小

@@ -1,10 +1,9 @@
 """统计设置面板"""
 
-from PyQt6.QtWidgets import QFormLayout, QComboBox, QCheckBox
 from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QCheckBox, QComboBox, QFormLayout
 
 from .base_panel import SettingsPanel
-from app.core.config_manager import config_manager
 
 
 class StatsPanel(SettingsPanel):
@@ -34,7 +33,9 @@ class StatsPanel(SettingsPanel):
     def _connect_signals(self):
         # 启用统计
         self.stats_enabled_checkbox.stateChanged.connect(
-            lambda state: self._set_config("stats_enabled", state == Qt.CheckState.Checked.value)
+            lambda state: self._set_config(
+                "stats_enabled", state == Qt.CheckState.Checked.value
+            )
         )
 
         # 统计周期

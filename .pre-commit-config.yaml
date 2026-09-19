@@ -1,0 +1,64 @@
+# VMtool pre-commit 门禁（T4 落地）
+#
+# 安装 / 使用（本机一律 `python -m`，不要用 .venv/bin/<tool>）：
+#   cd vm-tool && python -m pip install -e ".[test,quality]"   # 提供 ruff / mypy
+#   python -m pip install pre-commit
+#   python -m pre_commit install          # 安装 git hook
+#   python -m pre_commit run --files <改动文件>
+#
+# 前提：`python` 必须指向装了 quality extra 的 vm-tool/.venv（先 source 激活）。
+# 与 CI 的关系：本文件是**本地等价门禁**；CI 侧见 .github/workflows/ci.yml
+# （同样的 ruff / mypy / pytest 三档，在干净环境全量跑）。
+#
+# 为什么三个钩子都用 repo: local + language: system：
+#   1) 工具版本单一来源——直接复用 vm-tool/pyproject.toml quality extra 钉住的
+#      ruff==0.1.10 / mypy==1.7.1，不会与 CI 漂移；
+#   2) mypy 若用隔离钩子环境，app/ 的第三方依赖（sqlalchemy / pydantic / typer /
+#      rich / psutil）全部缺失，会刷出大量 import 缺失错误；
+#   3) 无网络依赖：remote 钩子需要 clone GitHub 才能初始化，本机/内网环境不可靠。
+#
+# 当前状态（不写具体违规数，避免注释过期；以实际运行为准）：
+#   - ruff lint：存量已清零（T9），门禁按常规硬失败对待；若再次出现存量违规，
+#     以 `python -m ruff check .` 的实际输出为准，不要相信注释里的数字。
+#   - ruff format --check：全仓已格式化；本钩子仍用 `--check`（只报不改），
+#     避免本地/CI 静默重写整个共享工作树；需要自动格式化时手动执行
+#     `python -m ruff format <file>`。
+#   - mypy：仍有存量类型错误基线（数量以 `python -m mypy app/` 实际输出为准）
+#     → 清洁前会拦。临时跳过：`SKIP=mypy-vm-tool git commit ...`（同理 SKIP=ruff-format）。
+# 阶段 3 质量门完成后，上述三个钩子即为常规绿灯门禁。
+
+minimum_pre_commit_version: "3.5.0"
+
+# 构建产物/虚拟环境目录一律不参与检查（与 CI 的 --exclude 口径一致）。
+exclude: ^vm-tool/(build|dist|htmlcov|\.venv)/
+
+repos:
+  - repo: local
+    hooks:
+      # ---- 1) lint：ruff check（对齐 CI 的 `ruff check .` 与 [tool.ruff] 的 E/F/W/I/B/UP） ----
+      - id: ruff
+        name: ruff (lint)
+        entry: python -m ruff check
+        language: system
+        types_or: [python, pyi]
+        files: ^vm-tool/.*\.py$
+
+      # ---- 2) 格式：ruff format --check（只报不改，见文件头说明） ----
+      - id: ruff-format
+        name: ruff (format --check)
+        entry: python -m ruff format --check
+        language: system
+        types_or: [python, pyi]
+        files: ^vm-tool/.*\.py$
+
+      # ---- 3) 类型检查：仅改动的 app/ 文件，复用项目 venv ----
+      - id: mypy-vm-tool
+        name: mypy (app/, changed files only)
+        # pre-commit 传入相对仓库根的路径（vm-tool/app/x.py）；cd 进 vm-tool 让 mypy
+        # 命中 vm-tool/pyproject.toml 的 [tool.mypy]，并剥掉 vm-tool/ 前缀。
+        entry: bash -c 'cd vm-tool && exec python -m mypy "${@#vm-tool/}"' --
+        language: system
+        # 范围与 CI 的 `mypy app/` 保持一致（ui/ 尚无类型基线，暂不纳入）。
+        files: ^vm-tool/app/.*\.py$
+        pass_filenames: true
+        require_serial: true

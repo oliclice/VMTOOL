@@ -1,0 +1,65 @@
+name: CI
+
+# VMtool 质量门禁（T4 落地）
+#
+# 三档门禁，全部在 vm-tool/ 子目录内执行（仓库根无 Python 工程）：
+#   1) ruff check .   —— 硬失败：lint（E/F/W/I/B/UP，见 vm-tool/pyproject.toml [tool.ruff]）
+#   2) mypy app/      —— **临时降级为 continue-on-error**：用于建立类型基线。
+#                        2026-09-19 实测基线 108 errors / 17 files，清零后应删除
+#                        该 continue-on-error，使其恢复硬失败。
+#   3) pytest --cov=app —— 硬失败：单测 + 覆盖率（套件已由 T12 修复为可信基线）
+#
+# 注意：本 workflow 只在该文件被推送到 GitHub 后生效；本地等价门禁见仓库根
+# .pre-commit-config.yaml。
+
+# 触发条件用带引号的 "on"：YAML 1.1 会把裸 `on` 解析成布尔 True（PyYAML 等工具
+# 读出来就是 True 而不是 'on'），加引号可让所有 YAML 解析器行为一致。
+"on":
+  push:
+  pull_request:
+
+jobs:
+  quality:
+    name: quality (ruff / mypy / pytest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        # 仓库根没有 Python 工程，所有命令都在 vm-tool/ 下执行。
+        working-directory: vm-tool
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+          cache-dependency-path: |
+            vm-tool/pyproject.toml
+            vm-tool/requirements.txt
+
+      - name: Install dependencies
+        # 装 test + quality 两个 extra：pytest/pytest-cov 与 ruff/mypy/black/isort。
+        # 同时以 -e . 安装运行期依赖（含 T1 修复后的 psutil 与 PyQt6/Qt6 对齐声明），
+        # 确保 CI 校验的正是 pyproject.toml 声明的依赖集。
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[test,quality]"
+
+      - name: ruff check
+        # 硬失败：lint 违规即阻断。
+        run: python -m ruff check .
+
+      - name: mypy app/ (temporary non-blocking baseline)
+        # 临时降级：当前基线 108 errors / 17 files，直接硬失败会让 CI 永久为红。
+        # 阶段 3 类型清理完成后，删除本行的 continue-on-error。
+        continue-on-error: true
+        run: python -m mypy app/
+
+      - name: pytest
+        # 硬失败：测试或覆盖率失败即阻断。
+        # 套件内含依赖声明一致性检查（tests/unit/test_dependency_declarations.py，T21）：
+        # 运行期代码 import 的第三方包若未在 pyproject 声明即失败，用于防住
+        # P0-1 / T10-F1 那类「声明与实现不一致」缺陷。
+        run: python -m pytest --cov=app

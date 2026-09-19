@@ -1,13 +1,15 @@
 """码表词条服务"""
-from typing import List, Optional, Dict, Any, Callable
-from sqlalchemy.orm import Session
 import logging
+from collections.abc import Callable
+from typing import Any
 
-from app.dal.repositories import WordRepository
+from sqlalchemy.orm import Session
+
+from app.core.cache import cache, optimize_batch_operation, performance_monitor
+from app.core.errors import DictError
 from app.dal.database import get_db
 from app.dal.models import Word
-from app.core.errors import DictError
-from app.core.cache import cache, optimize_batch_operation, performance_monitor
+from app.dal.repositories import WordRepository
 from app.services.code_generator import CodeGenerator
 
 logger = logging.getLogger(__name__)
@@ -16,28 +18,66 @@ logger = logging.getLogger(__name__)
 class DictService:
     """码表词条服务"""
 
-    def __init__(self, db: Optional[Session] = None, on_data_changed: Optional[Callable[[], None]] = None):
-        if db:
-            self.db = db
-        else:
-            self.db = next(get_db())
+    def __init__(
+        self,
+        db: Session | None = None,
+        on_data_changed: Callable[[], None] | None = None,
+    ):
+        # 会话显式创建、显式释放：不再对生成器取一次 next（其 finally: db.close()
+        # 何时执行取决于 GC，事务边界不确定）。
+        self._owns_db = db is None
+        self.db = db if db is not None else get_db()
         self.repo = WordRepository(self.db)
         self.code_generator = CodeGenerator()
         # 设置为使用自定义规则，这样会使用GUI中指定的默认规则
-        self.code_generator.set_config({'rule': 'custom'})
+        self.code_generator.set_config({"rule": "custom"})
         # 数据变更回调（用于清除统计缓存等）
         self._on_data_changed = on_data_changed
 
+    def close(self) -> None:
+        """释放本服务创建/持有的数据库会话（幂等）。
+
+        内部 CodeGenerator 自己创建的会话也在这里一并释放，避免每个 DictService
+        多留一条无人关闭的连接。外部注入的会话（``db=...``）由注入方负责关闭。
+        """
+        generator_db = getattr(self.code_generator, "db", None)
+        if generator_db is not None and generator_db is not self.db:
+            try:
+                generator_db.close()
+            except Exception as e:
+                logger.warning(f"关闭编码生成器会话失败: {e}")
+        if not self._owns_db:
+            return
+        db, self.db = self.db, None
+        if db is not None:
+            try:
+                db.close()
+            except Exception as e:
+                logger.warning(f"关闭数据库会话失败: {e}")
+
+    def __enter__(self) -> "DictService":
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        self.close()
+
     def _notify_data_changed(self):
-        """通知数据已变更，触发缓存清除等后续操作"""
+        """数据已变更：清空全局查询缓存并触发后续回调。
+
+        失效作用域判断依据：``@cache.decorator()`` 用的是模块级全局单例 ``cache``，
+        缓存键（``app.core.cache.Cache._get_key``）里虽然含 ``self``（实例 repr），
+        但 ``cache.clear()`` 作用于整个缓存字典，因此一次写入会让**所有实例**的
+        读缓存一起失效——这正是长驻 GUI 单实例场景所需的行为。
+        """
+        cache.clear()
         if self._on_data_changed:
             try:
                 self._on_data_changed()
             except Exception as e:
                 logger.warning(f"数据变更通知失败: {e}")
-    
+
     @cache.decorator()
-    def get_word(self, word: str) -> Optional[Dict[str, Any]]:
+    def get_word(self, word: str) -> dict[str, Any] | None:
         """获取单个词条"""
         try:
             db_word = self.repo.get_by_word(word)
@@ -50,149 +90,181 @@ class DictService:
                     "is_character": db_word.is_character,
                     "is_special": db_word.is_special,
                     "created_at": db_word.created_at,
-                    "updated_at": db_word.updated_at
+                    "updated_at": db_word.updated_at,
                 }
             return None
         except Exception as e:
             logger.error(f"获取词条失败: {e}")
-            raise DictError(f"获取词条失败: {e}")
-    
-    def get_word_by_text(self, word: str) -> Optional[Word]:
+            raise DictError(f"获取词条失败: {e}") from e
+
+    def get_word_by_text(self, word: str) -> Word | None:
         """根据词的文本获取词对象"""
         try:
             return self.repo.get_by_word(word)
         except Exception as e:
             logger.error(f"获取词条失败: {e}")
-            raise DictError(f"获取词条失败: {e}")
-    
-    def get_word_by_id(self, word_id: int) -> Optional[Word]:
+            raise DictError(f"获取词条失败: {e}") from e
+
+    def get_word_by_id(self, word_id: int) -> Word | None:
         """根据词的ID获取词对象"""
         try:
             return self.db.query(Word).filter(Word.id == word_id).first()
         except Exception as e:
             logger.error(f"获取词条失败: {e}")
-            raise DictError(f"获取词条失败: {e}")
-    
+            raise DictError(f"获取词条失败: {e}") from e
+
     @cache.decorator()
-    def get_words_by_code(self, code: str) -> List[Dict[str, Any]]:
+    def get_words_by_code(self, code: str) -> list[dict[str, Any]]:
         """根据编码获取词条列表"""
         try:
             db_words = self.repo.get_by_code(code)
-            return [{
-                "word": word.word,
-                "code": word.code,
-                "weight": word.weight,
-                "is_active": word.is_active
-            } for word in db_words]
+            return [
+                {
+                    "word": word.word,
+                    "code": word.code,
+                    "weight": word.weight,
+                    "is_active": word.is_active,
+                }
+                for word in db_words
+            ]
         except Exception as e:
             logger.error(f"根据编码获取词条失败: {e}")
-            raise DictError(f"根据编码获取词条失败: {e}")
-    
-    def get_special_chars(self, skip: int = 0, limit: int = None) -> List[Dict[str, Any]]:
+            raise DictError(f"根据编码获取词条失败: {e}") from e
+
+    def get_special_chars(
+        self, skip: int = 0, limit: int = None
+    ) -> list[dict[str, Any]]:
         """获取所有特殊字符"""
         try:
             db_words = self.repo.get_special_chars(skip, limit)
-            result = [{
-                "id": word.id,
-                "word": word.word,
-                "code": word.code,
-                "weight": word.weight,
-                "is_active": word.is_active,
-                "is_special": word.is_special,
-                "manual": word.manual
-            } for word in db_words]
+            result = [
+                {
+                    "id": word.id,
+                    "word": word.word,
+                    "code": word.code,
+                    "weight": word.weight,
+                    "is_active": word.is_active,
+                    "is_special": word.is_special,
+                    "manual": word.manual,
+                }
+                for word in db_words
+            ]
             return result
         except Exception as e:
             logger.error(f"获取特殊字符失败: {e}")
-            raise DictError(f"获取特殊字符失败: {e}")
-    
+            raise DictError(f"获取特殊字符失败: {e}") from e
+
     def count_special_chars(self) -> int:
         """统计特殊字符数量"""
         try:
             return self.repo.count_special_chars()
         except Exception as e:
             logger.error(f"统计特殊字符数量失败: {e}")
-            raise DictError(f"统计特殊字符数量失败: {e}")
-    
+            raise DictError(f"统计特殊字符数量失败: {e}") from e
+
     def count_characters(self) -> int:
         """统计字符数量"""
         try:
             from sqlalchemy import func
-            count = self.db.query(func.count(Word.id)).filter(Word.is_character == True).scalar()
+
+            count = (
+                self.db.query(func.count(Word.id))
+                .filter(Word.is_character == True)  # noqa: E712 (SQLAlchemy 列比较，非 Python 布尔比较)
+                .scalar()
+            )
             return count or 0
         except Exception as e:
             logger.error(f"统计字符数量失败: {e}")
-            raise DictError(f"统计字符数量失败: {e}")
-    
+            raise DictError(f"统计字符数量失败: {e}") from e
+
     def count_words(self) -> int:
         """统计词数量"""
         try:
             from sqlalchemy import func
-            count = self.db.query(func.count(Word.id)).filter(Word.is_character == False, Word.is_special == False).scalar()
+
+            count = (
+                self.db.query(func.count(Word.id))
+                .filter(Word.is_character == False, Word.is_special == False)  # noqa: E712 (SQLAlchemy 列比较，非 Python 布尔比较)
+                .scalar()
+            )
             return count or 0
         except Exception as e:
             logger.error(f"统计词数量失败: {e}")
-            raise DictError(f"统计词数量失败: {e}")
-    
-    def get_characters(self, skip: int = 0, limit: int = None) -> List[Dict[str, Any]]:
+            raise DictError(f"统计词数量失败: {e}") from e
+
+    def get_characters(self, skip: int = 0, limit: int = None) -> list[dict[str, Any]]:
         """获取所有字"""
         try:
             db_words = self.repo.get_characters(skip, limit)
-            result = [{
-                "id": word.id,
-                "word": word.word,
-                "code": word.code,
-                "weight": word.weight,
-                "is_active": word.is_active,
-                "is_character": word.is_character,
-                "is_special": word.is_special,
-                "manual": word.manual
-            } for word in db_words]
+            result = [
+                {
+                    "id": word.id,
+                    "word": word.word,
+                    "code": word.code,
+                    "weight": word.weight,
+                    "is_active": word.is_active,
+                    "is_character": word.is_character,
+                    "is_special": word.is_special,
+                    "manual": word.manual,
+                }
+                for word in db_words
+            ]
             return result
         except Exception as e:
             logger.error(f"获取字失败: {e}")
-            raise DictError(f"获取字失败: {e}")
-    
-    def get_words(self, skip: int = 0, limit: int = None) -> List[Dict[str, Any]]:
+            raise DictError(f"获取字失败: {e}") from e
+
+    def get_words(self, skip: int = 0, limit: int = None) -> list[dict[str, Any]]:
         """获取所有词"""
         try:
             db_words = self.repo.get_words(skip, limit)
-            result = [{
-                "id": word.id,
-                "word": word.word,
-                "code": word.code,
-                "weight": word.weight,
-                "is_active": word.is_active,
-                "is_character": word.is_character,
-                "is_special": word.is_special,
-                "manual": word.manual
-            } for word in db_words]
+            result = [
+                {
+                    "id": word.id,
+                    "word": word.word,
+                    "code": word.code,
+                    "weight": word.weight,
+                    "is_active": word.is_active,
+                    "is_character": word.is_character,
+                    "is_special": word.is_special,
+                    "manual": word.manual,
+                }
+                for word in db_words
+            ]
             return result
         except Exception as e:
             logger.error(f"获取词失败: {e}")
-            raise DictError(f"获取词失败: {e}")
-    
+            raise DictError(f"获取词失败: {e}") from e
 
-    
     @performance_monitor
-    def add_word(self, word: str, code: Optional[str] = None, weight: float = 1.0, is_character: Optional[bool] = None, is_special: bool = False, manual: bool = False) -> Dict[str, Any]:
+    def add_word(
+        self,
+        word: str,
+        code: str | None = None,
+        weight: float = 1.0,
+        is_character: bool | None = None,
+        is_special: bool = False,
+        manual: bool = False,
+    ) -> dict[str, Any]:
         """添加单个词条"""
         try:
             # 如果没有提供编码，自动生成
             if code is None:
                 code = self.generate_code(word)
                 manual = False  # 自动生成的编码，manual设为False
-            
+
             # 检查是否已存在相同的word和code组合
             existing = self.repo.get_by_word_and_code(word, code)
             if existing:
                 raise DictError(f"词条 '{word}' 与编码 '{code}' 的组合已存在")
-            
+
             # 自动判断是字还是词
             if is_character is None:
                 is_character = len(word) == 1
-            
-            db_word = self.repo.create(word, code, weight, is_character, is_special, manual)
+
+            db_word = self.repo.create(
+                word, code, weight, is_character, is_special, manual
+            )
             self._notify_data_changed()
             return {
                 "word": db_word.word,
@@ -200,63 +272,67 @@ class DictService:
                 "weight": db_word.weight,
                 "is_character": db_word.is_character,
                 "is_special": db_word.is_special,
-                "manual": db_word.manual
+                "manual": db_word.manual,
             }
         except DictError:
             raise
         except Exception as e:
             logger.error(f"添加词条失败: {e}")
-            raise DictError(f"添加词条失败: {e}")
-    
+            raise DictError(f"添加词条失败: {e}") from e
+
     @optimize_batch_operation(batch_size=500)
-    def add_words(self, words: List[Dict[str, Any]], progress_callback: Optional[Callable[[int, str], None]] = None) -> Dict[str, Any]:
+    def add_words(
+        self,
+        words: list[dict[str, Any]],
+        progress_callback: Callable[[int, str], None] | None = None,
+    ) -> dict[str, Any]:
         """批量添加词条"""
         try:
             total_words = len(words)
             if total_words == 0:
-                return {
-                    "added": 0,
-                    "existing": 0,
-                    "existing_pairs": []
-                }
-            
+                return {"added": 0, "existing": 0, "existing_pairs": []}
+
             # 预处理词条数据
             processed_words_data = []
             valid_words = []
             existing_pairs = []
-            
+
             for i, word_data in enumerate(words):
                 word = word_data.get("word")
                 code = word_data.get("code")
-                
+
                 # 自动判断是字还是词
                 if "is_character" not in word_data:
                     word_data["is_character"] = len(word) == 1
-                
+
                 # 如果没有提供编码，自动生成
                 if code is None:
                     code = self.generate_code(word)
                     word_data["code"] = code
                     word_data["manual"] = False  # 自动生成的编码，manual设为False
-                
+
                 processed_words_data.append(word_data)
-                
+
                 # 每处理10%的词条更新一次进度
                 if progress_callback and total_words > 0:
                     progress = int((i + 1) / total_words * 30)  # 前30%用于预处理
                     progress_callback(progress, f"预处理词条: {i + 1}/{total_words}")
-            
+
             # 批量查询已存在的词条
             if processed_words_data:
                 if progress_callback:
                     progress_callback(40, "查询已存在词条...")
-                
+
                 # 收集所有 (word, code) 对
-                word_code_pairs = [(wd.get("word"), wd.get("code")) for wd in processed_words_data]
-                
+                word_code_pairs = [
+                    (wd.get("word"), wd.get("code")) for wd in processed_words_data
+                ]
+
                 # 批量查询已存在的词条
-                existing_word_code_pairs = self.repo.get_by_word_code_pairs(word_code_pairs)
-                
+                existing_word_code_pairs = self.repo.get_by_word_code_pairs(
+                    word_code_pairs
+                )
+
                 # 转换为集合，方便快速查找
                 existing_set = set(existing_word_code_pairs)
 
@@ -274,12 +350,16 @@ class DictService:
                         seen_set.add(pair)
                     else:
                         existing_pairs.append(f"{word}:{code}")
-                    
+
                     # 每处理10%的词条更新一次进度
                     if progress_callback and len(processed_words_data) > 0:
-                        progress = 40 + int((i + 1) / len(processed_words_data) * 10)  # 中间10%用于去重
-                        progress_callback(progress, f"去重处理: {i + 1}/{len(processed_words_data)}")
-            
+                        progress = 40 + int(
+                            (i + 1) / len(processed_words_data) * 10
+                        )  # 中间10%用于去重
+                        progress_callback(
+                            progress, f"去重处理: {i + 1}/{len(processed_words_data)}"
+                        )
+
             # 处理进度回调
             if progress_callback and total_words > 0:
                 progress_callback(50, "完成词条预处理")
@@ -298,44 +378,44 @@ class DictService:
                 "added": len(valid_words),
                 "existing": len(existing_pairs),
                 "existing_pairs": existing_pairs,
-                "added_words": valid_words  # 返回实际添加的词条列表
+                "added_words": valid_words,  # 返回实际添加的词条列表
             }
         except Exception as e:
             logger.error(f"批量添加词条失败: {e}")
-            raise DictError(f"批量添加词条失败: {e}")
-    
-    def add_characters(self, characters: List[Dict[str, Any]], progress_callback: Optional[Callable[[int, str], None]] = None) -> Dict[str, Any]:
+            raise DictError(f"批量添加词条失败: {e}") from e
+
+    def add_characters(
+        self,
+        characters: list[dict[str, Any]],
+        progress_callback: Callable[[int, str], None] | None = None,
+    ) -> dict[str, Any]:
         """批量添加字表"""
         try:
             total_chars = len(characters)
             if total_chars == 0:
-                return {
-                    "added": 0,
-                    "existing": 0,
-                    "existing_pairs": []
-                }
-            
+                return {"added": 0, "existing": 0, "existing_pairs": []}
+
             # 为每个字添加is_character=True
             for char_data in characters:
                 char_data["is_character"] = True
-            
+
             # 调用批量添加方法
             return self.add_words(characters, progress_callback=progress_callback)
         except Exception as e:
             logger.error(f"批量添加字表失败: {e}")
-            raise DictError(f"批量添加字表失败: {e}")
-    
-    def update_word(self, word: str, **kwargs) -> Dict[str, Any]:
+            raise DictError(f"批量添加字表失败: {e}") from e
+
+    def update_word(self, word: str, **kwargs) -> dict[str, Any]:
         """更新词条"""
         try:
             db_word = self.repo.get_by_word(word)
             if not db_word:
                 raise DictError(f"词条 '{word}' 不存在")
-            
+
             # 如果更新编码或权重，设置manual为True
             if "code" in kwargs or "weight" in kwargs:
                 kwargs["manual"] = True
-            
+
             # 更新词条
             updated = self.repo.update(db_word.id, **kwargs)
             self._notify_data_changed()
@@ -344,21 +424,21 @@ class DictService:
                 "code": updated.code,
                 "weight": updated.weight,
                 "is_active": updated.is_active,
-                "manual": updated.manual
+                "manual": updated.manual,
             }
         except DictError:
             raise
         except Exception as e:
             logger.error(f"更新词条失败: {e}")
-            raise DictError(f"更新词条失败: {e}")
-    
+            raise DictError(f"更新词条失败: {e}") from e
+
     def delete_word(self, word: str) -> bool:
         """删除词条"""
         try:
             db_word = self.repo.get_by_word(word)
             if not db_word:
                 raise DictError(f"词条 '{word}' 不存在")
-            
+
             result = self.repo.delete(db_word.id)
             self._notify_data_changed()
             return result
@@ -366,9 +446,9 @@ class DictService:
             raise
         except Exception as e:
             logger.error(f"删除词条失败: {e}")
-            raise DictError(f"删除词条失败: {e}")
+            raise DictError(f"删除词条失败: {e}") from e
 
-    def delete_words(self, words: List[str]) -> Dict[str, Any]:
+    def delete_words(self, words: list[str]) -> dict[str, Any]:
         """批量删除词条"""
         try:
             deleted = 0
@@ -388,30 +468,32 @@ class DictService:
             return {
                 "deleted": deleted,
                 "not_found": len(not_found),
-                "not_found_words": not_found
+                "not_found_words": not_found,
             }
         except Exception as e:
             logger.error(f"批量删除词条失败: {e}")
-            raise DictError(f"批量删除词条失败: {e}")
-    
-    def add_character(self, char: str, code: str, weight: float = 1.0, manual: bool = True) -> Dict[str, Any]:
+            raise DictError(f"批量删除词条失败: {e}") from e
+
+    def add_character(
+        self, char: str, code: str, weight: float = 1.0, manual: bool = True
+    ) -> dict[str, Any]:
         """添加字符"""
         try:
             # 调用现有的add_word方法
             return self.add_word(char, code, weight, True, False, manual)
         except Exception as e:
             logger.error(f"添加字符失败: {e}")
-            raise DictError(f"添加字符失败: {e}")
-    
-    def update_character(self, char: str, code: str, weight: float) -> Dict[str, Any]:
+            raise DictError(f"添加字符失败: {e}") from e
+
+    def update_character(self, char: str, code: str, weight: float) -> dict[str, Any]:
         """更新字符"""
         try:
             # 调用现有的update_word方法
             return self.update_word(char, code=code, weight=weight)
         except Exception as e:
             logger.error(f"更新字符失败: {e}")
-            raise DictError(f"更新字符失败: {e}")
-    
+            raise DictError(f"更新字符失败: {e}") from e
+
     def delete_character(self, char: str) -> bool:
         """删除字符"""
         try:
@@ -419,42 +501,46 @@ class DictService:
             return self.delete_word(char)
         except Exception as e:
             logger.error(f"删除字符失败: {e}")
-            raise DictError(f"删除字符失败: {e}")
-    
-    def delete_table(self, table_type: str) -> Dict[str, Any]:
+            raise DictError(f"删除字符失败: {e}") from e
+
+    def delete_table(self, table_type: str) -> dict[str, Any]:
         """删除指定类型的数据表
-        
+
         Args:
-            table_type: 表类型，支持 "chars"（字表）、"words"（词表）、"special"（特殊字符表）
-        
+            table_type: 表类型，支持 "chars"（字表）、"words"（词表）、
+                "special"（特殊字符表）
+
         Returns:
             Dict[str, Any]: 删除结果，包含 deleted 字段表示删除的数量
         """
         from sqlalchemy import text
-        
+
         try:
             # 根据类型删除对应的数据
             if table_type == "chars":
                 # 删除字表（is_character=True 的记录）
                 result = self.db.execute(
                     text("DELETE FROM words WHERE is_character = :is_character"),
-                    {"is_character": True}
+                    {"is_character": True},
                 )
             elif table_type == "words":
                 # 删除词表（is_character=False 且 is_special=False 的记录）
                 result = self.db.execute(
-                    text("DELETE FROM words WHERE is_character = :is_character AND is_special = :is_special"),
-                    {"is_character": False, "is_special": False}
+                    text(
+                        "DELETE FROM words WHERE is_character = :is_character "
+                        "AND is_special = :is_special"
+                    ),
+                    {"is_character": False, "is_special": False},
                 )
             elif table_type == "special":
                 # 删除特殊字符表（is_special=True 的记录）
                 result = self.db.execute(
                     text("DELETE FROM words WHERE is_special = :is_special"),
-                    {"is_special": True}
+                    {"is_special": True},
                 )
             else:
                 raise DictError(f"不支持的表类型：{table_type}")
-            
+
             # 提交事务
             self.db.commit()
             self._notify_data_changed()
@@ -466,127 +552,150 @@ class DictService:
         except Exception as e:
             self.db.rollback()
             logger.error(f"删除表失败: {e}")
-            raise DictError(f"删除表失败: {e}")
-    
+            raise DictError(f"删除表失败: {e}") from e
+
     def generate_code(self, word: str) -> str:
         """生成编码"""
         return self.code_generator.generate_code(word)
-    
-    def replace_code(self, word: str, new_code: str) -> Dict[str, Any]:
+
+    def replace_code(self, word: str, new_code: str) -> dict[str, Any]:
         """替换编码"""
         try:
             return self.update_word(word, code=new_code)
         except Exception as e:
             logger.error(f"替换编码失败: {e}")
-            raise DictError(f"替换编码失败: {e}")
-    
-    def get_all_words(self, skip: int = 0, limit: Optional[int] = None) -> List[Dict[str, Any]]:
+            raise DictError(f"替换编码失败: {e}") from e
+
+    def get_all_words(
+        self, skip: int = 0, limit: int | None = None
+    ) -> list[dict[str, Any]]:
         """获取所有词条"""
         try:
             db_words = self.repo.get_all(skip, limit)
-            return [{
-                "word": word.word,
-                "code": word.code,
-                "weight": word.weight,
-                "manual": word.manual,
-                "is_character": word.is_character
-            } for word in db_words]
+            return [
+                {
+                    "word": word.word,
+                    "code": word.code,
+                    "weight": word.weight,
+                    "manual": word.manual,
+                    "is_character": word.is_character,
+                }
+                for word in db_words
+            ]
         except Exception as e:
             logger.error(f"获取所有词条失败: {e}")
-            raise DictError(f"获取所有词条失败: {e}")
-    
-    def search_words(self, keyword: str, field: str = "word") -> List[Dict[str, Any]]:
+            raise DictError(f"获取所有词条失败: {e}") from e
+
+    def search_words(self, keyword: str, field: str = "word") -> list[dict[str, Any]]:
         """搜索词条"""
         try:
             # 首先在指定字段搜索
             db_words = self.repo.search(keyword, field)
-            
+
             # 如果在word字段搜索且没有结果，再在code字段搜索
             if field == "word" and not db_words:
                 db_words = self.repo.search(keyword, "code")
-                
-            return [{
-                "word": word.word,
-                "code": word.code,
-                "weight": word.weight,
-                "manual": word.manual
-            } for word in db_words]
+
+            return [
+                {
+                    "word": word.word,
+                    "code": word.code,
+                    "weight": word.weight,
+                    "manual": word.manual,
+                }
+                for word in db_words
+            ]
         except Exception as e:
             logger.error(f"搜索词条失败: {e}")
-            raise DictError(f"搜索词条失败: {e}")
-    
-    def search_characters(self, keyword: str, field: str = "word") -> List[Dict[str, Any]]:
+            raise DictError(f"搜索词条失败: {e}") from e
+
+    def search_characters(
+        self, keyword: str, field: str = "word"
+    ) -> list[dict[str, Any]]:
         """搜索字符"""
         try:
             # 首先在指定字段搜索
             db_words = self.repo.search(keyword, field)
-            
+
             # 如果在word字段搜索且没有结果，再在code字段搜索
             if field == "word" and not db_words:
                 db_words = self.repo.search(keyword, "code")
-                
+
             # 过滤出is_character=True的结果
-            return [{
-                "id": word.id,
-                "word": word.word,
-                "code": word.code,
-                "weight": word.weight,
-                "is_active": word.is_active,
-                "is_character": word.is_character,
-                "is_special": word.is_special,
-                "manual": word.manual
-            } for word in db_words if word.is_character]
+            return [
+                {
+                    "id": word.id,
+                    "word": word.word,
+                    "code": word.code,
+                    "weight": word.weight,
+                    "is_active": word.is_active,
+                    "is_character": word.is_character,
+                    "is_special": word.is_special,
+                    "manual": word.manual,
+                }
+                for word in db_words
+                if word.is_character
+            ]
         except Exception as e:
             logger.error(f"搜索字符失败: {e}")
-            raise DictError(f"搜索字符失败: {e}")
-    
-    def get_code_preview(self) -> List[Dict[str, Any]]:
+            raise DictError(f"搜索字符失败: {e}") from e
+
+    def get_code_preview(self) -> list[dict[str, Any]]:
         """获取编码变化预览数据"""
         try:
             from sqlalchemy import func
-            
+
             preview_data = []
-            
+
             # 获取不同长度的词各2个
             for length in [2, 3, 4]:
                 # 获取该长度的词，排除手动编码的
-                words = self.db.query(Word).filter(
-                    Word.manual == False, 
-                    Word.is_character == False, 
-                    func.length(Word.word) == length
-                ).limit(2).all()
-                
+                words = (
+                    self.db.query(Word)
+                    .filter(
+                        Word.manual == False,  # noqa: E712 (SQLAlchemy 列比较，非 Python 布尔比较)
+                        Word.is_character == False,  # noqa: E712 (SQLAlchemy 列比较，非 Python 布尔比较)
+                        func.length(Word.word) == length,
+                    )
+                    .limit(2)
+                    .all()
+                )
+
                 for word in words:
                     old_code = word.code
                     new_code = self.generate_code(word.word)
-                    preview_data.append({
-                        "word": word.word,
-                        "old_code": old_code,
-                        "new_code": new_code
-                    })
-            
+                    preview_data.append(
+                        {"word": word.word, "old_code": old_code, "new_code": new_code}
+                    )
+
             return preview_data
         except Exception as e:
             logger.error(f"获取编码预览失败: {e}")
             return []
-    
-    def calculate_all_codes(self, progress_callback: Optional[Callable[[int, str], None]] = None) -> Dict[str, Any]:
+
+    def calculate_all_codes(
+        self, progress_callback: Callable[[int, str], None] | None = None
+    ) -> dict[str, Any]:
         """计算所有未手动修改过编码的词条的编码"""
         try:
             # 保存原始配置
             original_config = self.code_generator.get_config().copy()
-            
+
             # 设置为使用自定义规则，这样会使用默认规则
-            self.code_generator.set_config({'rule': 'custom'})
-            
+            self.code_generator.set_config({"rule": "custom"})
+
             try:
                 # 获取所有未手动修改过编码的词条，排除字表（is_character=True）
-                db_words = self.db.query(Word).filter(Word.manual == False, Word.is_character == False).all()
-                
+                db_words = (
+                    self.db.query(Word)
+                    .filter(Word.manual == False, Word.is_character == False)  # noqa: E712 (SQLAlchemy 列比较，非 Python 布尔比较)
+                    .all()
+                )
+
                 total = len(db_words)
                 updated = 0
                 failed = 0
-                
+
                 for i, db_word in enumerate(db_words):
                     try:
                         # 生成新编码
@@ -598,75 +707,86 @@ class DictService:
                     except Exception as e:
                         logger.error(f"计算词条 '{db_word.word}' 的编码失败: {e}")
                         failed += 1
-                    
+
                     # 每处理100个词条更新一次进度
                     if progress_callback and (i + 1) % 100 == 0:
                         progress = int((i + 1) / total * 100)
                         progress_callback(progress, f"已处理 {i + 1}/{total} 词条")
-                
+
                 # 提交更改
                 self.db.commit()
                 self._notify_data_changed()
 
                 if progress_callback:
                     progress_callback(100, "计算完成")
-                
-                return {
-                    "total": total,
-                    "updated": updated,
-                    "failed": failed
-                }
+
+                return {"total": total, "updated": updated, "failed": failed}
             finally:
                 # 恢复原始配置
                 self.code_generator.set_config(original_config)
         except Exception as e:
             logger.error(f"批量计算编码失败: {e}")
-            raise DictError(f"批量计算编码失败: {e}")
-    
-    def set_all_manual_to_false(self, table_type: str, progress_callback: Optional[Callable[[int, str], None]] = None) -> Dict[str, Any]:
+            raise DictError(f"批量计算编码失败: {e}") from e
+
+    def set_all_manual_to_false(
+        self,
+        table_type: str,
+        progress_callback: Callable[[int, str], None] | None = None,
+    ) -> dict[str, Any]:
         """将指定表的所有词条的manual设置为False
-        
+
         Args:
-            table_type: 表类型，支持 "chars"（字表）、"words"（词表）、"special"（特殊字符表）
+            table_type: 表类型，支持 "chars"（字表）、"words"（词表）、
+                "special"（特殊字符表）
             progress_callback: 进度回调函数
-        
+
         Returns:
             Dict[str, Any]: 更新结果，包含 updated 字段表示更新的数量
         """
         from sqlalchemy import text
-        
+
         try:
             if progress_callback:
                 progress_callback(10, "准备更新...")
-            
+
             # 根据类型更新对应的数据
             if table_type == "chars":
                 if progress_callback:
                     progress_callback(30, "更新字表...")
                 # 更新字表（is_character=True 的记录）
                 result = self.db.execute(
-                    text("UPDATE words SET manual = :manual WHERE is_character = :is_character"),
-                    {"manual": False, "is_character": True}
+                    text(
+                        "UPDATE words SET manual = :manual "
+                        "WHERE is_character = :is_character"
+                    ),
+                    {"manual": False, "is_character": True},
                 )
             elif table_type == "words":
                 if progress_callback:
                     progress_callback(30, "更新词表...")
                 # 更新词表（is_character=False 且 is_special=False 的记录）
                 result = self.db.execute(
-                    text("UPDATE words SET manual = :manual WHERE is_character = :is_character AND is_special = :is_special"),
-                    {"manual": False, "is_character": False, "is_special": False}
+                    text(
+                        "UPDATE words SET manual = :manual "
+                        "WHERE is_character = :is_character "
+                        "AND is_special = :is_special"
+                    ),
+                    {"manual": False, "is_character": False, "is_special": False},
                 )
             elif table_type == "special":
                 if progress_callback:
                     progress_callback(30, "更新特殊字符表...")
                 # 更新特殊字符表（is_special=True 的记录）
                 result = self.db.execute(
-                    text("UPDATE words SET manual = :manual WHERE is_special = :is_special"),
-                    {"manual": False, "is_special": True}
+                    text(
+                        "UPDATE words SET manual = :manual "
+                        "WHERE is_special = :is_special"
+                    ),
+                    {"manual": False, "is_special": True},
                 )
             else:
                 raise DictError(f"不支持的表类型：{table_type}")
-            
+
             if progress_callback:
                 progress_callback(70, "提交事务...")
 
@@ -684,9 +804,14 @@ class DictService:
         except Exception as e:
             self.db.rollback()
             logger.error(f"批量更新manual失败: {e}")
-            raise DictError(f"批量更新manual失败: {e}")
+            raise DictError(f"批量更新manual失败: {e}") from e
 
-    def auto_dedupe(self, table_type: str, batch_size: int = 1000, progress_callback: Optional[Callable[[int, str], None]] = None) -> Dict[str, Any]:
+    def auto_dedupe(
+        self,
+        table_type: str,
+        batch_size: int = 1000,
+        progress_callback: Callable[[int, str], None] | None = None,
+    ) -> dict[str, Any]:
         """自动去重
 
         删除规则：
@@ -702,11 +827,13 @@ class DictService:
             if progress_callback:
                 progress_callback(0, f"正在分析 {total} 条数据...")
 
-            word_groups: Dict[str, List[Word]] = {}
+            word_groups: dict[str, list[Word]] = {}
             offset = 0
 
             while offset < total:
-                batch = self.repo.get_all_by_type(table_type, skip=offset, limit=batch_size)
+                batch = self.repo.get_all_by_type(
+                    table_type, skip=offset, limit=batch_size
+                )
                 if not batch:
                     break
                 for word in batch:
@@ -722,7 +849,7 @@ class DictService:
             if progress_callback:
                 progress_callback(30, "正在查找重复词...")
 
-            to_delete: List[int] = []
+            to_delete: list[int] = []
             processed = 0
             total_groups = len(word_groups)
 
@@ -737,7 +864,10 @@ class DictService:
                     if item.code in seen_codes:
                         if not item.manual:
                             to_delete.append(item.id)
-                            logger.debug(f"去重(完全相同): 词={word_text}, 删除编码={item.code}, manual={item.manual}")
+                            logger.debug(
+                                f"去重(完全相同): 词={word_text}, "
+                                f"删除编码={item.code}, manual={item.manual}"
+                            )
                     else:
                         seen_codes.add(item.code)
 
@@ -750,12 +880,19 @@ class DictService:
                         if items[j].code.startswith(items[i].code):
                             if not items[i].manual:
                                 to_delete.append(items[i].id)
-                                logger.debug(f"去重(前缀): 词={word_text}, 删除编码={items[i].code}, 保留编码={items[j].code}, manual={items[i].manual}")
+                                logger.debug(
+                                    f"去重(前缀): 词={word_text}, "
+                                    f"删除编码={items[i].code}, "
+                                    f"保留编码={items[j].code}, "
+                                    f"manual={items[i].manual}"
+                                )
                             break
 
                 if progress_callback and processed % 100 == 0:
                     prog = 30 + int(processed / total_groups * 60)
-                    progress_callback(prog, f"已处理 {processed}/{total_groups} 组词...")
+                    progress_callback(
+                        prog, f"已处理 {processed}/{total_groups} 组词..."
+                    )
 
             logger.info(f"自动去重: 找到 {len(to_delete)} 条待删除记录")
             if progress_callback:
@@ -778,9 +915,16 @@ class DictService:
             return {"analyzed": total, "deleted": deleted, "errors": errors}
         except Exception as e:
             logger.error(f"自动去重失败: {e}")
-            raise DictError(f"自动去重失败: {e}")
+            raise DictError(f"自动去重失败: {e}") from e
 
-    def export_data(self, output_file: str, format: str = "txt", encoding: str = "utf-8", table: str = None, tables: list = None) -> int:
+    def export_data(
+        self,
+        output_file: str,
+        format: str = "txt",
+        encoding: str = "utf-8",
+        table: str = None,
+        tables: list = None,
+    ) -> int:
         """导出数据
 
         Args:
@@ -792,6 +936,7 @@ class DictService:
         """
         try:
             from app.services.filter import FilterService
+
             filter_service = FilterService(self.db)
 
             words = None
@@ -807,16 +952,22 @@ class DictService:
                 words = None
 
             if format == "txt":
-                return filter_service.export_to_txt(output_file, words=words, encoding=encoding)
+                return filter_service.export_to_txt(
+                    output_file, words=words, encoding=encoding
+                )
             elif format == "csv":
-                return filter_service.export_to_csv(output_file, words=words, encoding=encoding)
+                return filter_service.export_to_csv(
+                    output_file, words=words, encoding=encoding
+                )
             elif format == "json":
-                return filter_service.export_to_json(output_file, words=words, encoding=encoding)
+                return filter_service.export_to_json(
+                    output_file, words=words, encoding=encoding
+                )
             else:
                 raise DictError(f"不支持的导出格式: {format}")
         except Exception as e:
             logger.error(f"导出数据失败: {e}")
-            raise DictError(f"导出数据失败: {e}")
+            raise DictError(f"导出数据失败: {e}") from e
 
     def _get_table_data(self, table: str) -> list:
         """获取指定表的数据，统一返回 dict 列表"""
@@ -824,9 +975,15 @@ class DictService:
             return self.get_words()
         elif table == "chars":
             chars = self.get_characters()
-            return [{"word": c["word"], "code": c["code"], "weight": c["weight"]} for c in chars]
+            return [
+                {"word": c["word"], "code": c["code"], "weight": c["weight"]}
+                for c in chars
+            ]
         elif table == "special":
             special_chars = self.get_special_chars()
-            return [{"word": c["word"], "code": c["code"], "weight": c["weight"]} for c in special_chars]
+            return [
+                {"word": c["word"], "code": c["code"], "weight": c["weight"]}
+                for c in special_chars
+            ]
         else:
             raise DictError(f"不支持的表名: {table}")

@@ -4,16 +4,22 @@
 """
 import logging
 
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QScrollArea,
-    QSizePolicy, QGroupBox, QTableWidget, QTableWidgetItem,
-    QHeaderView, QPushButton
-)
 from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QPushButton,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
 
+from app.core.theme_config import ThemeConfig
 from ui.gui.theme_manager import theme_manager
 from ui.gui.widgets.chart_widgets import BarChartWidget, PieChartWidget
-from app.core.theme_config import ThemeConfig
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +49,9 @@ class DashboardPage(QWidget):
         # Header row
         header_layout = QHBoxLayout()
         title = QLabel("仪表盘")
-        title.setStyleSheet("font-size: 22px; font-weight: 600; border: none; background: transparent;")
+        title.setStyleSheet(
+            "font-size: 22px; font-weight: 600; border: none; background: transparent;"
+        )
         header_layout.addWidget(title)
         header_layout.addStretch()
 
@@ -125,7 +133,9 @@ class DashboardPage(QWidget):
             QHeaderView.ResizeMode.Stretch
         )
         self.activity_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.activity_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.activity_table.setSelectionBehavior(
+            QTableWidget.SelectionBehavior.SelectRows
+        )
         self.activity_table.verticalHeader().setVisible(False)
         self._show_activity_placeholder()
         layout.addWidget(self.activity_table)
@@ -161,7 +171,6 @@ class DashboardPage(QWidget):
             # ── 统计卡片 + 图表（来自 stats_service 缓存） ──
             stats = self.stats_service.get_stats()
             word_length_stats = stats.get("word_length_stats", {})
-            code_stats = stats.get("code_stats", {})
             weight_stats = stats.get("weight_stats", {})
 
             # 统计卡片
@@ -197,14 +206,16 @@ class DashboardPage(QWidget):
         palette = ThemeConfig.get_palette(
             theme_manager.current_theme_name,
             theme_manager.current_theme_mode,
-            theme_manager.current_theme_color
+            theme_manager.current_theme_color,
         )
 
-        self.setStyleSheet(f"""
+        self.setStyleSheet(
+            f"""
             DashboardPage {{
                 background-color: {palette.bg_primary};
             }}
-        """)
+        """
+        )
 
 
 class DashboardActivityItem(QWidget):

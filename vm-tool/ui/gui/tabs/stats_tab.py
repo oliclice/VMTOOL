@@ -1,17 +1,26 @@
 """统计分析标签页 — Dashboard 仪表盘风格"""
 import logging
 
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QScrollArea,
-    QTableWidget, QTableWidgetItem, QPushButton, QLabel, QGroupBox,
-    QHeaderView, QMessageBox, QSizePolicy,
-)
 from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QMessageBox,
+    QPushButton,
+    QScrollArea,
+    QSizePolicy,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
 
 from app.core.config_manager import config_manager
-from ui.gui.widgets.stat_card import StatCard
 from ui.gui.widgets.chart_widgets import BarChartWidget, PieChartWidget
-
+from ui.gui.widgets.stat_card import StatCard
 
 logger = logging.getLogger(__name__)
 
@@ -37,9 +46,7 @@ class StatsTab(QWidget):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QScrollArea.Shape.NoFrame)
-        scroll.setHorizontalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
-        )
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
         container = QWidget()
         layout = QVBoxLayout(container)
@@ -69,9 +76,7 @@ class StatsTab(QWidget):
     def _create_stats_cards_section(self) -> QWidget:
         """创建顶部指标卡片区域"""
         group = QGroupBox("关键指标")
-        group.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
-        )
+        group.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         layout = QHBoxLayout(group)
         layout.setContentsMargins(12, 12, 12, 12)
         layout.setSpacing(10)
@@ -96,9 +101,7 @@ class StatsTab(QWidget):
     def _create_charts_section(self) -> QWidget:
         """创建中间图表区域 (2×2 网格)"""
         group = QGroupBox("数据可视化")
-        group.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
-        )
+        group.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         grid = QGridLayout(group)
         grid.setContentsMargins(12, 8, 12, 8)
         grid.setSpacing(12)
@@ -140,9 +143,7 @@ class StatsTab(QWidget):
     def _create_tables_section(self) -> QWidget:
         """创建底部详细数据表格区域"""
         group = QGroupBox("详细数据")
-        group.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
-        )
+        group.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         layout = QVBoxLayout(group)
         layout.setContentsMargins(12, 8, 12, 8)
         layout.setSpacing(12)
@@ -154,9 +155,7 @@ class StatsTab(QWidget):
 
         self._code_freq_table = QTableWidget()
         self._code_freq_table.setColumnCount(3)
-        self._code_freq_table.setHorizontalHeaderLabels(
-            ["编码", "频次", "词条示例"]
-        )
+        self._code_freq_table.setHorizontalHeaderLabels(["编码", "频次", "词条示例"])
         self._code_freq_table.setAlternatingRowColors(True)
         self._code_freq_table.setSelectionBehavior(
             QTableWidget.SelectionBehavior.SelectRows
@@ -164,12 +163,8 @@ class StatsTab(QWidget):
         self._code_freq_table.verticalHeader().setVisible(False)
         self._code_freq_table.setSortingEnabled(True)
         header = self._code_freq_table.horizontalHeader()
-        header.setSectionResizeMode(
-            0, QHeaderView.ResizeMode.ResizeToContents
-        )
-        header.setSectionResizeMode(
-            1, QHeaderView.ResizeMode.ResizeToContents
-        )
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         # 给表格一个合理的最小高度
         self._code_freq_table.setMinimumHeight(200)
@@ -233,13 +228,9 @@ class StatsTab(QWidget):
 
         except Exception as e:
             logger.error("刷新统计数据失败: %s", e, exc_info=True)
-            QMessageBox.critical(
-                self, "错误", f"刷新统计数据失败: {e}"
-            )
+            QMessageBox.critical(self, "错误", f"刷新统计数据失败: {e}")
 
-    def _update_cards(
-        self, word_length_stats: dict, code_stats: dict
-    ):
+    def _update_cards(self, word_length_stats: dict, code_stats: dict):
         """更新顶部指标卡片"""
         total_words = word_length_stats.get("total_words", 0)
         total_chars = word_length_stats.get("total_chars", 0)
@@ -249,35 +240,24 @@ class StatsTab(QWidget):
         self._card_total_words.set_value(f"{total_words:,}")
         self._card_total_chars.set_value(f"{total_chars:,}")
         self._card_conflicts.set_value(f"{conflict_count:,}")
-        avg_word_text = (
-            f"{avg_word_len:.2f}" if avg_word_len else "0"
-        )
+        avg_word_text = f"{avg_word_len:.2f}" if avg_word_len else "0"
         self._card_avg_word_len.set_value(avg_word_text)
 
         # 平均编码长度
-        code_length_dist = code_stats.get(
-            "code_length_distribution", {}
-        )
+        code_length_dist = code_stats.get("code_length_distribution", {})
         if code_length_dist:
             total_codes = sum(code_length_dist.values())
             total_length = sum(
-                int(length) * count
-                for length, count in code_length_dist.items()
+                int(length) * count for length, count in code_length_dist.items()
             )
-            avg_code_len = (
-                total_length / total_codes if total_codes > 0 else 0
-            )
-            self._card_avg_code_len.set_value(
-                f"{avg_code_len:.2f}"
-            )
+            avg_code_len = total_length / total_codes if total_codes > 0 else 0
+            self._card_avg_code_len.set_value(f"{avg_code_len:.2f}")
         else:
             self._card_avg_code_len.set_value("0")
 
         # 冲突数趋势指示
         if conflict_count > 0:
-            self._card_conflicts.set_trend(
-                "存在冲突", positive=False
-            )
+            self._card_conflicts.set_trend("存在冲突", positive=False)
         else:
             self._card_conflicts.set_trend("无冲突", positive=True)
 
@@ -289,29 +269,19 @@ class StatsTab(QWidget):
     ):
         """更新图表数据"""
         # 词长分布柱状图
-        length_dist = word_length_stats.get(
-            "length_distribution", {}
-        )
+        length_dist = word_length_stats.get("length_distribution", {})
         if length_dist:
-            self._chart_word_length.update_data(
-                length_dist, color_index=0
-            )
+            self._chart_word_length.update_data(length_dist, color_index=0)
 
         # 编码长度分布柱状图
-        code_length_dist = code_stats.get(
-            "code_length_distribution", {}
-        )
+        code_length_dist = code_stats.get("code_length_distribution", {})
         if code_length_dist:
-            self._chart_code_length.update_data(
-                code_length_dist, color_index=1
-            )
+            self._chart_code_length.update_data(code_length_dist, color_index=1)
 
         # 权重分布饼图
         weight_dist = weight_stats.get("weight_distribution", {})
         if weight_dist:
-            self._chart_weight.update_data(
-                weight_dist, color_index=2
-            )
+            self._chart_weight.update_data(weight_dist, color_index=2)
 
         # 编码频次 Top 10 柱状图
         code_frequency = code_stats.get("code_frequency", {})
@@ -322,13 +292,9 @@ class StatsTab(QWidget):
                 reverse=True,
             )[:10]
             top_10 = dict(top_items)
-            self._chart_code_freq.update_data(
-                top_10, color_index=4
-            )
+            self._chart_code_freq.update_data(top_10, color_index=4)
 
-    def _update_tables(
-        self, word_length_stats: dict, code_stats: dict
-    ):
+    def _update_tables(self, word_length_stats: dict, code_stats: dict):
         """更新表格数据"""
         # 编码频次分布表格
         code_frequency = code_stats.get("code_frequency", {})
@@ -342,42 +308,22 @@ class StatsTab(QWidget):
         self._code_freq_table.setSortingEnabled(False)
         self._code_freq_table.setRowCount(len(sorted_codes))
         for i, (code, count) in enumerate(sorted_codes):
-            self._code_freq_table.setItem(
-                i, 0, QTableWidgetItem(code)
-            )
-            self._code_freq_table.setItem(
-                i, 1, QTableWidgetItem(str(count))
-            )
+            self._code_freq_table.setItem(i, 0, QTableWidgetItem(code))
+            self._code_freq_table.setItem(i, 1, QTableWidgetItem(str(count)))
             example_words = code_to_words.get(code, [])
             if example_words:
-                example_limit = config_manager.get(
-                    "stats_example_limit", 20
-                )
-                example_text = ", ".join(
-                    example_words[:example_limit]
-                )
-                self._code_freq_table.setItem(
-                    i, 2, QTableWidgetItem(example_text)
-                )
+                example_limit = config_manager.get("stats_example_limit", 20)
+                example_text = ", ".join(example_words[:example_limit])
+                self._code_freq_table.setItem(i, 2, QTableWidgetItem(example_text))
             else:
-                self._code_freq_table.setItem(
-                    i, 2, QTableWidgetItem("-")
-                )
+                self._code_freq_table.setItem(i, 2, QTableWidgetItem("-"))
         self._code_freq_table.setSortingEnabled(True)
 
         # 词长分布表格
-        length_dist = word_length_stats.get(
-            "length_distribution", {}
-        )
+        length_dist = word_length_stats.get("length_distribution", {})
         self._word_len_table.setSortingEnabled(False)
         self._word_len_table.setRowCount(len(length_dist))
-        for i, (length, count) in enumerate(
-            length_dist.items()
-        ):
-            self._word_len_table.setItem(
-                i, 0, QTableWidgetItem(str(length))
-            )
-            self._word_len_table.setItem(
-                i, 1, QTableWidgetItem(str(count))
-            )
+        for i, (length, count) in enumerate(length_dist.items()):
+            self._word_len_table.setItem(i, 0, QTableWidgetItem(str(length)))
+            self._word_len_table.setItem(i, 1, QTableWidgetItem(str(count)))
         self._word_len_table.setSortingEnabled(True)

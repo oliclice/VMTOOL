@@ -2,14 +2,22 @@
 
 import os
 
-from PyQt6.QtWidgets import QFormLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout
-from PyQt6.QtWidgets import QComboBox, QCheckBox, QFileDialog
 from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QFileDialog,
+    QFormLayout,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+)
 
-from .base_panel import SettingsPanel
-from app.core.config_manager import config_manager
 from app.core.theme_config import ThemeConfig
+
 from ..theme_manager import theme_manager
+from .base_panel import SettingsPanel
 
 
 class ExportPanel(SettingsPanel):
@@ -56,12 +64,14 @@ class ExportPanel(SettingsPanel):
         palette = ThemeConfig.get_palette(
             theme_manager.current_theme_name,
             theme_manager.current_theme_mode,
-            theme_manager.current_theme_color
+            theme_manager.current_theme_color,
         )
 
         # 默认导出表（使用水平布局）
         export_tables_label = QLabel("默认导出表:")
-        export_tables_label.setStyleSheet(f"font-weight: bold; color: {palette.text_primary};")
+        export_tables_label.setStyleSheet(
+            f"font-weight: bold; color: {palette.text_primary};"
+        )
         self._main_layout.addWidget(export_tables_label)
 
         tables_layout = QHBoxLayout()
@@ -93,7 +103,9 @@ class ExportPanel(SettingsPanel):
         self._main_layout.addWidget(self.weight_special_checkbox)
 
         # 说明信息
-        info_label = QLabel("说明: 勾选的码表类型将在自动计算权重时被处理。手动设置权重的词条会被跳过。")
+        info_label = QLabel(
+            "说明: 勾选的码表类型将在自动计算权重时被处理。手动设置权重的词条会被跳过。"
+        )
         info_label.setStyleSheet(f"color: {palette.text_secondary}; font-size: 11px;")
         info_label.setWordWrap(True)
         self._main_layout.addWidget(info_label)
@@ -117,10 +129,14 @@ class ExportPanel(SettingsPanel):
 
         # 分隔符
         self.word_code_delimiter_combo.currentTextChanged.connect(
-            lambda text: self._set_config("word_code_delimiter", self._delimiter_to_internal(text))
+            lambda text: self._set_config(
+                "word_code_delimiter", self._delimiter_to_internal(text)
+            )
         )
         self.code_weight_delimiter_combo.currentTextChanged.connect(
-            lambda text: self._set_config("code_weight_delimiter", self._delimiter_to_internal(text))
+            lambda text: self._set_config(
+                "code_weight_delimiter", self._delimiter_to_internal(text)
+            )
         )
 
         # 导出表
@@ -130,13 +146,19 @@ class ExportPanel(SettingsPanel):
 
         # 权重范围
         self.weight_words_checkbox.stateChanged.connect(
-            lambda state: self._set_config("weight_calc_words", state == Qt.CheckState.Checked.value)
+            lambda state: self._set_config(
+                "weight_calc_words", state == Qt.CheckState.Checked.value
+            )
         )
         self.weight_chars_checkbox.stateChanged.connect(
-            lambda state: self._set_config("weight_calc_chars", state == Qt.CheckState.Checked.value)
+            lambda state: self._set_config(
+                "weight_calc_chars", state == Qt.CheckState.Checked.value
+            )
         )
         self.weight_special_checkbox.stateChanged.connect(
-            lambda state: self._set_config("weight_calc_special", state == Qt.CheckState.Checked.value)
+            lambda state: self._set_config(
+                "weight_calc_special", state == Qt.CheckState.Checked.value
+            )
         )
 
     def _load_current_values(self):
@@ -151,10 +173,14 @@ class ExportPanel(SettingsPanel):
 
         # 分隔符
         word_code_delimiter = self._get_config("word_code_delimiter", "\t")
-        self.word_code_delimiter_combo.setCurrentText(self._delimiter_to_display(word_code_delimiter))
+        self.word_code_delimiter_combo.setCurrentText(
+            self._delimiter_to_display(word_code_delimiter)
+        )
 
         code_weight_delimiter = self._get_config("code_weight_delimiter", "\t")
-        self.code_weight_delimiter_combo.setCurrentText(self._delimiter_to_display(code_weight_delimiter))
+        self.code_weight_delimiter_combo.setCurrentText(
+            self._delimiter_to_display(code_weight_delimiter)
+        )
 
         # 导出表
         saved_tables = self._get_config("export_tables", ["words", "chars", "special"])
@@ -163,9 +189,15 @@ class ExportPanel(SettingsPanel):
         self.special_checkbox.setChecked("special" in saved_tables)
 
         # 权重范围
-        self.weight_words_checkbox.setChecked(self._get_config("weight_calc_words", True))
-        self.weight_chars_checkbox.setChecked(self._get_config("weight_calc_chars", False))
-        self.weight_special_checkbox.setChecked(self._get_config("weight_calc_special", False))
+        self.weight_words_checkbox.setChecked(
+            self._get_config("weight_calc_words", True)
+        )
+        self.weight_chars_checkbox.setChecked(
+            self._get_config("weight_calc_chars", False)
+        )
+        self.weight_special_checkbox.setChecked(
+            self._get_config("weight_calc_special", False)
+        )
 
         # Rime 自动导出
         self._load_rime_auto_export()
@@ -195,7 +227,9 @@ class ExportPanel(SettingsPanel):
 
         # ibus/rime 开关
         if ibus_exists:
-            self.ibus_rime_checkbox = QCheckBox(f"自动导出到 ibus/rime 目录 ({ibus_rime_path})")
+            self.ibus_rime_checkbox = QCheckBox(
+                f"自动导出到 ibus/rime 目录 ({ibus_rime_path})"
+            )
             self.ibus_rime_checkbox.stateChanged.connect(
                 lambda state: self._set_config(
                     "auto_export_ibus_rime", state == Qt.CheckState.Checked.value
@@ -205,7 +239,9 @@ class ExportPanel(SettingsPanel):
 
         # fcitx5/rime 开关
         if fcitx5_exists:
-            self.fcitx5_rime_checkbox = QCheckBox(f"自动导出到 fcitx5/rime 目录 ({fcitx5_rime_path})")
+            self.fcitx5_rime_checkbox = QCheckBox(
+                f"自动导出到 fcitx5/rime 目录 ({fcitx5_rime_path})"
+            )
             self.fcitx5_rime_checkbox.stateChanged.connect(
                 lambda state: self._set_config(
                     "auto_export_fcitx5_rime", state == Qt.CheckState.Checked.value
@@ -214,18 +250,20 @@ class ExportPanel(SettingsPanel):
             self._main_layout.addWidget(self.fcitx5_rime_checkbox)
 
         # 提示信息
-        rime_info = QLabel("勾选后，导出词表时将自动复制到对应 Rime 目录，无需手动操作。")
+        rime_info = QLabel(
+            "勾选后，导出词表时将自动复制到对应 Rime 目录，无需手动操作。"
+        )
         rime_info.setStyleSheet(f"color: {palette.text_secondary}; font-size: 11px;")
         rime_info.setWordWrap(True)
         self._main_layout.addWidget(rime_info)
 
     def _load_rime_auto_export(self):
         """加载 Rime 自动导出开关状态"""
-        if hasattr(self, 'ibus_rime_checkbox'):
+        if hasattr(self, "ibus_rime_checkbox"):
             self.ibus_rime_checkbox.setChecked(
                 self._get_config("auto_export_ibus_rime", False)
             )
-        if hasattr(self, 'fcitx5_rime_checkbox'):
+        if hasattr(self, "fcitx5_rime_checkbox"):
             self.fcitx5_rime_checkbox.setChecked(
                 self._get_config("auto_export_fcitx5_rime", False)
             )
@@ -235,12 +273,18 @@ class ExportPanel(SettingsPanel):
         # 尝试使用 zenity
         try:
             import subprocess
+
             result = subprocess.run(
-                ["zenity", "--file-selection", "--directory",
-                 "--title=选择导出目录", "--filename=./"],
+                [
+                    "zenity",
+                    "--file-selection",
+                    "--directory",
+                    "--title=选择导出目录",
+                    "--filename=./",
+                ],
                 capture_output=True,
                 text=True,
-                timeout=30
+                timeout=30,
             )
             if result.returncode == 0:
                 directory = result.stdout.strip()
@@ -252,9 +296,7 @@ class ExportPanel(SettingsPanel):
             pass
 
         # 回退到 Qt 内置对话框
-        directory = QFileDialog.getExistingDirectory(
-            self, "选择导出目录", "./"
-        )
+        directory = QFileDialog.getExistingDirectory(self, "选择导出目录", "./")
         if directory:
             self.export_path_edit.setText(directory)
             self._set_config("default_export_path", directory)
@@ -277,27 +319,29 @@ class ExportPanel(SettingsPanel):
         """同步更新导入导出标签页的复选框"""
         # 向上查找主窗口
         parent = self.parent()
-        while parent and not hasattr(parent, 'tab_widget'):
-            parent = parent.parent() if hasattr(parent, 'parent') else None
+        while parent and not hasattr(parent, "tab_widget"):
+            parent = parent.parent() if hasattr(parent, "parent") else None
 
-        if parent and hasattr(parent, 'tab_widget'):
+        if parent and hasattr(parent, "tab_widget"):
             tab_widget = parent.tab_widget
             for i in range(tab_widget.count()):
                 if tab_widget.tabText(i) == "导入导出":
                     import_export_tab = tab_widget.widget(i)
-                    if hasattr(import_export_tab, 'words_checkbox'):
+                    if hasattr(import_export_tab, "words_checkbox"):
                         import_export_tab.words_checkbox.blockSignals(True)
                         import_export_tab.words_checkbox.setChecked("words" in selected)
                         import_export_tab.words_checkbox.blockSignals(False)
-                    if hasattr(import_export_tab, 'chars_checkbox'):
+                    if hasattr(import_export_tab, "chars_checkbox"):
                         import_export_tab.chars_checkbox.blockSignals(True)
                         import_export_tab.chars_checkbox.setChecked("chars" in selected)
                         import_export_tab.chars_checkbox.blockSignals(False)
-                    if hasattr(import_export_tab, 'special_checkbox'):
+                    if hasattr(import_export_tab, "special_checkbox"):
                         import_export_tab.special_checkbox.blockSignals(True)
-                        import_export_tab.special_checkbox.setChecked("special" in selected)
+                        import_export_tab.special_checkbox.setChecked(
+                            "special" in selected
+                        )
                         import_export_tab.special_checkbox.blockSignals(False)
-                    if hasattr(import_export_tab, 'update_export_full_path'):
+                    if hasattr(import_export_tab, "update_export_full_path"):
                         import_export_tab.update_export_full_path()
                     break
 

@@ -2,9 +2,8 @@
 
 从右下角滑入的短暂消息提示，支持 4 种类型。
 """
-from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLabel, QApplication
-from PyQt6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve
-from PyQt6.QtGui import QFont
+from PyQt6.QtCore import QEasingCurve, QPropertyAnimation, Qt, QTimer
+from PyQt6.QtWidgets import QHBoxLayout, QLabel, QWidget
 
 
 class Toast(QWidget):
@@ -49,12 +48,7 @@ class Toast(QWidget):
         container_layout.setSpacing(8)
 
         # 类型图标
-        icon_map = {
-            "info": "ℹ",
-            "success": "✓",
-            "error": "✗",
-            "warning": "⚠"
-        }
+        icon_map = {"info": "ℹ", "success": "✓", "error": "✗", "warning": "⚠"}
         icon_label = QLabel(icon_map.get(self.type, "ℹ"))
         icon_label.setObjectName("toast_icon")
         icon_label.setFixedWidth(20)
@@ -79,11 +73,12 @@ class Toast(QWidget):
             "info": "#5e6ad2",
             "success": "#27a644",
             "error": "#ef4444",
-            "warning": "#f97316"
+            "warning": "#f97316",
         }
         accent = color_map.get(self.type, "#5e6ad2")
 
-        self.setStyleSheet(f"""
+        self.setStyleSheet(
+            f"""
             #toast_container {{
                 background-color: #191a1b;
                 border: 1px solid rgba(255,255,255,0.08);
@@ -102,7 +97,8 @@ class Toast(QWidget):
                 border: none;
                 background: transparent;
             }}
-        """)
+        """
+        )
 
     def _setup_animation(self):
         """设置动画"""
@@ -113,6 +109,7 @@ class Toast(QWidget):
 
         # 透明度动画 (通过 opacity effect)
         from PyQt6.QtWidgets import QGraphicsOpacityEffect
+
         self._opacity_effect = QGraphicsOpacityEffect(self)
         self.setGraphicsEffect(self._opacity_effect)
 
@@ -132,7 +129,9 @@ class Toast(QWidget):
 
         # 播放滑入动画
         start_pos = self.pos()
-        end_pos = self.pos() - __import__('PyQt6.QtCore', fromlist=['QPoint']).QPoint(0, self.height())
+        end_pos = self.pos() - __import__("PyQt6.QtCore", fromlist=["QPoint"]).QPoint(
+            0, self.height()
+        )
 
         self._pos_anim.setStartValue(start_pos)
         self._pos_anim.setEndValue(end_pos)

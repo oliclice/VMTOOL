@@ -1,14 +1,24 @@
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem,
-                             QPushButton, QLineEdit, QLabel, QComboBox, QMenu, QMessageBox)
-from PyQt6.QtCore import Qt
 import logging
-from app.services.dict import DictService
-from ..threads import AddBatchThread
+
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
+    QComboBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMenu,
+    QPushButton,
+    QTableWidget,
+    QVBoxLayout,
+    QWidget,
+)
 
 logger = logging.getLogger(__name__)
 
+
 class BaseTableTab(QWidget):
     """表格管理标签页基类"""
+
     def __init__(self, parent=None, dict_service=None):
         super().__init__(parent)
 
@@ -55,7 +65,10 @@ class BaseTableTab(QWidget):
         self.set_column_widths()
 
         # 允许单元格编辑
-        self.table.setEditTriggers(QTableWidget.EditTrigger.DoubleClicked | QTableWidget.EditTrigger.SelectedClicked)
+        self.table.setEditTriggers(
+            QTableWidget.EditTrigger.DoubleClicked
+            | QTableWidget.EditTrigger.SelectedClicked
+        )
 
         # 监听编辑完成信号
         self.table.cellChanged.connect(self.on_cell_changed)

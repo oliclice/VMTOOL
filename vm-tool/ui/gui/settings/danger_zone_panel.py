@@ -1,12 +1,13 @@
 """危险操作面板 - 删除表等不可逆操作"""
 
-from PyQt6.QtWidgets import QPushButton, QMessageBox, QVBoxLayout, QLabel
 from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QLabel, QMessageBox, QPushButton
 
-from .base_panel import SettingsPanel
-from ..threads.delete_table_thread import DeleteTableThread, SetAllManualToFalseThread
 from app.core.theme_config import ThemeConfig
+
 from ..theme_manager import theme_manager
+from ..threads.delete_table_thread import DeleteTableThread, SetAllManualToFalseThread
+from .base_panel import SettingsPanel
 
 
 class DangerZonePanel(SettingsPanel):
@@ -26,9 +27,10 @@ class DangerZonePanel(SettingsPanel):
         palette = ThemeConfig.get_palette(
             theme_manager.current_theme_name,
             theme_manager.current_theme_mode,
-            theme_manager.current_theme_color
+            theme_manager.current_theme_color,
         )
-        self.setStyleSheet(f"""
+        self.setStyleSheet(
+            f"""
             QGroupBox {{
                 border: 2px solid {palette.danger};
                 border-radius: 6px;
@@ -42,7 +44,8 @@ class DangerZonePanel(SettingsPanel):
                 padding: 0 6px;
                 color: {palette.danger};
             }}
-        """)
+        """
+        )
 
     def _setup_ui(self):
         # 警告说明
@@ -50,15 +53,19 @@ class DangerZonePanel(SettingsPanel):
         palette = ThemeConfig.get_palette(
             theme_manager.current_theme_name,
             theme_manager.current_theme_mode,
-            theme_manager.current_theme_color
+            theme_manager.current_theme_color,
         )
-        warning_label.setStyleSheet(f"color: {palette.danger}; font-weight: bold; padding: 8px;")
+        warning_label.setStyleSheet(
+            f"color: {palette.danger}; font-weight: bold; padding: 8px;"
+        )
         warning_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._main_layout.addWidget(warning_label)
 
         # 删除表区域
         delete_label = QLabel("删除表数据:")
-        delete_label.setStyleSheet(f"font-weight: bold; margin-top: 8px; color: {palette.text_primary};")
+        delete_label.setStyleSheet(
+            f"font-weight: bold; margin-top: 8px; color: {palette.text_primary};"
+        )
         self._main_layout.addWidget(delete_label)
 
         self.delete_chars_button = QPushButton("删除字表")
@@ -90,7 +97,9 @@ class DangerZonePanel(SettingsPanel):
 
         # 手动全部为否区域
         manual_label = QLabel("重置手动标记:")
-        manual_label.setStyleSheet(f"font-weight: bold; margin-top: 8px; color: {palette.text_primary};")
+        manual_label.setStyleSheet(
+            f"font-weight: bold; margin-top: 8px; color: {palette.text_primary};"
+        )
         self._main_layout.addWidget(manual_label)
 
         self.manual_chars_button = QPushButton("字表手动全部为否")
@@ -115,8 +124,12 @@ class DangerZonePanel(SettingsPanel):
         self._main_layout.addWidget(self.manual_special_button)
 
         # 说明信息
-        info_label = QLabel("说明: '手动全部为否'会将所有词条的manual标记重置为False，但不会删除数据。")
-        info_label.setStyleSheet(f"color: {palette.text_secondary}; font-size: 11px; margin-top: 8px;")
+        info_label = QLabel(
+            "说明: '手动全部为否'会将所有词条的manual标记重置为False，但不会删除数据。"
+        )
+        info_label.setStyleSheet(
+            f"color: {palette.text_secondary}; font-size: 11px; margin-top: 8px;"
+        )
         info_label.setWordWrap(True)
         self._main_layout.addWidget(info_label)
 
@@ -125,7 +138,7 @@ class DangerZonePanel(SettingsPanel):
         palette = ThemeConfig.get_palette(
             theme_manager.current_theme_name,
             theme_manager.current_theme_mode,
-            theme_manager.current_theme_color
+            theme_manager.current_theme_color,
         )
         delete_button_style = f"""
             QPushButton {{
@@ -153,7 +166,7 @@ class DangerZonePanel(SettingsPanel):
         palette = ThemeConfig.get_palette(
             theme_manager.current_theme_name,
             theme_manager.current_theme_mode,
-            theme_manager.current_theme_color
+            theme_manager.current_theme_color,
         )
         # 使用 accent_hover 作为警告按钮的颜色
         reset_button_style = f"""
@@ -185,11 +198,11 @@ class DangerZonePanel(SettingsPanel):
         """获取进度条组件"""
         parent = self.parent()
         while parent:
-            if hasattr(parent, 'progress_bar'):
+            if hasattr(parent, "progress_bar"):
                 return parent.progress_bar
-            if hasattr(parent, 'progress_bar_widget'):
+            if hasattr(parent, "progress_bar_widget"):
                 return parent.progress_bar_widget
-            parent = parent.parent() if hasattr(parent, 'parent') else None
+            parent = parent.parent() if hasattr(parent, "parent") else None
         return None
 
     def _refresh_tab(self, table_name):
@@ -197,7 +210,7 @@ class DangerZonePanel(SettingsPanel):
         tab_map = {
             "chars": ("chars_tab", "refresh_data"),
             "words": ("words_tab", "refresh_data"),
-            "special": ("special_tab", "refresh_data")
+            "special": ("special_tab", "refresh_data"),
         }
 
         if table_name not in tab_map:
@@ -211,7 +224,7 @@ class DangerZonePanel(SettingsPanel):
                 if hasattr(tab, method_name):
                     getattr(tab, method_name)()
                 break
-            parent = parent.parent() if hasattr(parent, 'parent') else None
+            parent = parent.parent() if hasattr(parent, "parent") else None
 
     def _delete_table(self, table_name, table_display_name):
         """删除表（异步）"""
@@ -223,7 +236,7 @@ class DangerZonePanel(SettingsPanel):
             self,
             "确认删除",
             f"确定要删除{table_display_name}吗？此操作不可恢复！",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
 
         if reply == QMessageBox.StandardButton.Yes:
@@ -233,7 +246,7 @@ class DangerZonePanel(SettingsPanel):
                 progress_bar.start_progress(f"正在删除{table_display_name}...")
 
             # 创建并启动线程
-            thread = DeleteTableThread(self.dict_service, table_name, table_display_name)
+            thread = DeleteTableThread(table_name, table_display_name)
 
             def on_progress(progress, message):
                 if progress_bar:
@@ -241,7 +254,9 @@ class DangerZonePanel(SettingsPanel):
 
             def on_finished(result):
                 if progress_bar:
-                    progress_bar.finish_progress(f"删除成功，共删除 {result.get('deleted', 0)} 条记录")
+                    progress_bar.finish_progress(
+                        f"删除成功，共删除 {result.get('deleted', 0)} 条记录"
+                    )
                 QMessageBox.information(self, "成功", f"{table_display_name}删除成功")
                 # 刷新相关标签页
                 self._refresh_tab(table_name)
@@ -251,7 +266,9 @@ class DangerZonePanel(SettingsPanel):
             def on_error(error_msg):
                 if progress_bar:
                     progress_bar.error_progress(f"删除失败: {error_msg}")
-                QMessageBox.critical(self, "错误", f"删除{table_display_name}失败: {error_msg}")
+                QMessageBox.critical(
+                    self, "错误", f"删除{table_display_name}失败: {error_msg}"
+                )
                 # 清理线程
                 thread.deleteLater()
 
@@ -270,7 +287,7 @@ class DangerZonePanel(SettingsPanel):
             self,
             "确认操作",
             f"确定要将{table_display_name}的所有词条设置为非手动吗？",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
 
         if reply == QMessageBox.StandardButton.Yes:
@@ -280,7 +297,7 @@ class DangerZonePanel(SettingsPanel):
                 progress_bar.start_progress(f"正在更新{table_display_name}...")
 
             # 创建并启动线程
-            thread = SetAllManualToFalseThread(self.dict_service, table_name, table_display_name)
+            thread = SetAllManualToFalseThread(table_name, table_display_name)
 
             def on_progress(progress, message):
                 if progress_bar:
@@ -288,8 +305,15 @@ class DangerZonePanel(SettingsPanel):
 
             def on_finished(result):
                 if progress_bar:
-                    progress_bar.finish_progress(f"更新成功，共更新 {result.get('updated', 0)} 条记录")
-                QMessageBox.information(self, "成功", f"{table_display_name}更新成功，共更新 {result.get('updated', 0)} 条记录")
+                    progress_bar.finish_progress(
+                        f"更新成功，共更新 {result.get('updated', 0)} 条记录"
+                    )
+                QMessageBox.information(
+                    self,
+                    "成功",
+                    f"{table_display_name}更新成功，"
+                    f"共更新 {result.get('updated', 0)} 条记录",
+                )
                 # 刷新相关标签页
                 self._refresh_tab(table_name)
                 # 清理线程
@@ -298,7 +322,9 @@ class DangerZonePanel(SettingsPanel):
             def on_error(error_msg):
                 if progress_bar:
                     progress_bar.error_progress(f"更新失败: {error_msg}")
-                QMessageBox.critical(self, "错误", f"更新{table_display_name}失败: {error_msg}")
+                QMessageBox.critical(
+                    self, "错误", f"更新{table_display_name}失败: {error_msg}"
+                )
                 # 清理线程
                 thread.deleteLater()
 

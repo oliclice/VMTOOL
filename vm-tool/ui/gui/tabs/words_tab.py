@@ -1,4 +1,5 @@
-from PyQt6.QtWidgets import QPushButton, QMessageBox
+from PyQt6.QtWidgets import QMessageBox
+
 from .general_table_tab import GeneralTableTab
 
 
@@ -42,15 +43,16 @@ class WordsTab(GeneralTableTab):
             return
 
         reply = QMessageBox.question(
-            self, "确认",
+            self,
+            "确认",
             "是否批量重新计算所有未手动修改过编码的词条的编码？\n\n"
             "注意：这会使用当前设置的编码规则重新计算所有自动编码的词条。",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No
+            QMessageBox.StandardButton.No,
         )
 
         if reply == QMessageBox.StandardButton.Yes:
-            if self.parent and hasattr(self.parent, 'progress_bar'):
+            if self.parent and hasattr(self.parent, "progress_bar"):
                 progress_bar = self.parent.progress_bar
                 progress_bar.start_progress("正在重新计算编码...")
             else:
@@ -62,9 +64,12 @@ class WordsTab(GeneralTableTab):
 
             def on_finished(result):
                 if progress_bar:
-                    progress_bar.finish_progress(f"批量重新计算编码完成！共处理 {result.get('total', 0)} 个词条", success=True)
+                    progress_bar.finish_progress(
+                        f"批量重新计算编码完成！共处理 {result.get('total', 0)} 个词条",
+                        success=True,
+                    )
 
-                if hasattr(self.parent, 'show_toast'):
+                if hasattr(self.parent, "show_toast"):
                     self.parent.show_toast(
                         f"批量重新计算编码完成！\n"
                         f"总词条数: {result.get('total', 0)}\n"
@@ -77,11 +82,12 @@ class WordsTab(GeneralTableTab):
             def on_error(error):
                 if progress_bar:
                     progress_bar.error_progress(f"批量重新计算编码失败: {error}")
-                if hasattr(self.parent, 'show_toast'):
+                if hasattr(self.parent, "show_toast"):
                     self.parent.show_toast(f"批量重新计算编码失败: {error}")
 
             from ..threads import CalculateThread
-            self.calculate_thread = CalculateThread(self.dict_service)
+
+            self.calculate_thread = CalculateThread()
             self.calculate_thread.progress.connect(update_progress)
             self.calculate_thread.finished.connect(on_finished)
             self.calculate_thread.error.connect(on_error)

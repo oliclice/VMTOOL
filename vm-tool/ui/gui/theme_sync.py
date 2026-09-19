@@ -4,7 +4,8 @@
 """
 import logging
 import weakref
-from typing import Callable, Dict, Optional, Any
+from collections.abc import Callable
+from typing import Any
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
@@ -18,7 +19,7 @@ class ThemeSync(QObject):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._registered_widgets: Dict[int, Dict[str, Any]] = {}
+        self._registered_widgets: dict[int, dict[str, Any]] = {}
         self._update_count = 0
 
     def set_theme_manager(self, manager) -> None:
@@ -29,13 +30,14 @@ class ThemeSync(QObject):
         """
         manager.theme_changed.connect(self._on_theme_changed)
 
-    def register_widget(self, widget, callback: Optional[Callable] = None) -> None:
+    def register_widget(self, widget, callback: Callable | None = None) -> None:
         """注册组件以自动更新主题
 
         Args:
             widget: 要注册的 QWidget
             callback: 可选的回调函数，签名 callback(mode, name, color)
-                     如果不提供，则调用 widget.on_theme_changed() 或 widget.refresh_theme()
+                     如果不提供，则调用 widget.on_theme_changed() 或
+                     widget.refresh_theme()
         """
         widget_id = id(widget)
 
@@ -44,9 +46,9 @@ class ThemeSync(QObject):
             return
 
         self._registered_widgets[widget_id] = {
-            'ref': weakref.ref(widget),
-            'callback': callback,
-            'class_name': widget.__class__.__name__,
+            "ref": weakref.ref(widget),
+            "callback": callback,
+            "class_name": widget.__class__.__name__,
         }
 
         logger.debug(f"Registered widget: {widget.__class__.__name__} (id={widget_id})")
@@ -60,7 +62,9 @@ class ThemeSync(QObject):
         widget_id = id(widget)
         if widget_id in self._registered_widgets:
             del self._registered_widgets[widget_id]
-            logger.debug(f"Unregistered widget: {widget.__class__.__name__} (id={widget_id})")
+            logger.debug(
+                f"Unregistered widget: {widget.__class__.__name__} (id={widget_id})"
+            )
 
     def _on_theme_changed(self, mode: str, name: str, color: str) -> None:
         """通知所有注册的组件主题变更
@@ -73,30 +77,35 @@ class ThemeSync(QObject):
         self._update_count += 1
         dead_refs = []
 
-        logger.info(f"Theme changed: mode={mode}, name={name}, color={color}, "
-                    f"updating {len(self._registered_widgets)} widgets")
+        logger.info(
+            f"Theme changed: mode={mode}, name={name}, color={color}, "
+            f"updating {len(self._registered_widgets)} widgets"
+        )
 
         for widget_id, info in self._registered_widgets.items():
-            widget = info['ref']()
+            widget = info["ref"]()
             if widget is None:
                 dead_refs.append(widget_id)
                 continue
 
             try:
-                if info['callback']:
+                if info["callback"]:
                     # 使用自定义回调
-                    info['callback'](mode, name, color)
-                elif hasattr(widget, 'on_theme_changed'):
+                    info["callback"](mode, name, color)
+                elif hasattr(widget, "on_theme_changed"):
                     # 调用组件的 on_theme_changed 方法
                     widget.on_theme_changed(mode, name, color)
-                elif hasattr(widget, 'refresh_theme'):
+                elif hasattr(widget, "refresh_theme"):
                     # 调用组件的 refresh_theme 方法
                     widget.refresh_theme()
                 else:
-                    logger.warning(f"Widget {info['class_name']} has no theme update method")
+                    logger.warning(
+                        f"Widget {info['class_name']} has no theme update method"
+                    )
             except Exception as e:
-                logger.error(f"Theme update failed for {info['class_name']}: {e}",
-                           exc_info=True)
+                logger.error(
+                    f"Theme update failed for {info['class_name']}: {e}", exc_info=True
+                )
 
         # 清理死引用
         for ref_id in dead_refs:

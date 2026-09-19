@@ -7,14 +7,20 @@ dependencies = [
     "pydantic>=2.6.0",
     "pydantic-settings>=2.1.0",
     "sqlalchemy>=2.0.49",
-    "alembic>=1.13.0",
+    "psutil>=5.9",
     "typer>=0.12.0",
+    # click 必须显式声明：ui/cli/__main__.py 的运行期路径（show_typer_help 与交互式
+    # 帮助）直接 `from click.testing import CliRunner`；而 typer 0.27 起把 click
+    # vendor 进 typer._click，其 Requires-Dist 不再包含 click，故无人代为提供。
+    "click>=8.1.0",
     "rich>=13.7.0",
-    "fastapi>=0.104.1",
-    "uvicorn>=0.24.0",
-    "jinja2>=3.1.2",
-    "PyQt6>=6.6.1",
-    "PyQt6-charts>=6.6.0"
+    # PyQt6 与 Qt6 运行时必须同属 6.6.x：PyQt6 的 abi3 扩展按 Qt 6.6 编译，
+    # 但 PyQt6 自身元数据只写 PyQt6-Qt6>=6.6.0（无上界），会解析到 6.11 而
+    # 导致 "undefined symbol ... version Qt_6"，故此处显式钉住上界。
+    "PyQt6>=6.6.1,<6.7",
+    "PyQt6-Qt6>=6.6.0,<6.7",
+    "PyQt6-Charts>=6.6.0,<6.7",
+    "PyQt6-Charts-Qt6>=6.6.0,<6.7"
 ]
 
 [tool.setuptools]
@@ -24,7 +30,6 @@ packages = ["app", "ui", "plugins"]
 test = [
     "pytest==7.4.3",
     "pytest-cov==4.1.0",
-    "hypothesis==6.88.0",
 ]
 
 quality = [
@@ -36,7 +41,10 @@ quality = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-v --cov=app --cov-report=html"
+# 覆盖率报告面向 CI：term-missing 便于在日志里直接看缺口，xml 便于后续上传/集成。
+# 原来每次运行都重写 htmlcov/（陈旧产物），故移除 html 报告。
+# 暂不设 --cov-fail-under：当前覆盖率极低，加阈值会让 CI 从第一天就红，等基线稳定后再议。
+addopts = "-v --cov=app --cov-report=term-missing --cov-report=xml"
 
 [tool.black]
 line-length = 88
@@ -46,7 +54,18 @@ target-version = ['py310']
 profile = "black"
 
 [tool.ruff]
-select = ["E", "F", "W"]
+# 门禁口径（T4 收敛）：E/F/W 为既有基线，新增 I（isort）/B（bugbear）/UP（pyupgrade）
+# 与显式 line-length=88（与 black 对齐，避免隐性默认值漂移）。
+# 历史存量违规已由 T9 清零（ruff check . → 0 errors）。
+select = ["E", "F", "W", "I", "B", "UP"]
+line-length = 88
+
+[tool.ruff.flake8-bugbear]
+# typer/click 的声明式 API 要求在参数默认值处调用 typer.Argument/Option —— 它们是
+# typer 的参数声明而不是可变默认值。B008 对此是已知误报，ruff 官方建议的做法是
+# 把它们登记为 immutable calls（B008 本身保持启用，其它函数的默认值仍会被检查），
+# 而不是逐处写 noqa 或整体忽略 B008。
+extend-immutable-calls = ["typer.Argument", "typer.Option"]
 
 [tool.mypy]
 disallow_untyped_defs = true

@@ -1,49 +1,60 @@
 """PyQt6高级GUI界面"""
-import sys
-import os
 import logging
-from typing import List, Dict, Any
+import os
+import sys
+
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QAction
+from PyQt6.QtWidgets import (
+    QApplication,
+    QLabel,
+    QMainWindow,
+    QMenu,
+    QMenuBar,
+    QMessageBox,
+    QSplitter,
+    QStackedWidget,
+    QStatusBar,
+    QVBoxLayout,
+    QWidget,
+)
+
+from app.core.config_manager import config_manager
+from app.core.theme_constants import (
+    THEME_COLOR_BLUE,
+    THEME_MODE_AUTO,
+    THEME_NAME_CLASSIC,
+    THEME_NAME_LINEAR,
+    THEME_NAME_MATERIAL3,
+)
+from app.services.dict import DictService
+from app.services.filter import FilterService
+from app.services.stats import StatsService
+from app.services.weight import WeightCalculator
+
+from .code_rules_tab import CodeRulesTab
+from .progress_bar import ProgressBarWidget
+from .settings_tab import SettingsTab
+from .tabs.chars_tab import CharsTab
+from .tabs.import_export_tab import ImportExportTab
+from .tabs.special_tab import SpecialTab
+from .tabs.stats_tab import StatsTab
+from .tabs.words_tab import WordsTab
+from .theme_manager import theme_manager
+from .theme_utils import apply_theme_to_widget, clear_hardcoded_stylesheets
+from .threads import CalculateWeightThread, register_stats_cache_invalidator
+from .widgets.dashboard_page import DashboardPage
+from .widgets.sidebar_nav import SidebarNav
 
 logger = logging.getLogger(__name__)
 
-# 添加项目根目录到Python路径
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
-from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QStackedWidget, QTableWidget, QTableWidgetItem, QPushButton, QLineEdit,
-    QLabel, QDialog, QFormLayout, QComboBox, QMessageBox, QFileDialog,
-    QTreeWidget, QTreeWidgetItem, QSplitter, QStatusBar, QMenuBar, QMenu,
-    QTextEdit, QGroupBox, QProgressBar, QCheckBox
+# 添加项目根目录到Python路径（保留原有兼容写法，置于 import 之后以满足 E402）。
+# 注意：本模块使用相对 import，只能作为 ``ui.gui.pyqt_app`` 包成员被导入；
+# 直接 `python ui/gui/pyqt_app.py` 会在执行到此之前就因相对导入失败（实测），
+# 因此该路径插入对 import 阶段并无实际作用。
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 )
-from PyQt6.QtCore import Qt, QSortFilterProxyModel, QThread, pyqtSignal, QEvent
-from PyQt6.QtGui import QAction, QIcon, QFont, QStandardItemModel, QStandardItem, QPalette, QFontDatabase
-
-from app.services.dict import DictService
-from app.services.weight import WeightCalculator
-from app.services.filter import FilterService
-from app.services.stats import StatsService
-from app.core.config_manager import config_manager
-from app.core.theme_constants import (
-    THEME_MODE_DARK, THEME_MODE_LIGHT, THEME_MODE_AUTO,
-    THEME_NAME_CLASSIC, THEME_NAME_LINEAR, THEME_NAME_MATERIAL3,
-    THEME_COLOR_BLUE, THEME_COLOR_GREEN,
-    THEME_COLOR_RED, THEME_COLOR_PURPLE, THEME_COLOR_ORANGE,
-    COLOR_RGB_MAP
-)
-from .theme_utils import create_palette_from_theme, apply_theme_to_widget, clear_hardcoded_stylesheets
-from .theme_manager import theme_manager
-from .settings_tab import SettingsTab
-from .code_rules_tab import CodeRulesTab
-from .threads import ImportThread, AddBatchThread, CalculateThread, CalculateWeightThread
-from .tabs.chars_tab import CharsTab
-from .tabs.special_tab import SpecialTab
-from .tabs.words_tab import WordsTab
-from .tabs.stats_tab import StatsTab
-from .tabs.import_export_tab import ImportExportTab
-from .progress_bar import ProgressBarWidget
-from .widgets.sidebar_nav import SidebarNav
-from .widgets.dashboard_page import DashboardPage
 
 
 class VMTOOLPyQtApp(QMainWindow):
@@ -83,9 +94,15 @@ class VMTOOLPyQtApp(QMainWindow):
         # 线程对象
         self.calculate_thread = None
 
+        # DAL 不再反向依赖 app.core：数据库路径由组合根（这里）注入，必须在建引擎之前
+        from app.dal.database import set_database_path
+
+        set_database_path(config_manager.get("database_path"))
+
         # 同步初始化数据库（这个操作很快，只是创建表结构）
         try:
             from app.dal.init_db import init_database
+
             init_database()
         except Exception as e:
             logger.error(f"[GUI] 数据库初始化失败: {e}", exc_info=True)
@@ -97,6 +114,11 @@ class VMTOOLPyQtApp(QMainWindow):
         self.dict_service = DictService(on_data_changed=self.stats_service.clear_cache)
         self.weight_calc = WeightCalculator()
         self.filter_service = FilterService()
+
+        # 工作线程自持服务实例（见 ui/gui/threads/service_factory.py），这里只把
+        # 统计缓存失效回调注册给工厂 —— 传的是普通可调用对象，不是服务实例，
+        # 因此不会把主线程的 Session 带进工作线程。必须在任何线程启动前注册。
+        register_stats_cache_invalidator(self.stats_service.clear_cache)
 
         # 创建侧边栏和内容区（数据库和服务都已就绪）
         self.create_sidebar_and_content()
@@ -117,6 +139,7 @@ class VMTOOLPyQtApp(QMainWindow):
 
         # 确保窗口在合理的位置
         from PyQt6.QtGui import QGuiApplication
+
         try:
             screen = QGuiApplication.primaryScreen()
             if screen:
@@ -139,6 +162,7 @@ class VMTOOLPyQtApp(QMainWindow):
 
             # 使用 ThemeConfig 创建调色板
             from app.core.theme_config import ThemeConfig
+
             palette = ThemeConfig.get_qpalette(theme_name, theme_mode, theme_color)
 
             app = QApplication.instance()
@@ -146,7 +170,7 @@ class VMTOOLPyQtApp(QMainWindow):
                 app.setPalette(palette)
 
                 for window in app.topLevelWidgets():
-                    if hasattr(window, 'setPalette'):
+                    if hasattr(window, "setPalette"):
                         apply_theme_to_widget(window, palette)
 
             self.setPalette(palette)
@@ -168,17 +192,23 @@ class VMTOOLPyQtApp(QMainWindow):
             # Linear 主题使用 QSS
             palette = ThemeConfig.get_palette(theme_name, theme_mode, theme_color)
             from .styles import load_linear_theme_qss
+
             qss = load_linear_theme_qss(theme_mode, theme_color)
             from .styles.theme_variables import resolve_qss_variables
+
             qss = resolve_qss_variables(qss, palette)
             QApplication.instance().setStyleSheet(qss)
         elif theme_name == THEME_NAME_MATERIAL3:
             # Material3 主题使用 QSS
             palette = ThemeConfig.get_palette(theme_name, theme_mode, theme_color)
-            from .styles.theme_variables import resolve_qss_variables
             import os
-            qss_path = os.path.join(os.path.dirname(__file__), "styles", "material_theme.qss")
-            with open(qss_path, "r", encoding="utf-8") as f:
+
+            from .styles.theme_variables import resolve_qss_variables
+
+            qss_path = os.path.join(
+                os.path.dirname(__file__), "styles", "material_theme.qss"
+            )
+            with open(qss_path, encoding="utf-8") as f:
                 qss = f.read()
             qss = resolve_qss_variables(qss, palette)
             QApplication.instance().setStyleSheet(qss)
@@ -193,6 +223,7 @@ class VMTOOLPyQtApp(QMainWindow):
 
             # 使用 ThemeConfig 创建调色板
             from app.core.theme_config import ThemeConfig
+
             palette = ThemeConfig.get_qpalette(theme_name, theme_mode, theme_color)
 
             app = QApplication.instance()
@@ -200,7 +231,7 @@ class VMTOOLPyQtApp(QMainWindow):
                 app.setPalette(palette)
 
                 for window in app.topLevelWidgets():
-                    if hasattr(window, 'setPalette'):
+                    if hasattr(window, "setPalette"):
                         apply_theme_to_widget(window, palette)
 
             self.setPalette(palette)
@@ -213,14 +244,14 @@ class VMTOOLPyQtApp(QMainWindow):
 
     def import_data(self):
         """导入数据"""
-        if not hasattr(self, 'import_export_tab'):
+        if not hasattr(self, "import_export_tab"):
             QMessageBox.warning(self, "警告", "导入导出标签页未初始化")
             return
         self.import_export_tab.import_data()
 
     def export_data(self):
         """导出数据"""
-        if not hasattr(self, 'import_export_tab'):
+        if not hasattr(self, "import_export_tab"):
             QMessageBox.warning(self, "警告", "导入导出标签页未初始化")
             return
         self.import_export_tab.export_data()
@@ -228,8 +259,10 @@ class VMTOOLPyQtApp(QMainWindow):
     def calculate_weight(self):
         """计算权重 - 基于词频对数重新计算所有词条权重"""
         reply = QMessageBox.question(
-            self, "确认", "将基于词频数据重新计算所有词条权重，是否继续？",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            self,
+            "确认",
+            "将基于词频数据重新计算所有词条权重，是否继续？",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
         if reply != QMessageBox.StandardButton.Yes:
             return
@@ -238,7 +271,7 @@ class VMTOOLPyQtApp(QMainWindow):
         if progress_bar:
             progress_bar.start_progress("正在计算权重...")
 
-        self.calc_weight_thread = CalculateWeightThread(self.weight_calc)
+        self.calc_weight_thread = CalculateWeightThread()
 
         def update_progress(progress, message):
             if progress_bar:
@@ -283,6 +316,7 @@ class VMTOOLPyQtApp(QMainWindow):
     def create_settings_tab(self, parent):
         """创建设置标签页"""
         from .settings_tab import SettingsTab
+
         layout = QVBoxLayout(parent)
 
         # 创建 SettingsTab 实例
@@ -363,7 +397,7 @@ class VMTOOLPyQtApp(QMainWindow):
         dashboard_page = DashboardPage(
             parent=self,
             dict_service=self.dict_service,
-            stats_service=self.stats_service
+            stats_service=self.stats_service,
         )
         self.content_stack.addWidget(dashboard_page)
         self.sidebar_nav.add_group("概览")
@@ -394,7 +428,7 @@ class VMTOOLPyQtApp(QMainWindow):
         self.import_export_tab = ImportExportTab(
             parent=self,
             filter_service=self.filter_service,
-            dict_service=self.dict_service
+            dict_service=self.dict_service,
         )
         self.content_stack.addWidget(self.import_export_tab)
 
@@ -417,7 +451,6 @@ class VMTOOLPyQtApp(QMainWindow):
         self.sidebar_nav.add_item(TAB_ICONS["settings"], "设置", 7)
 
         # 添加版本号到侧边栏底部
-        from PyQt6.QtWidgets import QSizePolicy
         version_label = QLabel("v1.0.0")
         version_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         version_label.setStyleSheet("font-size: 10px; color: #62666d; padding: 8px;")
@@ -439,5 +472,23 @@ class VMTOOLPyQtApp(QMainWindow):
         # 如果切换到仪表盘，刷新数据
         if page_index == 0:
             dashboard = self.content_stack.widget(0)
-            if hasattr(dashboard, 'refresh'):
+            if hasattr(dashboard, "refresh"):
                 dashboard.refresh()
+
+    def closeEvent(self, event):
+        """退出时释放长驻服务持有的数据库会话。"""
+        try:
+            self._close_services()
+        finally:
+            super().closeEvent(event)
+
+    def _close_services(self):
+        """关闭 GUI 持有的服务（幂等；未成功初始化的服务会被跳过）。"""
+        for name in ("dict_service", "weight_calc", "filter_service", "stats_service"):
+            service = getattr(self, name, None)
+            close = getattr(service, "close", None)
+            if callable(close):
+                try:
+                    close()
+                except Exception as e:
+                    logger.warning(f"[GUI] 关闭 {name} 失败: {e}")
