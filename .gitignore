@@ -60,3 +60,6 @@ logs/
 .gitnexus
 htmlcov/
 coverage.xml
+
+# AgentTeams 多智能体运行时状态（非源码，不入库）
+.agent-teams/
