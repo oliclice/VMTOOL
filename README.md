@@ -205,8 +205,7 @@ VMtool/
 ├── .pre-commit-config.yaml     # pre-commit 钩子
 ├── ARCHITECTURE_REVIEW.md      # 架构评审（过程文档，可不入库）
 ├── EXECUTION_REPORT.md         # 修复执行报告（过程文档，可不入库）
-├── AGENTS.md                   # AI 代理指南
-└── 项目规范                   # 开发规范
+└── AGENTS.md                   # AI 代理指南
 ```
 
 ## 编码规则

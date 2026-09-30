@@ -86,10 +86,18 @@ npx gitnexus analyze --embeddings
 
 To check whether embeddings exist, inspect `.gitnexus/meta.json` — the `stats.embeddings` field shows the count (0 means no embeddings). **Running analyze without `--embeddings` will delete any previously generated embeddings.**
 
-
-## CLI
-
-| Task | Read this skill file |
-|------|---------------------|
-
 <!-- gitnexus:end -->
+
+## Agent skills
+
+### Issue tracker
+
+Issues and specs live as GitHub Issues in `oliclice/VMTOOL`; read and write them with the `deck_*` tools. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical triage roles keep their default strings (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`), plus the five `wayfinder:*` labels. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+single-context. See `docs/agents/domain.md`.

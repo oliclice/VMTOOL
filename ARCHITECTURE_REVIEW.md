@@ -114,7 +114,7 @@
 #### P1-3　Session 生命周期交给 GC
 
 - **证据**：`dict.py:25` `self.db = next(get_db())`；`database.py:45-51` 中 `get_db` 是 generator，`finally: db.close()` 只在生成器被回收时执行。
-- **影响**：会话不显式释放，事务边界不确定，长驻 GUI 下连接与未提交事务可能长期悬挂。这是 项目规范 中"`config_manager` 读取 `database_path` 可能产生循环依赖"的同一根因面——`database.py:6` 在 DAL 层反向导入 `app.core.config_manager`。
+- **影响**：会话不显式释放，事务边界不确定，长驻 GUI 下连接与未提交事务可能长期悬挂。这与 `config_manager` 读取 `database_path` 可能产生循环依赖属同一根因面——`database.py:6` 在 DAL 层反向导入 `app.core.config_manager`。
 
 #### P1-4　死代码与重复实现（合计约 553 行 + 三套同功能 UI）
 

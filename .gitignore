@@ -63,3 +63,10 @@ coverage.xml
 
 # AgentTeams 多智能体运行时状态（非源码，不入库）
 .agent-teams/
+
+# AI 工具产物（与项目无关的运行时状态 / 缓存 / 记忆，不入库）
+.remember/
+.superpowers/
+.dsh-memory/
+.pytest_cache/
+.ruff_cache/
